@@ -43,7 +43,7 @@ void ArtnetHandler::init(int universe, const String &shortName, const String &lo
 
     artnet.begin();
     artnet.subscribe([&](const uint32_t univ, const uint8_t *data, const uint16_t size) {
-        //LOG(".");
+        //Serial.write("-");
         if (artnet.opcode() == arx::artnet::OPC(arx::artnet::OpCode::Dmx) && size >= 2)
         {
             for (uint8_t k = 0; k < this->devicesCount; k++)

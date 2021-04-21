@@ -42,13 +42,14 @@ void DmxRepeater::frame(const uint32_t univ, const uint8_t *data, const uint16_t
         dmx.write(i + 1, data[i]);
     }
     Device::frame();
+    //Serial.write(".");
 }
 
 void DmxRepeater::handle()
 {
     if (millis() - lastRefreshTime >= DMX_REFRESH_INTERVAL /* && !(millis() - lastChange > DMX_SILENCE_TIMEOUT) */)
     {
-        lastRefreshTime += REFRESH_INTERVAL;
+        lastRefreshTime += DMX_REFRESH_INTERVAL;
         dmx.update();
     }
 }

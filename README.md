@@ -8,6 +8,7 @@
 - [ ] BUG: Reboot doesn't always work correctly on Sonoff Basic
 - [ ] Document all known implementations
 - [ ] DMX: support multiple universes
+- [ ] DMX: single-channel Dimmer (new type)
 - [ ] Strobe: Flip
 
 ## Version History
