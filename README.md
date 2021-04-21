@@ -10,11 +10,14 @@
 - [ ] DMX: support multiple universes
 - [ ] DMX: single-channel Dimmer (new type)
 - [ ] Strobe: Flip
+- [x] ArtNet: BUG: Repeater skips broadcasts
+- [ ] ArtNet: Discovery
 
 ## Version History
 
 ### 2021.3
-
+- FIXED: Repeater skips broadcasts. AsyncUDP rules! But this comes with a high price of dropping ArtNet Discovery feature
+  
 ### 2021.2
 - DMX Gateway
 - OTA updates (not for boards with 1M flash)

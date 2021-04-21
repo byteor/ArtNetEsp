@@ -10,9 +10,11 @@ extern "C"
 }
 #endif
 
+#include "device/device.h"
+
 typedef struct
 {
-    char artNet[8];     // 'Art-Net'
+    char artNet[8];   // 'Art-Net'
     uint16_t OpCode;  // See Doc. Table 1 - OpCodes eg. 0x5000 OpOutput / OpDmx
     uint16_t version; // 0x0e00 (aka 14)
     uint8_t seq;      // monotonic counter
@@ -22,19 +24,18 @@ typedef struct
     uint8_t data[512];
 } ArtnetDmxFull;
 
-typedef std::function<void(int chanel, int value)> DmxCallbackFunction;
-
 class UdpHandler
 {
-    protected:
+protected:
     AsyncUDP *udp;
     Stream *serial;
     bool isFirst = true;
 
-    DmxCallbackFunction handler;
+    Device **devices;
+    uint8_t devicesCount;
 
-    public:
+public:
     UdpHandler(Stream *serial);
-    bool start(int port, DmxCallbackFunction fn);
+    bool start(int port, Device **devices, uint8_t deviceCount);
     void handle(AsyncUDPPacket packet, uint8_t prevDmx[]);
 };

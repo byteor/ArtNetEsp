@@ -4,10 +4,9 @@
 #include <Ticker.h>
 #include "logger.h"
 #include "config.h"
-#include "artnetHandler.h"
 
 Ticker apiTicker;
-void setupApi(AsyncWebServer *server, art::Config &config, Connect *connect, ArtnetHandler *artnet)
+void setupApi(AsyncWebServer *server, art::Config &config, Connect *connect)
 {
     server->on("/heap", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(200, "text/plain", String(ESP.getFreeHeap()));
@@ -63,7 +62,7 @@ void setupApi(AsyncWebServer *server, art::Config &config, Connect *connect, Art
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"reset\":\"OK\"");
         request->send(response);
         apiTicker.once_scheduled(0.5f, [&](){
-            artnet->stop();
+            //artnet->stop();
             connect->reset();
             ESP.restart();
         });

@@ -16,12 +16,11 @@
 #include <AsyncElegantOTA.h>
 #endif
 
-//#include <oled.h>
 #include <AceButton.h>
 #include "version.h"
 #include "connect.h"
 #include "statusLed.h"
-#include "artnetHandler.h"
+#include "UdpHandler.h"
 #include "api.h"
 #include "config.h"
 #include "device/device.h"
@@ -39,7 +38,7 @@ AsyncWebServer server(80);
 DNSServer dnsServer;
 Connect connect;
 art::Config config;
-ArtnetHandler artnet;
+UdpHandler artnet(&Serial);
 Device *devices[MAX_DMX_DEVICES];
 StatusLed *status;
 
@@ -133,7 +132,7 @@ void setup()
       break;
     }
   }
-  artnet.init(1, config.host, config.host, devices, config.dmx.size());
+  artnet.start(6454, devices, config.dmx.size());
 
   // Setup WWW
   server.reset();
@@ -142,13 +141,12 @@ void setup()
   AsyncElegantOTA.begin(&server);
 #endif
 
-  setupApi(&server, config, &connect, &artnet);
+  setupApi(&server, config, &connect);
   server.begin(); // Call ONLY AFTER WiFi gets connected !!!!! (or reboot loop)
 }
 
 void loop()
 {
-  artnet.loop();
   button.check();
   for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
     if (devices[i])
