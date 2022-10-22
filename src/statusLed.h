@@ -3,6 +3,9 @@
 
 #include <Ticker.h>
 #include <Arduino.h>
+#ifdef ESP32
+#include <analogWrite.h>
+#endif
 #include "logger.h"
 
 class StatusLed
@@ -12,10 +15,12 @@ class StatusLed
     Ticker _ticker;
  
     static constexpr float STATUS_CONNECTING = 0.1f;
-    static constexpr float STATUS_PORTAL = 0.75f;
+    static constexpr float STATUS_PORTAL = 0.5f;
+    static constexpr int STATUS_PWM_OFF = 1000;
+    static constexpr int STATUS_PWM_ON = 600;
     
 public:
-    enum Status { Connecting, CaptivePortal, Connected };    
+    enum Status { Connecting, CaptivePortal, Connected, ON, OFF };    
 
     StatusLed(uint8_t pin, uint8_t onValue)
     {
@@ -48,7 +53,12 @@ public:
             _ticker.attach(STATUS_PORTAL, &staticTick, this);
             break;
         case Status::Connected:
+        case Status::ON:
             stop(true);
+            analogWrite(_ledPin, STATUS_PWM_ON);
+            break;
+        case Status::OFF:
+            analogWrite(_ledPin, STATUS_PWM_OFF);
             break;
         default:
             stop(false);

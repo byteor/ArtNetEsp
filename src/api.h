@@ -6,6 +6,18 @@
 #include "config.h"
 
 Ticker apiTicker;
+
+void restart() 
+{
+    ESP.restart();
+}
+
+void disconnectAndRestart(Connect *cn) 
+{
+    cn->reset();
+    ESP.restart();
+}
+
 void setupApi(AsyncWebServer *server, art::Config &config, Connect *connect)
 {
     server->on("/heap", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -50,9 +62,7 @@ void setupApi(AsyncWebServer *server, art::Config &config, Connect *connect)
 
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"reboot\":\"OK\"");
         request->send(response);
-        apiTicker.once_scheduled(0.5f, [](){
-            ESP.restart();
-        });
+        apiTicker.once_ms(200, restart);
     });
 
     // POST /reset-wifi
@@ -61,11 +71,7 @@ void setupApi(AsyncWebServer *server, art::Config &config, Connect *connect)
 
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"reset\":\"OK\"");
         request->send(response);
-        apiTicker.once_scheduled(0.5f, [&](){
-            //artnet->stop();
-            connect->reset();
-            ESP.restart();
-        });
+        apiTicker.once_ms(200, disconnectAndRestart, connect);
     });
 
     server->onNotFound([](AsyncWebServerRequest *request) {

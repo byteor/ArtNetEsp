@@ -20,7 +20,7 @@ public:
     void init(int universe, const String &shortName, const String &longName, Device **dmxDevice, uint8_t devicesCount);
     void loop();
     void stop();
-    uint8_t getData(uint8_t index);
+    uint8_t getData(uint16_t index);
 };
 
 ArtnetHandler::ArtnetHandler(){};
@@ -51,7 +51,7 @@ void ArtnetHandler::init(int universe, const String &shortName, const String &lo
                     devices[k]->frame(univ, data, size);
             if (isFirst || memcmp(prevDmx, data, size) != 0)
             {
-                for (uint8_t i = 0; i < size; i++)
+                for (uint16_t i = 0; i < size; i++)
                 {
                     if (prevDmx[i] != data[i])
                     {
@@ -62,7 +62,7 @@ void ArtnetHandler::init(int universe, const String &shortName, const String &lo
                             {
                                 devices[k]->set(i + 1, data[i]);
                             }
-                        //LOG("DMX[" + String(i + 1) + "]=" + String(data[i]));
+                        LOG("DMX[" + String(i + 1) + "]=" + String(data[i]));
                     }
                 }
                 isFirst = false;
@@ -71,7 +71,7 @@ void ArtnetHandler::init(int universe, const String &shortName, const String &lo
     });
 }
 
-uint8_t ArtnetHandler::getData(uint8_t index)
+uint8_t ArtnetHandler::getData(uint16_t index)
 {
     if (index < 512)
         return prevDmx[index];

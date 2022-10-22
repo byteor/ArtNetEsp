@@ -18,6 +18,7 @@ public:
     void flip();
     void set(uint8_t channel, uint8_t data);
     uint16_t getNumberOfChannels() { return 1; }
+    bool isEnabled();
 
     DmxRelay(uint8_t universe, uint8_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold);
 };
@@ -62,6 +63,11 @@ void DmxRelay::flip()
     Serial.print("Relay: FLIP: ");
     Serial.println(value & 0x01);
     digitalWrite(pin, value);
+}
+
+bool DmxRelay::isEnabled()
+{
+    return value;
 }
 
 #endif // RELAY_H

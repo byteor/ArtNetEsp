@@ -1,18 +1,21 @@
 #include "strobe.h"
 
-Strobe::Strobe(uint8_t universe, uint8_t channel, uint8_t pin, int pulse, int multiplier, int activeState, bool dimmable)
+Strobe::Strobe(uint8_t universe, uint8_t channel, uint8_t pin, int pulse, int multiplier, int activeState)
 {
-    Serial.printf("New Strobe: pin=%d, DMX channel:%d, dimmable:%d\r\n", pin, channel, dimmable);
+    Serial.printf("New Strobe: pin=%d, DMX channel:%d\r\n", pin, channel);
 
     this->universe = universe;
     this->channel = channel;
     this->pin = pin;
     this->pulse = pulse;
     this->multiplier = multiplier;
-    enabled = false;
+    enabled = true;
     this->activeState = activeState;
     this->inactiveState = activeState == HIGH ? LOW : HIGH;
-    this->dimmable = dimmable;
+    this->state = activeState;
+    this->valueOverride = activeState == HIGH ? 0 : 255;
+    this->adjustedMaxValue = activeState == HIGH ? 255 : 0;
+
     interval = 0;
     pinMode(pin, OUTPUT);
     digitalWrite(pin, inactiveState);
@@ -22,20 +25,37 @@ void Strobe::set(uint8_t dmxChannel, uint8_t data)
 {
     if (dmxChannel == channel) // Dimmer
     {
-        data == 0 ? stop() : start();
+        Serial.println("Dimmer: " + String(dmxChannel) + " = " + String(data));
+        // data == 0 ? stop() : start();
         this->value = data;
         this->adjustedActiveValue = activeState == HIGH ? value : 255 - value;
         this->adjustedInactiveValue = activeState == HIGH ? 0 : 255;
-        if (enabled && dimmable && state == activeState)
-        {
-            // if it is currently ON adjust the PWM value
-            analogWrite(pin, adjustedActiveValue);
-        }
+        update();
     }
-    if (dmxChannel == channel - 1) // Strobe
+    else if (dmxChannel == channel - 1) // Strobe
     {
+        Serial.println("Dimmer Strobe: " + String(dmxChannel) + " = " + String(data));
         setDuration(pulse);
-        setInterval(value * multiplier);
+        setInterval(data * multiplier);
+    }
+}
+
+void Strobe::update()
+{
+    if (enabled /* && state == activeState */)
+    {
+        // if it is currently ON adjust the PWM value
+        int newValue = valueOverride == adjustedMaxValue ? adjustedMaxValue : adjustedActiveValue;
+        if (valueOverride == adjustedInactiveValue)
+        {
+            newValue = adjustedInactiveValue;
+        }
+        analogWrite(pin, newValue * 4);
+        Serial.println(" =" + String(newValue));
+    }
+    else
+    {
+        analogWrite(pin, adjustedInactiveValue);
     }
 }
 
@@ -66,10 +86,13 @@ void Strobe::setPin(int number)
 
 void Strobe::handle()
 {
+    if (!enabled)
+        return;
     unsigned long currentMillis = millis();
     if (lastChange != 0 && millis() - lastChange > DMX_SILENCE_TIMEOUT)
     {
         set(channel, 0);
+        lastChange = millis();
     }
     else if (period <= pulse && enabled)
     {
@@ -77,14 +100,7 @@ void Strobe::handle()
         if (state != activeState)
         {
             state = activeState;
-            if (dimmable)
-            {
-                analogWrite(pin, adjustedActiveValue);
-            }
-            else
-            {
-                digitalWrite(pin, state);
-            }
+            analogWrite(pin, adjustedActiveValue);
         }
     }
     else
@@ -102,15 +118,7 @@ void Strobe::handle()
                 state = activeState;
                 interval = pulse;
             }
-
-            if (dimmable)
-            {
-                analogWrite(pin, state == activeState ? adjustedActiveValue : adjustedInactiveValue);
-            }
-            else
-            {
-                digitalWrite(pin, state);
-            }
+            analogWrite(pin, state == activeState ? adjustedActiveValue : adjustedInactiveValue);
         }
     }
 }
@@ -119,9 +127,11 @@ void Strobe::start()
 {
     if (!enabled)
     {
+        Serial.println("Strobe Started");
         interval = 0;
-        state = inactiveState;
+        state = activeState;
         enabled = true;
+        lastChange = millis();
     }
 }
 
@@ -133,5 +143,22 @@ void Strobe::stop()
 
 void Strobe::flip()
 {
-    // TODO: FLIP!
+    enabled = !enabled;
+    if (enabled)
+    {
+        Serial.println("Flip - ON");
+        // flipping when DMX value is set to 0. Manual flip should bring the full light on
+        valueOverride = value > 0 ? adjustedActiveValue : adjustedMaxValue;
+    }
+    else
+    {
+        Serial.println("Flip - OFF");
+        valueOverride = adjustedInactiveValue;
+    }
+    update();
+}
+
+bool Strobe::isEnabled()
+{
+    return enabled;
 }

@@ -1,5 +1,9 @@
 #include <Arduino.h>
+#ifdef ESP32
+#include <ESP32Servo.h>
+#else
 #include <Servo.h>
+#endif
 #include "device.h"
 
 class DmxServo : public Device

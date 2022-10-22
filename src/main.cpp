@@ -16,6 +16,10 @@
 #include <AsyncElegantOTA.h>
 #endif
 
+#ifdef ESP32
+#include <analogWrite.h>
+#endif
+
 #include <AceButton.h>
 #include "version.h"
 #include "connect.h"
@@ -50,6 +54,41 @@ AceButton button;
 StatusDisplay *statusDisplay;
 #endif
 
+void handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
+{
+  switch (eventType)
+  {
+  case AceButton::kEventLongPressed:
+    LOG(F("Hard reset caused by a Button"));
+    connect.reset();
+    ESP.restart();
+    break;
+  case AceButton::kEventPressed:
+#ifdef OLED_SSD1306
+    statusDisplay->message("v." + String(VERSION) + String("\nHold for 5 seconds\nto reset WiFi"));
+#endif
+    for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
+    {
+      if (devices[i])
+      {
+        devices[i]->flip();
+      }
+    }
+    if (config.dmx.size() > 0)
+    {
+      if (devices[0]->isEnabled())
+      {
+        status->set(StatusLed::Status::ON);
+      }
+      else
+      {
+        status->set(StatusLed::Status::OFF);
+      }
+    }
+    break;
+  }
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -73,28 +112,8 @@ void setup()
   buttonConfig.setFeature(ButtonConfig::kFeatureLongPress);
   button.init(&buttonConfig, config.hardware.buttonPin);
   pinMode(config.hardware.buttonPin, INPUT_PULLUP);
-  button.setEventHandler([&](AceButton * /* button */, uint8_t eventType, uint8_t /* buttonState */) {
-    switch (eventType)
-    {
-    case AceButton::kEventLongPressed:
-      LOG(F("Hard reset caused by a Button"));
-      connect.reset();
-      ESP.restart();
-      break;
-    case AceButton::kEventPressed:
-#ifdef OLED_SSD1306
-      statusDisplay->message("v." + String(VERSION) + String("\nHold for 5 seconds\nto reset WiFi"));
-#endif
-      for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
-      {
-        if (devices[i])
-        {
-          devices[i]->flip();
-        }
-      }
-      break;
-    }
-  });
+  button.setEventHandler(handleEvent);
+  
   LOG("Button on pin: " + String(config.hardware.buttonPin) + " long press is: " + String(config.hardware.longPressDelay) + " ms");
 
 #ifdef OLED_SSD1306
@@ -109,19 +128,26 @@ void setup()
   // TODO: Start mDNS
 
   // Devices
+#ifdef ESP32
+  // TODO: investigate - analogWriteFrequency doesn't compile despite it is defined in analogWrite library
+  //analogWriteFrequency((double)config.hardware.pwmFreq);
+#else
+  analogWriteFreq(config.hardware.pwmFreq);
+#endif  
+
   for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
   {
     devices[i] = NULL;
     switch (config.dmx[i]->type)
     {
     case art::DmxType::Binary:
-      devices[i] = new DmxRelay(1, config.dmx[0]->channel, config.dmx[0]->pin, config.dmx[0]->level, config.dmx[0]->threshold);
+      devices[i] = new DmxRelay(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->level, config.dmx[i]->threshold);
       break;
     case art::DmxType::Servo:
-      devices[i] = new DmxServo(1, config.dmx[0]->channel, config.dmx[0]->pin);
+      devices[i] = new DmxServo(1, config.dmx[i]->channel, config.dmx[i]->pin);
       break;
     case art::DmxType::Dimmable:
-      devices[i] = new Strobe(1, config.dmx[0]->channel, config.dmx[0]->pin, config.dmx[0]->pulse, HIGH, true);
+      devices[i] = new Strobe(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->pulse, config.dmx[i]->multiplier, config.dmx[i]->level);
       break;
     case art::DmxType::Repeater:
       devices[i] = new DmxRepeater(1);

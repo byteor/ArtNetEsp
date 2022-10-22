@@ -20,19 +20,20 @@ public:
     void start();
     void handle();
     void frame(const uint32_t univ, const uint8_t *data, const uint16_t size);
-    uint16_t getNumberOfChannels() { return 512; }
+    uint16_t getNumberOfChannels() { return DMX_CHANNELS; }
 };
 
 DmxRepeater::DmxRepeater(uint8_t universe)
 {
     Serial.printf("New Repeater\r\n");
+    dmx.init(DMX_CHANNELS-1);
     this->universe = universe;
     channel = 0;
 }
 
 void DmxRepeater::start()
 {
-    dmx.init(DMX_CHANNELS);
+    
 }
 
 void DmxRepeater::frame(const uint32_t univ, const uint8_t *data, const uint16_t size)

@@ -26,6 +26,11 @@ bool UdpHandler::start(int port, Device **devices, uint8_t deviceCount)
         memset(prevDmx, 0, 512 * sizeof(uint8_t));
         serial->print("UDP is listening on port ");
         serial->println(port);
+        for (uint8_t i = 0; i < devicesCount; i++)
+        {
+            if (devices[i])
+                devices[i]->start();
+        }
         udp->onPacket([&](AsyncUDPPacket packet) {
             this->handle(packet, prevDmx);
         });
@@ -46,7 +51,7 @@ void UdpHandler::handle(AsyncUDPPacket packet, uint8_t prevDmx[])
     {
         if (artnet->OpCode == 0x5000 && artnet->length >= 2)
         {
-            // sume controllers can send wrong number of channels so limit it to what we've got
+            // some controllers can send wrong number of channels so limit it to what we've got
             artnet->length = min((int)ntohs(artnet->length), (int)packet.length() - 18);
 
             for (uint8_t k = 0; k < this->devicesCount; k++)
@@ -68,15 +73,16 @@ void UdpHandler::handle(AsyncUDPPacket packet, uint8_t prevDmx[])
                             {
                                 devices[k]->set(i + 1, artnet->data[i]);
                             }
-
+                        /*
                         serial->print(" DMX: ");
-                        serial->print(i);
+                        serial->print(i + 1);
                         serial->print(" = ");
                         serial->print(artnet->data[i]);
+                        */
                     }
                 }
-                if (changed)
-                    serial->println();
+                //if (changed)
+                //    serial->println();
                 isFirst = false;
             }
         }
