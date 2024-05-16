@@ -14,11 +14,13 @@ class DmxServo : public Device
     int state; // 1/0 == ON/OFF
     int value; // original PWM value, 0-255
     Servo servo;
+    uint8_t data;
 
 public:
     void start();
     void stop();
     void flip();
+    uint8_t get(uint8_t channel);
     void set(uint8_t channel, uint8_t data);
     uint16_t getNumberOfChannels() { return 1; }
 
@@ -40,6 +42,11 @@ DmxServo::DmxServo(uint8_t universe, uint8_t channel, uint8_t pin)
     Serial.println(universe);
 }
 
+uint8_t DmxServo::get(uint8_t channel)
+{
+    return data;
+}
+
 void DmxServo::set(uint8_t dmxChannel, uint8_t data)
 {
     /*
@@ -54,6 +61,7 @@ void DmxServo::set(uint8_t dmxChannel, uint8_t data)
     */
     if (dmxChannel == channel)
     {
+        this->data = data;
         int dX = 0;
         float dY = 30;
         float d0 = 90;

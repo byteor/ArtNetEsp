@@ -120,12 +120,6 @@ void setup()
   statusDisplay->setConfig(&config);
 #endif
 
-  LOG("Init WiFi...");
-  connect.init(&server, &dnsServer);
-  connect.connect(config.host);
-
-  // TODO: Start mDNS
-
   // Devices
 #ifdef ESP32
   // TODO: investigate - analogWriteFrequency doesn't compile despite it is defined in analogWrite library
@@ -159,6 +153,14 @@ void setup()
       break;
     }
   }
+
+  LOG("Init WiFi...");
+  connect.init(&server, &dnsServer);
+  connect.connect(config.host);
+
+  // TODO: Start mDNS
+
+  // ArtNet
   String longName = config.host;
   if (config.dmx.size() > 0)
   {
@@ -192,4 +194,5 @@ void loop()
 #ifndef DISABLE_OTA
   ElegantOTA.loop();
 #endif
+  connect.loop();
 }

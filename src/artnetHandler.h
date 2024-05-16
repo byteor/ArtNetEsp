@@ -10,7 +10,6 @@ class ArtnetHandler
 {
 private:
     ArtnetWiFiReceiver artnet;
-    uint8_t prevDmx[512];
     bool isFirst = true;
     Device **devices;
     uint8_t devicesCount;
@@ -21,7 +20,6 @@ public:
     void init(int universe, const String &shortName, const String &longName, Device **dmxDevice, uint8_t devicesCount);
     void loop();
     void stop();
-    uint8_t getData(uint16_t index);
 };
 
 ArtnetHandler::ArtnetHandler(){};
@@ -29,8 +27,6 @@ ArtnetHandler::ArtnetHandler(){};
 void ArtnetHandler::init(int universe, const String &shortName, const String &longName, Device **dmxDevice, uint8_t devicesCount)
 {
     this->universe = universe;
-    for (size_t i = 0; i < 512; i++)
-        prevDmx[i] = 0;
     devices = dmxDevice;
     this->devicesCount = devicesCount;
     for (uint8_t i = 0; i < devicesCount; i++)
@@ -47,37 +43,25 @@ void ArtnetHandler::init(int universe, const String &shortName, const String &lo
 
     artnet.subscribeArtDmxUniverse(universe, [&](const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote)
                                    {
-                                        if (size >= 2)
-                                        {
-                                            for (uint8_t k = 0; k < this->devicesCount; k++)
-                                                if (devices[k])
-                                                    devices[k]->frame(universe, data, size);
-                                            if (isFirst || memcmp(prevDmx, data, size) != 0)
-                                            {
-                                                for (int i = 0; i < size; i++)
-                                                {
-                                                    if (prevDmx[i] != data[i])
-                                                    {
-                                                        prevDmx[i] = data[i];
-                                                        for (uint8_t k = 0; k < this->devicesCount; k++)
-                                                            if (devices[k] && devices[k]->getChannel() <= i + 1 && devices[k]->getChannel() + devices[k]->getNumberOfChannels() > i + 1)
-                                                            {
-                                                                devices[k]->set(i + 1, data[i]);
-                                                            }
-                                                    }
-                                                }
-                                                isFirst = false;
-                                            }
-                                    } });
-}
+                                       if (size >= 2)
+                                       {
+                                           for (uint8_t k = 0; k < this->devicesCount; k++)
+                                           {
+                                               if (devices[k])
+                                               {
+                                                   devices[k]->frame(universe, data, size);
 
-uint8_t ArtnetHandler::getData(uint16_t index)
-{
-    if (index < 512)
-        return prevDmx[index];
-    return 0;
+                                                   for (int i = devices[k]->getChannel(); i < devices[k]->getChannel() + devices[k]->getNumberOfChannels(); i++)
+                                                   {
+                                                       if (data[i - 1] != devices[k]->get(i))
+                                                       {
+                                                           devices[k]->set(i, data[i - 1]);
+                                                       }
+                                                   }
+                                               }
+                                           }
+                                       } });
 }
-
 void ArtnetHandler::loop()
 {
     artnet.parse();

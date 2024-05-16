@@ -15,6 +15,7 @@ public:
     virtual void stop() {};  // deallocate resources
     virtual void flip() {};  // call to flip the state (depending on device type)
     virtual void set(uint8_t channel, uint8_t data) {};
+    virtual uint8_t get(uint8_t channel) { return 0; }
     virtual bool isEnabled() { return true; }
     virtual void handle() // call it from loop() if needed
     {

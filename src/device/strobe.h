@@ -7,6 +7,7 @@
 #endif
 #include "device.h"
 #include "hw/board.h"
+#include "hw/logger.h"
 
 // default strobe pulse length, ms
 #define DEFAULT_STROBE_PULSE 5
@@ -39,6 +40,7 @@ public:
     void flip();
     void update();
     bool isEnabled();
+    uint8_t get(uint8_t channel);
     void set(uint8_t channel, uint8_t data);
     uint16_t getNumberOfChannels() { return 1; } // Temporarily set to 1
 

@@ -21,12 +21,13 @@ protected:
     AsyncWiFiManager *wifiManager;
 
     static const unsigned long REFRESH_INTERVAL = 1000; // ms
-    static unsigned long lastRefreshTime;
+    unsigned long lastRefreshTime;
+    String hostName;
 
 public:
     void init(AsyncWebServer *server, DNSServer *dns);
     void connect(String hostName);
-    static void loop(Connect *connect);
+    void loop();
     void reset();
 };
 

@@ -2,7 +2,7 @@
 
 Strobe::Strobe(uint8_t universe, uint8_t channel, uint8_t pin, int pulse, int multiplier, int activeState)
 {
-    Serial.printf("New Strobe: pin=%d, DMX channel:%d\r\n", pin, channel);
+    LOG("New Strobe: pin=" + String(pin) + " DMX channel:" + String(channel));
 
     this->universe = universe;
     this->channel = channel;
@@ -21,11 +21,16 @@ Strobe::Strobe(uint8_t universe, uint8_t channel, uint8_t pin, int pulse, int mu
     digitalWrite(pin, inactiveState);
 }
 
+uint8_t Strobe::get(uint8_t channel)
+{
+    return value;
+}
+
 void Strobe::set(uint8_t dmxChannel, uint8_t data)
 {
     if (dmxChannel == channel) // Dimmer
     {
-        Serial.println("Dimmer: " + String(dmxChannel) + " = " + String(data));
+        LOG("Dimmer: " + String(dmxChannel) + " = " + String(data));
         this->value = data;
         this->adjustedActiveValue = activeState == HIGH ? value : 255 - value;
         this->adjustedInactiveValue = activeState == HIGH ? 0 : 255;
@@ -33,7 +38,7 @@ void Strobe::set(uint8_t dmxChannel, uint8_t data)
     }
     else if (dmxChannel == channel - 1) // Strobe
     {
-        Serial.println("Dimmer Strobe: " + String(dmxChannel) + " = " + String(data));
+        LOG("Dimmer Strobe: " + String(dmxChannel) + " = " + String(data));
         setDuration(pulse);
         setInterval(data * multiplier);
     }
@@ -44,7 +49,7 @@ void Strobe::update()
     if (enabled && state == activeState)
     {
         analogWrite(pin, adjustedActiveValue * 4); // translate from 0-255 to 0-1024
-        Serial.println(" =" + String(adjustedActiveValue));
+        LOG(" =" + String(adjustedActiveValue));
     }
     else
     {
@@ -84,6 +89,7 @@ void Strobe::handle()
     unsigned long currentMillis = millis();
     if (lastChange != 0 && millis() - lastChange > DMX_SILENCE_TIMEOUT)
     {
+        LOG(F("DMX Silence Timeout"));
         set(channel, 0);
         lastChange = millis();
     }
@@ -120,7 +126,7 @@ void Strobe::start()
 {
     if (!enabled)
     {
-        Serial.println("Strobe Started");
+        LOG(F("Strobe Started"));
         interval = 0;
         state = activeState;
         enabled = true;
@@ -139,13 +145,13 @@ void Strobe::flip()
     enabled = !enabled;
     if (enabled)
     {
-        Serial.println("Flip - ON");
+        LOG(F("Flip - ON"));
         // flipping when DMX value is set to 0. Manual flip should bring the full light on
         valueOverride = value > 0 ? adjustedActiveValue : adjustedMaxValue;
     }
     else
     {
-        Serial.println("Flip - OFF");
+        LOG(F("Flip - OFF"));
         valueOverride = adjustedInactiveValue;
     }
     update();

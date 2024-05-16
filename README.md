@@ -17,6 +17,7 @@
 - [ ] Status LED: active LOH/HIGH setting
 - [x] BUG: only one DMX config works
 - [x] Support ESP32
+- [x] Reconnect on WiFi disconnects
 
 ## Version History
 
@@ -25,6 +26,7 @@
 - Updated dependencies
 - new DMX library
 - ArtNet discovery
+- Reconnect on WiFi disconnect
 
 ### 2021.4
 
@@ -56,9 +58,14 @@
 
 ---
 
-## Captive Portal
+## WiFi connection and Captive Portal
 
+On startup, if a known WiFi network is not available or WiFi was never successfully connected before, Captive Portal starts and
 is accessible via default IP address: [192.168.4.1](192.168.4.1)
+
+If a known network comes back to life while the Captive Portal is active, the device will be automatically connected to it.
+
+WiFi connection is constantly being checked every second. If connection is lost, a reconnect attempt will be made following the same logic as at startup.
 
 ## Variations
 
