@@ -26,7 +26,6 @@ void Strobe::set(uint8_t dmxChannel, uint8_t data)
     if (dmxChannel == channel) // Dimmer
     {
         Serial.println("Dimmer: " + String(dmxChannel) + " = " + String(data));
-        // data == 0 ? stop() : start();
         this->value = data;
         this->adjustedActiveValue = activeState == HIGH ? value : 255 - value;
         this->adjustedInactiveValue = activeState == HIGH ? 0 : 255;
@@ -42,16 +41,10 @@ void Strobe::set(uint8_t dmxChannel, uint8_t data)
 
 void Strobe::update()
 {
-    if (enabled /* && state == activeState */)
+    if (enabled && state == activeState)
     {
-        // if it is currently ON adjust the PWM value
-        int newValue = valueOverride == adjustedMaxValue ? adjustedMaxValue : adjustedActiveValue;
-        if (valueOverride == adjustedInactiveValue)
-        {
-            newValue = adjustedInactiveValue;
-        }
-        analogWrite(pin, newValue * 4);
-        Serial.println(" =" + String(newValue));
+        analogWrite(pin, adjustedActiveValue * 4); // translate from 0-255 to 0-1024
+        Serial.println(" =" + String(adjustedActiveValue));
     }
     else
     {
@@ -100,7 +93,7 @@ void Strobe::handle()
         if (state != activeState)
         {
             state = activeState;
-            analogWrite(pin, adjustedActiveValue);
+            update();
         }
     }
     else
@@ -118,7 +111,7 @@ void Strobe::handle()
                 state = activeState;
                 interval = pulse;
             }
-            analogWrite(pin, state == activeState ? adjustedActiveValue : adjustedInactiveValue);
+            update();
         }
     }
 }

@@ -1,3 +1,5 @@
+#ifndef SONOFF_BASIC
+
 #include <Arduino.h>
 #ifdef ESP32
 #include <ESP32Servo.h>
@@ -56,22 +58,26 @@ void DmxServo::set(uint8_t dmxChannel, uint8_t data)
         float dY = 30;
         float d0 = 90;
         float b = 0;
-        int section = 256/4;
-        float m = dY / (float)section;        
-        if(data < section) {
+        int section = 256 / 4;
+        float m = dY / (float)section;
+        if (data < section)
+        {
             m *= -1;
             b = d0;
             dX = 0;
-        } else if(data >= section * 3) {
+        }
+        else if (data >= section * 3)
+        {
             m *= -1;
             b = d0 + dY;
-            dX = -section*3;
-        } else {
+            dX = -section * 3;
+        }
+        else
+        {
             dX = -section;
             b = d0 - dY;
         }
         value = (float)(data + dX) * m + b;
-
 
         Serial.print("Servo: ");
         Serial.println(value);
@@ -102,3 +108,5 @@ void DmxServo::flip()
 {
     // do nothing
 }
+
+#endif // SONOFF_BASIC

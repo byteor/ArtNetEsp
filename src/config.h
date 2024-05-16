@@ -13,14 +13,14 @@
 #endif
 
 #include <ArduinoJson.h>
-#include "logger.h"
-#include "board.h"
+#include "hw/logger.h"
+#include "hw/board.h"
 #include "version.h"
 
 #define MAX_DMX_DEVICES 4 // efficiently a max number of "Art-Net Node Ports"
 /*
-If more than MAX_DMX_DEVICES are present in the input JSON, 
-only the first MAX_DMX_DEVICES will be saved and taken into account 
+If more than MAX_DMX_DEVICES are present in the input JSON,
+only the first MAX_DMX_DEVICES will be saved and taken into account
 */
 
 namespace art

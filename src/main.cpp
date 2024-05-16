@@ -1,4 +1,4 @@
-#include "board.h"
+#include "hw/board.h"
 
 #if defined(ESP8266)
 #include <ESP8266WiFi.h> //https://github.com/esp8266/Arduino
@@ -13,7 +13,7 @@
 
 #include <ESPAsyncWebServer.h>
 #ifndef DISABLE_OTA
-#include <AsyncElegantOTA.h>
+#include <ElegantOTA.h>
 #endif
 
 #ifdef ESP32
@@ -23,26 +23,25 @@
 #include <AceButton.h>
 #include "version.h"
 #include "connect.h"
-#include "statusLed.h"
-#include "UdpHandler.h"
+#include "hw/statusLed.h"
+#include "artnetHandler.h"
 #include "api.h"
 #include "config.h"
 #include "device/device.h"
-#include "device/dmxServo.h"
-#include "device/strobe.h"
 #include "device/relay.h"
+#ifndef SONOFF_BASIC
+#include "device/strobe.h"
 #include "device/repeater.h"
+#include "device/dmxServo.h"
+#endif
 
 using namespace ace_button;
-
-#define UDP_PORT 6454 // ArtNet UDP port
-#define MAX_DMX_CHANNELS 512
 
 AsyncWebServer server(80);
 DNSServer dnsServer;
 Connect connect;
 art::Config config;
-UdpHandler artnet(&Serial);
+ArtnetHandler artnet;
 Device *devices[MAX_DMX_DEVICES];
 StatusLed *status;
 
@@ -50,7 +49,7 @@ ButtonConfig buttonConfig;
 AceButton button;
 
 #ifdef OLED_SSD1306
-#include "oledDisplay.h"
+#include "hw/oledDisplay.h"
 StatusDisplay *statusDisplay;
 #endif
 
@@ -113,7 +112,7 @@ void setup()
   button.init(&buttonConfig, config.hardware.buttonPin);
   pinMode(config.hardware.buttonPin, INPUT_PULLUP);
   button.setEventHandler(handleEvent);
-  
+
   LOG("Button on pin: " + String(config.hardware.buttonPin) + " long press is: " + String(config.hardware.longPressDelay) + " ms");
 
 #ifdef OLED_SSD1306
@@ -130,10 +129,10 @@ void setup()
   // Devices
 #ifdef ESP32
   // TODO: investigate - analogWriteFrequency doesn't compile despite it is defined in analogWrite library
-  //analogWriteFrequency((double)config.hardware.pwmFreq);
+  // analogWriteFrequency((double)config.hardware.pwmFreq);
 #else
   analogWriteFreq(config.hardware.pwmFreq);
-#endif  
+#endif
 
   for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
   {
@@ -143,6 +142,7 @@ void setup()
     case art::DmxType::Binary:
       devices[i] = new DmxRelay(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->level, config.dmx[i]->threshold);
       break;
+#ifndef SONOFF_BASIC
     case art::DmxType::Servo:
       devices[i] = new DmxServo(1, config.dmx[i]->channel, config.dmx[i]->pin);
       break;
@@ -152,19 +152,29 @@ void setup()
     case art::DmxType::Repeater:
       devices[i] = new DmxRepeater(1);
       break;
+#endif
     default:
       LOG(F("Incompatible DMX device type:"));
       LOG(config.dmx[i]->type);
       break;
     }
   }
-  artnet.start(6454, devices, config.dmx.size());
+  String longName = config.host;
+  if (config.dmx.size() > 0)
+  {
+    for (int i = 0; i < config.dmx.size(); i++)
+    {
+      longName += " " + config.dmxTypeToString(config.dmx[i]->type) + " #" + String(config.dmx[i]->channel);
+    }
+  }
+  LOG(F("ArtNet Node: ") + config.host + " : " + longName);
+  artnet.init(0 /* universe */, config.host, longName, devices, config.dmx.size());
 
   // Setup WWW
   server.reset();
 
 #ifndef DISABLE_OTA
-  AsyncElegantOTA.begin(&server);
+  ElegantOTA.begin(&server);
 #endif
 
   setupApi(&server, config, &connect);
@@ -174,7 +184,12 @@ void setup()
 void loop()
 {
   button.check();
+  artnet.loop();
   for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
     if (devices[i])
       devices[i]->handle();
+
+#ifndef DISABLE_OTA
+  ElegantOTA.loop();
+#endif
 }
