@@ -7,7 +7,7 @@
 - [ ] Root HTML - CSS
 - [ ] BUG: Reboot doesn't always work correctly on Sonoff Basic
 - [ ] Document all known implementations
-- [ ] DMX: support multiple universes
+- [x] DMX: support multiple universes (one per physical device)
 - [ ] DMX: single-channel Dimmer (new type)
 - [ ] DMX: NeoPixel strip (new type)
 - [x] Strobe: Flip

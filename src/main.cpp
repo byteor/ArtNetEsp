@@ -170,7 +170,7 @@ void setup()
     }
   }
   LOG(F("ArtNet Node: ") + config.host + " : " + longName);
-  artnet.init(0 /* universe */, config.host, longName, devices, config.dmx.size());
+  artnet.init(config.universe, config.host, longName, devices, config.dmx.size());
 
   // Setup WWW
   server.reset();

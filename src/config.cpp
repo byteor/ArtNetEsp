@@ -108,6 +108,11 @@ namespace art
             host = doc["host"].as<String>();
             LOG("Host: " + host);
         }
+        if (!doc["universe"].isNull())
+        {
+            universe = doc["universe"].as<unsigned int>();
+            LOG("Universe: " + String(universe));
+        }
 
         JsonArray nets = doc["wifi"].as<JsonArray>();
         if (nets.size() > 0)
@@ -182,6 +187,7 @@ namespace art
         doc["info"]["rssi"] = WiFi.RSSI();
         doc["id"] = CHIP_ID;
         doc["host"] = host;
+        doc["universe"] = universe;
 
         JsonArray wifiNets = doc.createNestedArray("wifi");
         for (int i = 0; i < wifi.size(); i++)

@@ -60,7 +60,7 @@ namespace art
   typedef struct
   {
     // PWM frequency
-    uint16_t pwmFreq = DEFAULT_PWM_FREQ; // ESP8266 default is 1000 which may cause MOSFER overheat
+    uint16_t pwmFreq = DEFAULT_PWM_FREQ; // ESP8266 default is 1000 which may cause some MOSFET overheat
     uint8_t ledPin = LED_PIN;
     uint8_t buttonPin = DEFAULT_BUTTON_PIN;
     uint16_t longPressDelay = DEFAULT_BUTTON_LONG_PRESS * 1000;
@@ -121,6 +121,7 @@ namespace art
     // WiFi
     art::LinkedList<WiFiNet *> wifi;
     String host;
+    unsigned int universe;
     HardwareConfig hardware;
 
     Config();
