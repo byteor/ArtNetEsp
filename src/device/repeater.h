@@ -20,19 +20,19 @@ public:
     void start();
     void handle();
     void frame(const uint32_t univ, const uint8_t *data, const uint16_t size);
-    uint16_t getNumberOfChannels() { return 512; }
+    uint16_t getNumberOfChannels() { return DMX_CHANNELS; }
 };
 
 DmxRepeater::DmxRepeater(uint8_t universe)
 {
     Serial.printf("New Repeater\r\n");
+    dmx.init(DMX_CHANNELS - 1);
     this->universe = universe;
     channel = 0;
 }
 
 void DmxRepeater::start()
 {
-    dmx.init(DMX_CHANNELS);
 }
 
 void DmxRepeater::frame(const uint32_t univ, const uint8_t *data, const uint16_t size)
@@ -42,12 +42,11 @@ void DmxRepeater::frame(const uint32_t univ, const uint8_t *data, const uint16_t
         dmx.write(i + 1, data[i]);
     }
     Device::frame();
-    //Serial.write(".");
 }
 
 void DmxRepeater::handle()
 {
-    if (millis() - lastRefreshTime >= DMX_REFRESH_INTERVAL /* && !(millis() - lastChange > DMX_SILENCE_TIMEOUT) */)
+    if (millis() - lastRefreshTime >= DMX_REFRESH_INTERVAL)
     {
         lastRefreshTime += DMX_REFRESH_INTERVAL;
         dmx.update();

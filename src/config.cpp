@@ -1,7 +1,7 @@
 #include "config.h"
 namespace art
 {
-    #include "board.h"
+#include "hw/board.h"
     Config::Config()
     {
         if (ESP_FS.exists(CONFIG_FILE))
@@ -77,7 +77,7 @@ namespace art
 
     void Config::cleanupWiFi()
     {
-        for (size_t i = 0; i < wifi.size(); i++)
+        for (int i = 0; i < wifi.size(); i++)
         {
             delete wifi.get(i);
         }
@@ -86,13 +86,12 @@ namespace art
 
     void Config::cleanupDmx()
     {
-        for (size_t i = 0; i < dmx.size(); i++)
+        for (int i = 0; i < dmx.size(); i++)
         {
             delete dmx.get(i);
         }
         dmx.clear();
     }
-
 
     void Config::cleanup()
     {
@@ -108,6 +107,11 @@ namespace art
         {
             host = doc["host"].as<String>();
             LOG("Host: " + host);
+        }
+        if (!doc["universe"].isNull())
+        {
+            universe = doc["universe"].as<unsigned int>();
+            LOG("Universe: " + String(universe));
         }
 
         JsonArray nets = doc["wifi"].as<JsonArray>();
@@ -183,9 +187,10 @@ namespace art
         doc["info"]["rssi"] = WiFi.RSSI();
         doc["id"] = CHIP_ID;
         doc["host"] = host;
-        
+        doc["universe"] = universe;
+
         JsonArray wifiNets = doc.createNestedArray("wifi");
-        for (size_t i = 0; i < wifi.size(); i++)
+        for (int i = 0; i < wifi.size(); i++)
         {
             WiFiNet *net = wifi.get(i);
             wifiNets[i]["ssid"] = net->ssid;
@@ -194,7 +199,7 @@ namespace art
             wifiNets[i]["order"] = net->order;
         }
         JsonArray channels = doc.createNestedArray("dmx");
-        for (size_t i = 0; i < dmx.size() && i < MAX_DMX_DEVICES; i++)
+        for (int i = 0; i < dmx.size() && i < MAX_DMX_DEVICES; i++)
         {
             DmxChannel *channel = dmx.get(i);
             channels[i]["channel"] = channel->channel;
