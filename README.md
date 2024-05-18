@@ -1,79 +1,5 @@
 # ESP8266 ArtNet Node
 
-## TODO:
-
-- [ ] Root HTML - reset button
-- [ ] Root HTML - templates showing the host name and version
-- [ ] Root HTML - CSS
-- [ ] BUG: Reboot doesn't always work correctly on Sonoff Basic
-- [ ] Document all known implementations
-- [x] DMX: support multiple universes (one per physical device)
-- [ ] DMX: single-channel Dimmer (new type)
-- [ ] DMX: NeoPixel strip (new type)
-- [x] Strobe: Flip
-- [ ] Strobe: Stroboscope
-- [x] ArtNet: BUG: Repeater skips broadcasts
-- [x] ArtNet: Discovery
-- [ ] Status LED: active LOH/HIGH setting
-- [x] BUG: only one DMX config works
-- [x] Support ESP32
-- [x] Reconnect on WiFi disconnects
-
-## Version History
-
-### 2024.1
-
-- Updated dependencies
-- new DMX library
-- ArtNet discovery
-- Reconnect on WiFi disconnect
-
-### 2021.4
-
-- FIXED: multiple DMX channels actually work
-- DIMMER: button enables/disables -> On/Off
-- Support ESP32 (not field tested yet)
-
-### 2021.3
-
-- FIXED: Repeater skips broadcasts. AsyncUDP rules! But this comes with a high price of dropping ArtNet Discovery feature
-- FIXED: OTA was not working because of wrong memory allocation
-
-### 2021.2
-
-- DMX Gateway
-- OTA updates (not for boards with 1M flash)
-- Relay - temporary flip - switch the On/Off state on the button press
-- default HTML page - pointing to config and BitBucket
-- correct PlatformIO settings for LittleFS
-- OLED - support both 128x64 and 128x32 resolutions
-
-### 2021.1
-
-- Servo
-- Dimmer
-- Relay
-- OLED support
-- Long press to reset
-
----
-
-## WiFi connection and Captive Portal
-
-On startup, if a known WiFi network is not available or WiFi was never successfully connected before, Captive Portal starts and
-is accessible via default IP address: [192.168.4.1](192.168.4.1)
-
-If a known network comes back to life while the Captive Portal is active, the device will be automatically connected to it.
-
-WiFi connection is constantly being checked every second. If connection is lost, a reconnect attempt will be made following the same logic as at startup.
-
-## Variations
-
-### Sonoff Basic
-
-[x] OTA is disabled
-[x] Only RELAY device type is supported
-
 ## Device Types
 
 ### DIMMER
@@ -91,6 +17,36 @@ TBD
 ### REPEATER
 
 TBD
+
+## Controls
+
+### Indicator LED
+
+TBD
+
+### Button
+
+TBD
+
+### OLED Screen
+
+TBD
+
+## WiFi connection and Captive Portal
+
+On startup, if a known WiFi network is not available or WiFi was never successfully connected before, Captive Portal starts and
+is accessible via default IP address: [192.168.4.1](192.168.4.1)
+
+If a known network comes back to life while the Captive Portal is active, the device will be automatically connected to it.
+
+WiFi connection is constantly being checked every second. If connection is lost, a reconnect attempt will be made following the same logic as at startup.
+
+## Variations
+
+### Sonoff Basic
+
+- [x] OTA is disabled
+- [x] Only RELAY device type is supported
 
 ## REST API
 
@@ -171,3 +127,70 @@ Important notes:
 ### POST /reboot
 
 Makes a device to reboot. No payload required
+
+## OTA
+
+TBD
+[http://<DEVICE_IP>/update](http://<DEVICE_IP>/update)
+
+---
+
+## TODO:
+
+- [ ] Root HTML - reset button
+- [ ] Root HTML - templates showing the host name and version
+- [ ] Root HTML - CSS
+- [ ] BUG: Reboot doesn't always work correctly on Sonoff Basic
+- [ ] Document all known implementations
+- [x] DMX: support multiple universes (one per physical device)
+- [ ] DMX: single-channel Dimmer (new type)
+- [ ] DMX: NeoPixel strip (new type)
+- [x] Strobe: Flip
+- [ ] Strobe: Fix Stroboscope (or remove stroboscope at all)
+- [x] ArtNet: BUG: Repeater skips broadcasts
+- [x] ArtNet: Discovery
+- [x] BUG: only one DMX config works
+- [x] Support ESP32
+- [x] Reconnect on WiFi disconnects
+- [ ] Make blackout on DMX timeout optional
+- [ ] Rename Strobe class (it is meaningless)
+
+## Version History
+
+### 2024.1
+
+- Updated dependencies
+- new DMX library
+- ArtNet discovery
+- Reconnect on WiFi disconnect
+- Universe support
+
+### 2021.4
+
+- FIXED: multiple DMX channels actually work
+- DIMMER: button enables/disables -> On/Off
+- Support ESP32 (not field tested yet)
+
+### 2021.3
+
+- FIXED: Repeater skips broadcasts. AsyncUDP rules! But this comes with a high price of dropping ArtNet Discovery feature
+- FIXED: OTA was not working because of wrong memory allocation
+
+### 2021.2
+
+- DMX Gateway
+- OTA updates (not for boards with 1M flash)
+- Relay - temporary flip - switch the On/Off state on the button press
+- default HTML page - pointing to config and BitBucket
+- correct PlatformIO settings for LittleFS
+- OLED - support both 128x64 and 128x32 resolutions
+
+### 2021.1
+
+- Servo
+- Dimmer
+- Relay
+- OLED support
+- Long press to reset
+
+---
