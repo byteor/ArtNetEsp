@@ -13,14 +13,21 @@ class StatusLed
     uint8_t _ledPin;
     uint8_t _onValue;
     Ticker _ticker;
- 
+
     static constexpr float STATUS_CONNECTING = 0.1f;
     static constexpr float STATUS_PORTAL = 0.5f;
     static constexpr int STATUS_PWM_OFF = 1000;
-    static constexpr int STATUS_PWM_ON = 600;
-    
+    static constexpr int STATUS_PWM_ON = 200;
+
 public:
-    enum Status { Connecting, CaptivePortal, Connected, ON, OFF };    
+    enum Status
+    {
+        Connecting,
+        CaptivePortal,
+        Connected,
+        ON,
+        OFF
+    };
 
     StatusLed(uint8_t pin, uint8_t onValue)
     {
@@ -29,7 +36,7 @@ public:
         pinMode(pin, OUTPUT);
     }
 
-    void tick() 
+    void tick()
     {
         digitalWrite(_ledPin, !digitalRead(_ledPin));
     }
