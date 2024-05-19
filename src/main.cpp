@@ -126,6 +126,7 @@ void setup()
   // analogWriteFrequency((double)config.hardware.pwmFreq);
 #else
   analogWriteFreq(config.hardware.pwmFreq);
+  analogWriteRange(255);
 #endif
 
   for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
