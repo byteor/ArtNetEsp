@@ -1,10 +1,50 @@
 <!DOCTYPE html>
-<html>
+<head>
+  <title>Art Net Node</title>
+  <script>
+    function reboot() {
+      fetch("/reboot", {
+        method: "POST",
+      }).then((res) => {
+        alert("Rebooting...");
+      });
+    }
+  </script>
+  <html>
     <body>
-        <h1>Art Net Node</h1>
-        <a href="/config">View Configuration</a>
-        <br><br>
-        <hr>
-        <a href="https://bitbucket.org/sagegeek/artnetesp">https://bitbucket.org/sagegeek/artnetesp</a>
+      <h1>Art Net Node</h1>
+      <a href="/config">View Configuration</a>
+      <br /><br />
+      <a href="/update">Update firmware</a>
+      <br /><br />
+      <button onclick="reboot()">Reboot</button>
+      <h2>REST API:</h2>
+      <table border="1">
+        <tr>
+          <td>GET</td>
+          <td>/config</td>
+          <td>Get configuration</td>
+        </tr>
+        <tr>
+          <td>PUT</td>
+          <td>/config</td>
+          <td>Update configuration</td>
+        </tr>
+        <tr>
+          <td>POST</td>
+          <td>/reboot</td>
+          <td>Reboot</td>
+        </tr>
+        <tr>
+          <td>POST</td>
+          <td>/reset-wifi</td>
+          <td>Reset WiFi settings and reboot</td>
+        </tr>
+      </table>
+      <hr />
+      <a href="https://github.com/byteor/ArtNetEsp"
+        >https://github.com/byteor/ArtNetEsp</a
+      >
     </body>
-</html>
+  </html>
+</head>

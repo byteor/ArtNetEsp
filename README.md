@@ -119,7 +119,7 @@ it is not required to send the whole payload, it can be partial, missing element
 }
 ```
 
-Important notes:
+### Important notes:
 
 - After changes have been made, a reboot required to apply them
 - `dmx` is an array since one device may implement multiple functions. Elements are not named but index beased, therefore **all** `dmx` elements have to be present with any update to `dmx` collection!
@@ -128,10 +128,17 @@ Important notes:
 
 Makes a device to reboot. No payload required
 
+### POST /reset-wifi
+
+Resets WiFi settings and reboots
+
+### GET /heap
+
+Returns the heap size
+
 ## OTA
 
-TBD
-[http://<DEVICE_IP>/update](http://<DEVICE_IP>/update)
+OTA is supported via [http://<DEVICE_IP>/update](http://<DEVICE_IP>/update) URL
 
 ---
 
