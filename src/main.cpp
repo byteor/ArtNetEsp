@@ -18,6 +18,9 @@
 
 #ifdef ESP32
 #include <analogWrite.h>
+//  https://github.com/espressif/arduino-esp32/issues/863#issuecomment-347179737
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 #endif
 
 #include <AceButton.h>
@@ -42,7 +45,7 @@ DNSServer dnsServer;
 Connect connect;
 art::Config config;
 ArtnetHandler artnet;
-Device *devices[MAX_DMX_DEVICES];
+Device *dmx_devices[MAX_DMX_DEVICES];
 StatusLed *status;
 
 ButtonConfig buttonConfig;
@@ -66,16 +69,17 @@ void handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
 #ifdef OLED_SSD1306
     statusDisplay->message("v." + String(VERSION) + String("\nHold for 5 seconds\nto reset WiFi"));
 #endif
+    LOG(F("Button pressed"));
     for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
     {
-      if (devices[i])
+      if (dmx_devices[i])
       {
-        devices[i]->flip();
+        dmx_devices[i]->flip();
       }
     }
     if (config.dmx.size() > 0)
     {
-      if (devices[0]->isEnabled())
+      if (dmx_devices[0]->isEnabled())
       {
         status->set(StatusLed::Status::ON);
       }
@@ -93,11 +97,17 @@ void setup()
   Serial.begin(115200);
   delay(100);
 
+#if defined(ESP8266)
   if (!ESP_FS.begin())
+#else
+  // WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable brownout detector
+  if (!ESP_FS.begin(true))
+#endif
   {
     LOG(F("Cannot init the filesystem..."));
     return;
   };
+  delay(100);
 
   config.load();
   if (config.host.length())
@@ -131,21 +141,21 @@ void setup()
 
   for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
   {
-    devices[i] = NULL;
+    dmx_devices[i] = NULL;
     switch (config.dmx[i]->type)
     {
     case art::DmxType::Binary:
-      devices[i] = new DmxRelay(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->level, config.dmx[i]->threshold);
+      dmx_devices[i] = new DmxRelay(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->level, config.dmx[i]->threshold);
       break;
 #ifndef SONOFF_BASIC
     case art::DmxType::Servo:
-      devices[i] = new DmxServo(1, config.dmx[i]->channel, config.dmx[i]->pin);
+      dmx_devices[i] = new DmxServo(1, config.dmx[i]->channel, config.dmx[i]->pin);
       break;
     case art::DmxType::Dimmable:
-      devices[i] = new Strobe(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->pulse, config.dmx[i]->multiplier, config.dmx[i]->level);
+      dmx_devices[i] = new Strobe(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->pulse, config.dmx[i]->multiplier, config.dmx[i]->level);
       break;
     case art::DmxType::Repeater:
-      devices[i] = new DmxRepeater(1);
+      dmx_devices[i] = new DmxRepeater(1);
       break;
 #endif
     default:
@@ -170,8 +180,8 @@ void setup()
       longName += " " + config.dmxTypeToString(config.dmx[i]->type) + " #" + String(config.dmx[i]->channel);
     }
   }
-  LOG(F("ArtNet Node: ") + config.host + " : " + longName);
-  artnet.init(config.universe, config.host, longName, devices, config.dmx.size());
+  LOG("ArtNet Node: " + config.host + " : " + longName);
+  artnet.init(config.universe, config.host, longName, dmx_devices, config.dmx.size());
 
   // Setup WWW
   server.reset();
@@ -189,8 +199,8 @@ void loop()
   button.check();
   artnet.loop();
   for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
-    if (devices[i])
-      devices[i]->handle();
+    if (dmx_devices[i])
+      dmx_devices[i]->handle();
 
 #ifndef DISABLE_OTA
   ElegantOTA.loop();

@@ -1,14 +1,61 @@
-# ESP8266 ArtNet Node
+# ESP8266/ESP32 ArtNet Node
+
+This project has evolved from a need to control a simple lights setup for community theater.
+There are a few but very important concerns:
+
+- **Low price**. Any investment is sensitive for a volunteer organization without a sponsorship. Even cheap chinese lights are mostly out of the budget since you cannot create a good setup using just a couple.
+- **No lightning console**. Follows the price logic, meaning it has to be free. We use QLC+
+- **Wireless**. That is very important when you do not have your own stage.
+
+The initial inspiration was taken [from here](https://www.instructables.com/ESP8266-Artnet-to-DMX/).
+
+The first and the most simple setup was using remote relays like Sonoff basic and smart plugs using ArtnNet over Wifi.
+The next step was building our own dimmable LED lights but that appeared to be not very economically efficient compared to buying chinese from Amazon. Such lights (as well as professional ones) have DMX512 interface, so the third step was to implement an ArtNet-DMX bridge.
+The next step was to use this platform for experimental devices like NepPixel light strips and servos, which opens the whole new world of possibilities for a DIY stage designer.
 
 ## Device Types
 
+One controller can utilize several DMX devices of different types (it has to work but wasn't properly tested other than 3 DIMMER channels on ESP8266).
+
+- ESP8266 is limited to 4 DMX devices
+- ESP32 is limited to 8
+
+Such limits are not a memory or performance concern, or a result of testing, but rather random numbers.
+
 ### DIMMER
 
-TBD
+Uses one DMX `channel`, translates DMX value to PWM on selected `pin`.
+
+There is a global setting for PWM frequency - `freq`. See [GET config](#get-config)
+
+`level` - TBD
+
+```json
+	"dmx": [
+		{
+			"channel": 10,
+			"type": "DIMMER",
+			"pin": 5,
+			"level": "HIGH"
+		}
+	]
+```
 
 ### RELAY
 
-TBD
+Uses one DMX `channel`. When a value reaches `threshold` the output `pin` changes its `level` to 'active' which could be either `HIGH` or `LOW`.
+
+```json
+	"dmx": [
+		{
+			"channel": 10,
+			"type": "BINARY",
+			"pin": 5,
+			"level": "HIGH",
+      "threshold": 127
+		}
+	]
+```
 
 ### SERVO
 
@@ -16,17 +63,43 @@ TBD
 
 ### REPEATER
 
-TBD
+Repeater is used to connect a physical DMX512 interface.
+RS485 adapter is required. ESP32 chips seem to have lower latency.
+
+The whole ArtNet dataframe of 512 bytes will be sent to DMX512.
+
+_Universe is ignored for now_
+
+- ESP8266 uses UART1, `Serial1`
+- ESP32 can use any GPIO pins that can be defined in the board config section in `platformio.ini`, otherwise default values will be used.
+
+```json
+	"dmx": [
+		{
+			"type": "REPEATER"
+		}
+	]
+```
 
 ## Controls
 
 ### Indicator LED
 
-TBD
+#### Blinking patterns
+
+- **Solid dimmed** - normal operating mode
+- **Fast blinking** - trying to connect to WiFi
+- **Slow blinking** - soft AP mode
 
 ### Button
 
-TBD
+#### Short press
+
+Short press toggles the output for Relay/Binary DMX devices
+
+#### Long press
+
+Long press (longer than 5 seconds) will reset WiFi settings
 
 ### OLED Screen
 
@@ -71,7 +144,7 @@ Response example:
   "id": "d6b6b8", // Chip ID
   "host": "GREEN-d6d8", // Host name (used in ArtNet discovery)
   "dmx": [
-    // An array of virtual DMX devices (up to 4)
+    // An array of virtual DMX devices (up to 4 on ESP8266 / 8 on ESP32)
     {
       "channel": 8, // DMX channel
       "type": "DIMMER", // Device type - DIMMER | RELAY | SERVO | REPEATER
@@ -158,11 +231,17 @@ OTA is supported via [http://<DEVICE_IP>/update](http://<DEVICE_IP>/update) URL
 - [x] ArtNet: Discovery
 - [x] BUG: only one DMX config works
 - [x] Support ESP32
+- [x] Repeater mode for ESP32
+- [ ] Respect Universe in Repeater mode
 - [x] Reconnect on WiFi disconnects
 - [ ] Make blackout on DMX timeout optional
 - [ ] Rename Strobe class (it is meaningless)
 
 ## Version History
+
+### 2025.1
+
+- Repeater on ESP32
 
 ### 2024.1
 
