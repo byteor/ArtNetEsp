@@ -35,7 +35,12 @@ void Connect::connect(String hostName)
 void Connect::reset()
 {
     LOG(F("Resetting WiFi settings :)"));
+#ifdef ESP32
+    WiFi.disconnect(true, true);
+#else
     WiFi.disconnect(true);
+#endif
+    delay(100);
 }
 
 void Connect::loop()
