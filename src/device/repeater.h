@@ -2,17 +2,16 @@
 #define REPEATER_H
 
 #include <Arduino.h>
-#include <ESPDMX.h>
+#include "../dmx/dmx.h"
 #include "device.h"
 
 #define DMX_REFRESH_INTERVAL 40
-#define DMX_CHANNELS 512
 
 class DmxRepeater : public Device
 {
 protected:
     uint8_t pin;
-    DMXESPSerial dmx;
+    DmxProxy dmx;
     unsigned long lastRefreshTime = 0;
 
 public:
@@ -26,7 +25,7 @@ public:
 DmxRepeater::DmxRepeater(uint8_t universe)
 {
     Serial.printf("New Repeater\r\n");
-    dmx.init(DMX_CHANNELS - 1);
+    dmx.init();
     this->universe = universe;
     channel = 0;
 }

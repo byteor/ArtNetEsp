@@ -1,5 +1,9 @@
 {
-	"hw": {
-		"freq": 300
-	}
+  "universe": 0,
+  "hw": {
+    "freq": 600,
+    "ledPin": 2,
+    "buttonPin": 0,
+    "longPressDelay": 5000
+  }
 }

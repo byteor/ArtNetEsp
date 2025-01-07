@@ -24,21 +24,20 @@ void setupApi(AsyncWebServer *server, art::Config &config, Connect *connect)
                { request->send(200, "text/plain", String(ESP.getFreeHeap())); });
 
     server->serveStatic("/", ESP_FS, "/www/").setDefaultFile("index.html");
-    ;
 
     server->on("/config", HTTP_GET, [&](AsyncWebServerRequest *request)
                {
-        LOG("GET /config");
-        String json;
-        config.serialize(json);
-        LOG(json);
-        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
-        request->send(response); });
+                    LOG("GET /config");
+                    String json;
+                    config.serialize(json);
+                    LOG(json);
+                    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+                    request->send(response); });
 
     // POST /reboot
     AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/config", [&](AsyncWebServerRequest *request, JsonVariant &json)
                                                                            {
-        LOG("PATCH /config");
+        LOG("PUT /config");
 
         if (config.update(json))
         {
@@ -61,7 +60,7 @@ void setupApi(AsyncWebServer *server, art::Config &config, Connect *connect)
                {
         LOG("POST /reboot");
 
-        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"reboot\":\"OK\"");
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"reboot\":\"OK\"}");
         request->send(response);
         apiTicker.once_ms(200, restart); });
 
@@ -70,7 +69,7 @@ void setupApi(AsyncWebServer *server, art::Config &config, Connect *connect)
                {
         LOG("POST /reset-wifi");
 
-        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"reset\":\"OK\"");
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"reset\":\"OK\"}");
         request->send(response);
         apiTicker.once_ms(200, disconnectAndRestart, connect); });
 

@@ -48,7 +48,7 @@ void Strobe::update()
 {
     if (enabled && state == activeState)
     {
-        analogWrite(pin, adjustedActiveValue * 4); // translate from 0-255 to 0-1024
+        analogWrite(pin, adjustedActiveValue);
         LOG(" =" + String(adjustedActiveValue));
     }
     else
