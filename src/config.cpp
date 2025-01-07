@@ -187,6 +187,7 @@ namespace art
         doc["info"]["id"] = CHIP_ID;
         doc["info"]["chip"] = CHIP_ARC;
         doc["info"]["version"] = VERSION;
+        doc["info"]["built"] = BUILD_TIMESTAMP;
         doc["info"]["max_dmx_devices"] = MAX_DMX_DEVICES;
         doc["info"]["ssid"] = WiFi.SSID();
         doc["info"]["rssi"] = WiFi.RSSI();

@@ -13,6 +13,31 @@ The first and the most simple setup was using remote relays like Sonoff basic an
 The next step was building our own dimmable LED lights but that appeared to be not very economically efficient compared to buying chinese from Amazon. Such lights (as well as professional ones) have DMX512 interface, so the third step was to implement an ArtNet-DMX bridge.
 The next step was to use this platform for experimental devices like NepPixel light strips and servos, which opens the whole new world of possibilities for a DIY stage designer.
 
+## Table of Contents
+
+- [Device Types](#device-types)
+  - [DIMMER](#dimmer)
+  - [RELAY](#relay)
+  - [SERVO](#servo)
+  - [REPEATER](#repeater)
+- [Controls](#controls)
+  - [Indicator LED](#indicator-led)
+  - [Button](#button)
+  - [OLED Screen](#oled-screen)
+- [WiFi connection and Captive Portal](#wifi-connection-and-captive-portal)
+- [Variations](#variations)
+  - [Sonoff Basic](#sonoff-basic)
+- [REST API](#rest-api)
+  - [GET /config](#get-config)
+  - [POST /config](#post-config)
+  - [POST /reboot](#post-reboot)
+  - [POST /reset-wifi](#post-reset-wifi)
+  - [GET /heap](#get-heap)
+- [OTA](#ota)
+- [TODO List](#todo)
+- [Build](#build)
+- [Version History](#version-history)
+
 ## Device Types
 
 One controller can utilize several DMX devices of different types (it has to work but wasn't properly tested other than 3 DIMMER channels on ESP8266).
@@ -156,7 +181,7 @@ Response example:
 }
 ```
 
-### PUT /config
+### POST /config
 
 Payload example (see response example for details):
 
@@ -237,11 +262,22 @@ OTA is supported via [http://<DEVICE_IP>/update](http://<DEVICE_IP>/update) URL
 - [ ] Make blackout on DMX timeout optional
 - [ ] Rename Strobe class (it is meaningless)
 
+## Build
+
+Since **2025.1** [Platformio version increment script](https://github.com/sblantipodi/platformio_version_increment) is used to auto increment build versions.
+It requires `python` to be installed.
+Run the following before the first build to download the script:
+
+```bash
+git submodule update --init --recursive
+```
+
 ## Version History
 
 ### 2025.1
 
 - Repeater on ESP32
+- Automatic build timestamp and build number
 
 ### 2024.1
 

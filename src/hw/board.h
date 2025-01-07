@@ -3,6 +3,8 @@
  */
 #include <Arduino.h>
 
+#include "Version.h"
+
 #ifndef SONOFF_BASIC
 #include <Wire.h>
 #include <SPI.h>
