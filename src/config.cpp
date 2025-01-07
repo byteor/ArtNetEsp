@@ -39,6 +39,7 @@ namespace art
 
     bool Config::save()
     {
+        LOG(F("Saving config..."));
         StaticJsonDocument<CONFIG_BUFFER_SIZE> doc;
         configToJson(doc);
         if (!ESP_FS.remove(_fileName))
@@ -50,6 +51,7 @@ namespace art
             return false;
         }
         // Serialize JSON to file
+        LOG(F("Serializing..."));
         if (serializeJson(doc, file) == 0)
         {
             LOG(F("Failed to write JSON to file"));
@@ -182,10 +184,12 @@ namespace art
         doc["hw"]["ledPin"] = hardware.ledPin;
         doc["hw"]["buttonPin"] = hardware.buttonPin;
         doc["hw"]["longPressDelay"] = hardware.longPressDelay;
+        doc["info"]["id"] = CHIP_ID;
+        doc["info"]["chip"] = CHIP_ARC;
         doc["info"]["version"] = VERSION;
+        doc["info"]["max_dmx_devices"] = MAX_DMX_DEVICES;
         doc["info"]["ssid"] = WiFi.SSID();
         doc["info"]["rssi"] = WiFi.RSSI();
-        doc["id"] = CHIP_ID;
         doc["host"] = host;
         doc["universe"] = universe;
 
