@@ -17,7 +17,12 @@
 #include "hw/board.h"
 #include "version.h"
 
-#define MAX_DMX_DEVICES 4 // efficiently a max number of "Art-Net Node Ports"
+// efficiently a max number of "Art-Net Node Ports" (DMX devices) that can be configured
+#ifdef ESP32
+#define MAX_DMX_DEVICES 8
+#else
+#define MAX_DMX_DEVICES 4
+#endif
 /*
 If more than MAX_DMX_DEVICES are present in the input JSON,
 only the first MAX_DMX_DEVICES will be saved and taken into account
