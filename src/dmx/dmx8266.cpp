@@ -1,4 +1,5 @@
 #ifdef ESP8266
+#ifndef SONOFF_BASIC
 
 #include "dmx.h"
 
@@ -20,4 +21,5 @@ void DmxProxy::update()
     this->dmx.update();
 }
 
+#endif
 #endif

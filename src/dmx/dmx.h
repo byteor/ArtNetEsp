@@ -1,5 +1,7 @@
 #pragma once
 
+#ifndef SONOFF_BASIC
+
 #include <Arduino.h>
 
 #ifdef ESP32
@@ -25,3 +27,5 @@ public:
     void write(int chanel, uint8_t value);
     void update();
 };
+
+#endif

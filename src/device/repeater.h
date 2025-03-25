@@ -1,3 +1,5 @@
+#ifndef SONOFF_BASIC
+
 #ifndef REPEATER_H
 #define REPEATER_H
 
@@ -52,4 +54,5 @@ void DmxRepeater::handle()
     }
 }
 
+#endif
 #endif
