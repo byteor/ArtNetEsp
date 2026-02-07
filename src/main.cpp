@@ -95,8 +95,12 @@ void handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
 void setup()
 {
   Serial.begin(115200);
-  delay(100);
-
+  unsigned long serialWaitStart = millis();
+  while (!Serial && (millis() - serialWaitStart < 2000))
+  {
+    delay(10);
+  }
+  LOG(F("Starting..."));
 #if defined(ESP8266)
   if (!ESP_FS.begin())
 #else
