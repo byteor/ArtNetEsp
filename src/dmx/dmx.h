@@ -6,6 +6,9 @@
 
 #ifdef ESP32
 #include <esp_dmx.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
 #else
 #include <ESPDMX.h>
 #endif
@@ -18,6 +21,11 @@ class DmxProxy
 protected:
 #ifdef ESP32
     uint8_t data[DMX_CHANNELS];
+    SemaphoreHandle_t dataMutex = nullptr;
+    TaskHandle_t senderTask = nullptr;
+    uint32_t refreshIntervalMs = 40;
+    static void senderTaskThunk(void *param);
+    void senderTaskLoop();
 #else
     DMXESPSerial dmx;
 #endif
