@@ -34,6 +34,7 @@ void Strobe::set(uint16_t dmxChannel, uint8_t data)
         this->value = data;
         this->adjustedActiveValue = activeState == HIGH ? value : 255 - value;
         this->adjustedInactiveValue = activeState == HIGH ? 0 : 255;
+        this->valueOverride = adjustedActiveValue;
         update();
     }
     else if (dmxChannel == channel - 1) // Strobe
@@ -48,8 +49,8 @@ void Strobe::update()
 {
     if (enabled && state == activeState)
     {
-        analogWrite(pin, adjustedActiveValue);
-        LOG(" =" + String(adjustedActiveValue));
+        analogWrite(pin, valueOverride);
+        LOG(" =" + String(valueOverride));
     }
     else
     {
