@@ -68,6 +68,7 @@ void DmxRelay::start()
 void DmxRelay::flip()
 {
     value = !value;
+    manualOverride = true; // B20: don't let silence-blackout undo this until the next DMX frame
     Serial.print("Relay: FLIP: ");
     Serial.println(value & 0x01);
     digitalWrite(pin, value);

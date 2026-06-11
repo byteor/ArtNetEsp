@@ -9,6 +9,8 @@ protected:
     uint8_t universe;
     uint16_t channel;
     unsigned long lastChange = 0;
+    bool silenceLogged = false;  // B20: log "DMX timeout" once per silence period, not every 5s
+    bool manualOverride = false; // B20: set by flip(); suspends the silence blackout until the next real frame()
 
 public:
     virtual ~Device() = default;
@@ -23,9 +25,16 @@ public:
     {
         if (millis() - lastChange > DMX_SILENCE_TIMEOUT)
         {
-            Serial.println(F("DMX timeout"));
+            if (!silenceLogged)
+            {
+                Serial.println(F("DMX timeout"));
+                silenceLogged = true;
+            }
+            // Reset lastChange (not silenceLogged) so this repeats every
+            // DMX_SILENCE_TIMEOUT without re-logging until a real frame arrives.
             frame();
-            set(channel, 0);
+            if (!manualOverride)
+                set(channel, 0);
         }
     }
     virtual void frame()
@@ -35,6 +44,8 @@ public:
     virtual void frame(const uint32_t univ, const uint8_t *data, const uint16_t size)
     {
         lastChange = millis();
+        silenceLogged = false;
+        manualOverride = false;
     }
     uint8_t getUniverse() { return universe; }
     uint16_t getChannel() { return channel; }
