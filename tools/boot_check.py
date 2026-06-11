@@ -119,6 +119,11 @@ def run(port=None, port_glob="/dev/cu.usbmodem*", baud=115200, timeout=30.0, gra
         return out
 
     if not no_reset:
+        # Discard anything buffered from before we opened the port - e.g. the
+        # tail of the auto-reboot triggered by `pio run -t upload`, which would
+        # otherwise show up as a spurious extra "Starting..." and look like a
+        # boot loop.
+        ser.reset_input_buffer()
         reset_board(ser)
 
     log_lines = out["log_lines"]
