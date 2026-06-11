@@ -33,15 +33,15 @@ protected:
     unsigned long interval;
 
 public:
-    Strobe(uint8_t universe, uint8_t channel, uint8_t pin = LED_BUILTIN, int pulse = DEFAULT_STROBE_PULSE, int multiplier = 1, int activeState = HIGH);
+    Strobe(uint8_t universe, uint16_t channel, uint8_t pin = LED_BUILTIN, int pulse = DEFAULT_STROBE_PULSE, int multiplier = 1, int activeState = HIGH);
     void start() override;
     void start(uint8_t value);
     void stop() override;
     void flip() override;
     void update();
     bool isEnabled() override;
-    uint8_t get(uint8_t channel) override;
-    void set(uint8_t channel, uint8_t data) override;
+    uint8_t get(uint16_t channel) override;
+    void set(uint16_t channel, uint8_t data) override;
     uint16_t getNumberOfChannels() override { return 1; } // Temporarily set to 1
 
     void setInterval(int millis);

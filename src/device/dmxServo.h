@@ -20,14 +20,14 @@ public:
     void start() override;
     void stop() override;
     void flip() override;
-    uint8_t get(uint8_t channel) override;
-    void set(uint8_t channel, uint8_t data) override;
+    uint8_t get(uint16_t channel) override;
+    void set(uint16_t channel, uint8_t data) override;
     uint16_t getNumberOfChannels() override { return 1; }
 
-    DmxServo(uint8_t universe, uint8_t channel, uint8_t pin);
+    DmxServo(uint8_t universe, uint16_t channel, uint8_t pin);
 };
 
-DmxServo::DmxServo(uint8_t universe, uint8_t channel, uint8_t pin)
+DmxServo::DmxServo(uint8_t universe, uint16_t channel, uint8_t pin)
 {
     this->universe = universe;
     this->channel = channel;
@@ -47,7 +47,7 @@ DmxServo::DmxServo(uint8_t universe, uint8_t channel, uint8_t pin)
     Serial.println(universe);
 }
 
-uint8_t DmxServo::get(uint8_t channel)
+uint8_t DmxServo::get(uint16_t channel)
 {
     return data;
 }
@@ -103,7 +103,7 @@ int getAngleValue(uint8_t data)
     return x * range / 255 + MIN;
 }
 
-void DmxServo::set(uint8_t dmxChannel, uint8_t data)
+void DmxServo::set(uint16_t dmxChannel, uint8_t data)
 {
 
     if (dmxChannel == channel)

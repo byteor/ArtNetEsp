@@ -1,6 +1,6 @@
 #include "strobe.h"
 
-Strobe::Strobe(uint8_t universe, uint8_t channel, uint8_t pin, int pulse, int multiplier, int activeState)
+Strobe::Strobe(uint8_t universe, uint16_t channel, uint8_t pin, int pulse, int multiplier, int activeState)
 {
     LOG("New Strobe: pin=" + String(pin) + " DMX channel:" + String(channel));
 
@@ -21,12 +21,12 @@ Strobe::Strobe(uint8_t universe, uint8_t channel, uint8_t pin, int pulse, int mu
     digitalWrite(pin, inactiveState);
 }
 
-uint8_t Strobe::get(uint8_t channel)
+uint8_t Strobe::get(uint16_t channel)
 {
     return value;
 }
 
-void Strobe::set(uint8_t dmxChannel, uint8_t data)
+void Strobe::set(uint16_t dmxChannel, uint8_t data)
 {
     if (dmxChannel == channel) // Dimmer
     {

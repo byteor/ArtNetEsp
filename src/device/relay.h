@@ -17,15 +17,15 @@ protected:
 public:
     void start() override;
     void flip() override;
-    uint8_t get(uint8_t channel) override;
-    void set(uint8_t channel, uint8_t data) override;
+    uint8_t get(uint16_t channel) override;
+    void set(uint16_t channel, uint8_t data) override;
     uint16_t getNumberOfChannels() override { return 1; }
     bool isEnabled() override;
 
-    DmxRelay(uint8_t universe, uint8_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold);
+    DmxRelay(uint8_t universe, uint16_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold);
 };
 
-DmxRelay::DmxRelay(uint8_t universe, uint8_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold)
+DmxRelay::DmxRelay(uint8_t universe, uint16_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold)
 {
     this->universe = universe;
     this->channel = channel;
@@ -42,12 +42,12 @@ DmxRelay::DmxRelay(uint8_t universe, uint8_t channel, uint8_t pin, uint8_t activ
     Serial.println(universe);
 }
 
-uint8_t DmxRelay::get(uint8_t channel)
+uint8_t DmxRelay::get(uint16_t channel)
 {
     return data;
 }
 
-void DmxRelay::set(uint8_t dmxChannel, uint8_t data)
+void DmxRelay::set(uint16_t dmxChannel, uint8_t data)
 {
     if (dmxChannel == channel)
     {

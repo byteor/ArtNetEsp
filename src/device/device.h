@@ -7,7 +7,7 @@ class Device
 {
 protected:
     uint8_t universe;
-    uint8_t channel;
+    uint16_t channel;
     unsigned long lastChange = 0;
 
 public:
@@ -16,8 +16,8 @@ public:
     virtual void start() {}; // allocate resources, init
     virtual void stop() {};  // deallocate resources
     virtual void flip() {};  // call to flip the state (depending on device type)
-    virtual void set(uint8_t channel, uint8_t data) {};
-    virtual uint8_t get(uint8_t channel) { return 0; }
+    virtual void set(uint16_t channel, uint8_t data) {};
+    virtual uint8_t get(uint16_t channel) { return 0; }
     virtual bool isEnabled() { return true; }
     virtual void handle() // call it from loop() if needed
     {
@@ -37,7 +37,7 @@ public:
         lastChange = millis();
     }
     uint8_t getUniverse() { return universe; }
-    uint8_t getChannel() { return channel; }
+    uint16_t getChannel() { return channel; }
     virtual uint16_t getNumberOfChannels() = 0;
 };
 
