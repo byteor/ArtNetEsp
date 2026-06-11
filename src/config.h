@@ -15,7 +15,7 @@
 #include <ArduinoJson.h>
 #include "hw/logger.h"
 #include "hw/board.h"
-#include "version.h"
+#include "Version.h"
 
 // efficiently a max number of "Art-Net Node Ports" (DMX devices) that can be configured
 #ifdef ESP32
@@ -34,25 +34,25 @@ namespace art
 
 #define CONFIG_BUFFER_SIZE 1024
 
-  typedef struct
-  {
+typedef struct
+{
     String ssid; // SSID
     String pass;
     bool dhcp;
     uint8_t order; // Order number
-  } WiFiNet;
+} WiFiNet;
 
-  enum DmxType
-  {
+enum DmxType
+{
     Disabled = 0,
     Binary = 1, // AKA Relay
     Dimmable = 2,
     Servo = 3,
     Repeater = 4, // AKA Art-Net --> DMX gateway
-  };
+};
 
-  typedef struct
-  {
+typedef struct
+{
     uint16_t channel;    // DMX channel
     DmxType type;        // DMX channel features
     uint8_t threshold;   // ON/OFF threshold for a DmxType::Binary switch (relay)
@@ -60,23 +60,23 @@ namespace art
     uint16_t multiplier; // Strobe period multiplier
     uint8_t pin;         // Pin (Arduino numbering)
     uint8_t level;       // Active level: 0=LOW, 1=HIGH
-  } DmxChannel;
+} DmxChannel;
 
-  typedef struct
-  {
+typedef struct
+{
     // PWM frequency
     uint16_t pwmFreq = DEFAULT_PWM_FREQ; // ESP8266 default is 1000 which may cause some MOSFET overheat
     uint8_t ledPin = LED_PIN;
     uint8_t buttonPin = DEFAULT_BUTTON_PIN;
     uint16_t longPressDelay = DEFAULT_BUTTON_LONG_PRESS * 1000;
-  } HardwareConfig;
+} HardwareConfig;
 
-  class Config
-  {
+class Config
+{
     String _fileName;
     bool _dirty; // A flag that indicates that the module needs a reboot due to a changed config
 
-  protected:
+protected:
     const String DMX_DISABLED = String("DISABLED");
     const String DMX_BINARY = String("BINARY");
     const String DMX_DIMMABLE = String("DIMMER");
@@ -90,15 +90,15 @@ namespace art
 
     DmxType dmxTypeFromString(String type)
     {
-      if (DMX_BINARY.equals(type))
-        return DmxType::Binary;
-      if (DMX_DIMMABLE.equals(type))
-        return DmxType::Dimmable;
-      if (DMX_SERVO.equals(type))
-        return DmxType::Servo;
-      if (DMX_REPEATER.equals(type))
-        return DmxType::Repeater;
-      return DmxType::Disabled;
+        if (DMX_BINARY.equals(type))
+            return DmxType::Binary;
+        if (DMX_DIMMABLE.equals(type))
+            return DmxType::Dimmable;
+        if (DMX_SERVO.equals(type))
+            return DmxType::Servo;
+        if (DMX_REPEATER.equals(type))
+            return DmxType::Repeater;
+        return DmxType::Disabled;
     }
 
     void configFromJson(JsonVariant doc);
@@ -107,18 +107,18 @@ namespace art
     void cleanupWiFi();
     void cleanupDmx();
 
-  public:
+public:
     String dmxTypeToString(DmxType type)
     {
-      if (type == DmxType::Binary)
-        return DMX_BINARY;
-      if (type == DmxType::Dimmable)
-        return DMX_DIMMABLE;
-      if (type == DmxType::Servo)
-        return DMX_SERVO;
-      if (type == DmxType::Repeater)
-        return DMX_REPEATER;
-      return DMX_DISABLED;
+        if (type == DmxType::Binary)
+            return DMX_BINARY;
+        if (type == DmxType::Dimmable)
+            return DMX_DIMMABLE;
+        if (type == DmxType::Servo)
+            return DMX_SERVO;
+        if (type == DmxType::Repeater)
+            return DMX_REPEATER;
+        return DMX_DISABLED;
     }
 
     // DMX
@@ -134,8 +134,8 @@ namespace art
     bool update(JsonVariant json);
     bool save();
     void serialize(String &to);
-  };
+};
 
-}
+} // namespace art
 
 #endif

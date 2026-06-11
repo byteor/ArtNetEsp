@@ -24,7 +24,7 @@
 #endif
 
 #include <AceButton.h>
-#include "version.h"
+#include "Version.h"
 #include "connect.h"
 #include "hw/statusLed.h"
 #include "artnetHandler.h"
@@ -58,156 +58,158 @@ StatusDisplay *statusDisplay;
 
 void handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
 {
-  switch (eventType)
-  {
-  case AceButton::kEventLongPressed:
-    LOG(F("Hard reset caused by a Button"));
-    connect.reset();
-    ESP.restart();
-    break;
-  case AceButton::kEventPressed:
+    switch (eventType)
+    {
+    case AceButton::kEventLongPressed:
+        LOG(F("Hard reset caused by a Button"));
+        connect.reset();
+        ESP.restart();
+        break;
+    case AceButton::kEventPressed:
 #ifdef OLED_SSD1306
-    statusDisplay->message("v." + String(VERSION) + String("\nHold for 5 seconds\nto reset WiFi"));
+        statusDisplay->message("v." + String(VERSION) + String("\nHold for 5 seconds\nto reset WiFi"));
 #endif
-    LOG(F("Button pressed"));
-    for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
-    {
-      if (dmx_devices[i])
-      {
-        dmx_devices[i]->flip();
-      }
+        LOG(F("Button pressed"));
+        for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
+        {
+            if (dmx_devices[i])
+            {
+                dmx_devices[i]->flip();
+            }
+        }
+        if (config.dmx.size() > 0)
+        {
+            if (dmx_devices[0]->isEnabled())
+            {
+                status->set(StatusLed::Status::ON);
+            }
+            else
+            {
+                status->set(StatusLed::Status::OFF);
+            }
+        }
+        break;
     }
-    if (config.dmx.size() > 0)
-    {
-      if (dmx_devices[0]->isEnabled())
-      {
-        status->set(StatusLed::Status::ON);
-      }
-      else
-      {
-        status->set(StatusLed::Status::OFF);
-      }
-    }
-    break;
-  }
 }
 
 void setup()
 {
-  Serial.begin(115200);
-  unsigned long serialWaitStart = millis();
-  while (!Serial && (millis() - serialWaitStart < 2000))
-  {
-    delay(10);
-  }
-  LOG(F("Starting..."));
+    Serial.begin(115200);
+    unsigned long serialWaitStart = millis();
+    while (!Serial && (millis() - serialWaitStart < 2000))
+    {
+        delay(10);
+    }
+    LOG(F("Starting..."));
 #if defined(ESP8266)
-  if (!ESP_FS.begin())
+    if (!ESP_FS.begin())
 #else
-  // WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable brownout detector
-  if (!ESP_FS.begin(true))
+    // WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable brownout detector
+    if (!ESP_FS.begin(true))
 #endif
-  {
-    LOG(F("Cannot init the filesystem..."));
-    return;
-  };
-  delay(100);
+    {
+        LOG(F("Cannot init the filesystem..."));
+        return;
+    };
+    delay(100);
 
-  config.load();
-  if (config.host.length())
-  {
-    WiFi.hostname(config.host);
-  }
-  status = new StatusLed(config.hardware.ledPin, LOW);
-  // Buttons
-  // Just a single button. Long press (5s) causes a hrd reset of WiFi settings and reboots into a Captive Portal
-  buttonConfig.setLongPressDelay(config.hardware.longPressDelay);
-  buttonConfig.setFeature(ButtonConfig::kFeatureLongPress);
-  button.init(&buttonConfig, config.hardware.buttonPin);
-  pinMode(config.hardware.buttonPin, INPUT_PULLUP);
-  button.setEventHandler(handleEvent);
+    config.load();
+    if (config.host.length())
+    {
+        WiFi.hostname(config.host);
+    }
+    status = new StatusLed(config.hardware.ledPin, LOW);
+    // Buttons
+    // Just a single button. Long press (5s) causes a hrd reset of WiFi settings and reboots into a Captive Portal
+    buttonConfig.setLongPressDelay(config.hardware.longPressDelay);
+    buttonConfig.setFeature(ButtonConfig::kFeatureLongPress);
+    button.init(&buttonConfig, config.hardware.buttonPin);
+    pinMode(config.hardware.buttonPin, INPUT_PULLUP);
+    button.setEventHandler(handleEvent);
 
-  LOG("Button on pin: " + String(config.hardware.buttonPin) + " long press is: " + String(config.hardware.longPressDelay) + " ms");
+    LOG("Button on pin: " + String(config.hardware.buttonPin) + " long press is: " + String(config.hardware.longPressDelay) + " ms");
 
 #ifdef OLED_SSD1306
-  statusDisplay = new StatusDisplay();
-  statusDisplay->setConfig(&config);
+    statusDisplay = new StatusDisplay();
+    statusDisplay->setConfig(&config);
 #endif
 
-  // Devices
+    // Devices
 #ifdef ESP32
-  // TODO: investigate - analogWriteFrequency doesn't compile despite it is defined in analogWrite library
-  // analogWriteFrequency((double)config.hardware.pwmFreq);
+    // TODO: investigate - analogWriteFrequency doesn't compile despite it is defined in analogWrite library
+    // analogWriteFrequency((double)config.hardware.pwmFreq);
 #else
-  analogWriteFreq(config.hardware.pwmFreq);
-  analogWriteRange(255);
+    analogWriteFreq(config.hardware.pwmFreq);
+    analogWriteRange(255);
 #endif
 
-  for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
-  {
-    dmx_devices[i] = NULL;
-    switch (config.dmx[i]->type)
+    for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
     {
-    case art::DmxType::Binary:
-      dmx_devices[i] = new DmxRelay(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->level, config.dmx[i]->threshold);
-      break;
+        dmx_devices[i] = NULL;
+        switch (config.dmx[i]->type)
+        {
+        case art::DmxType::Binary:
+            dmx_devices[i] = new DmxRelay(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->level, config.dmx[i]->threshold);
+            break;
 #ifndef SONOFF_BASIC
-    case art::DmxType::Servo:
-      dmx_devices[i] = new DmxServo(1, config.dmx[i]->channel, config.dmx[i]->pin);
-      break;
-    case art::DmxType::Dimmable:
-      dmx_devices[i] = new Strobe(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->pulse, config.dmx[i]->multiplier, config.dmx[i]->level);
-      break;
-    case art::DmxType::Repeater:
-      dmx_devices[i] = new DmxRepeater(1);
-      break;
+        case art::DmxType::Servo:
+            dmx_devices[i] = new DmxServo(1, config.dmx[i]->channel, config.dmx[i]->pin);
+            break;
+        case art::DmxType::Dimmable:
+            dmx_devices[i] = new Strobe(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->pulse, config.dmx[i]->multiplier, config.dmx[i]->level);
+            break;
+        case art::DmxType::Repeater:
+            dmx_devices[i] = new DmxRepeater(1);
+            break;
 #endif
-    default:
-      LOG(F("Incompatible DMX device type:"));
-      LOG(config.dmx[i]->type);
-      break;
+        default:
+            LOG(F("Incompatible DMX device type:"));
+            LOG(config.dmx[i]->type);
+            break;
+        }
     }
-  }
 
-  LOG("Init WiFi...");
-  connect.init(&server, &dnsServer);
-  connect.connect(config.host);
+    LOG("Init WiFi...");
+    connect.init(&server, &dnsServer);
+    connect.connect(config.host);
 
-  // TODO: Start mDNS
+    // TODO: Start mDNS
 
-  // ArtNet
-  String longName = config.host;
-  if (config.dmx.size() > 0)
-  {
-    for (int i = 0; i < config.dmx.size(); i++)
+    // ArtNet
+    String longName = config.host;
+    if (config.dmx.size() > 0)
     {
-      longName += " " + config.dmxTypeToString(config.dmx[i]->type) + " #" + String(config.dmx[i]->channel);
+        for (int i = 0; i < config.dmx.size(); i++)
+        {
+            longName += " " + config.dmxTypeToString(config.dmx[i]->type) + " #" + String(config.dmx[i]->channel);
+        }
     }
-  }
-  LOG("ArtNet Node: " + config.host + " : " + longName);
-  artnet.init(config.universe, config.host, longName, dmx_devices, config.dmx.size());
+    LOG("ArtNet Node: " + config.host + " : " + longName);
+    artnet.init(config.universe, config.host, longName, dmx_devices, config.dmx.size());
 
-  // Setup WWW
-  server.reset();
+    // Setup WWW
+    server.reset();
 
 #ifndef DISABLE_OTA
-  ElegantOTA.begin(&server);
+    ElegantOTA.begin(&server);
 #endif
 
-  setupApi(&server, config, &connect);
-  server.begin(); // Call ONLY AFTER WiFi gets connected !!!!! (or reboot loop)
+    setupApi(&server, config, &connect);
+    server.begin(); // Call ONLY AFTER WiFi gets connected !!!!! (or reboot loop)
+
+    LOG(F("BOOT OK v" VERSION)); // deterministic success marker for tools/boot_check.py
 }
 
 void loop()
 {
-  button.check();
-  artnet.loop();
-  for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
-    if (dmx_devices[i])
-      dmx_devices[i]->handle();
+    button.check();
+    artnet.loop();
+    for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
+        if (dmx_devices[i])
+            dmx_devices[i]->handle();
 
 #ifndef DISABLE_OTA
-  ElegantOTA.loop();
+    ElegantOTA.loop();
 #endif
-  connect.loop();
+    connect.loop();
 }

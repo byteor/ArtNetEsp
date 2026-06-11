@@ -22,7 +22,7 @@ public:
     void stop();
 };
 
-ArtnetHandler::ArtnetHandler(){};
+ArtnetHandler::ArtnetHandler() {};
 
 void ArtnetHandler::init(int universe, const String &shortName, const String &longName, Device **dmxDevice, uint8_t devicesCount)
 {

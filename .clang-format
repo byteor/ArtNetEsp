@@ -1,0 +1,29 @@
+---
+# Matches the dominant style already used in src/device, src/hw, connect.*,
+# config.* etc: 4-space indent, Allman braces, short one-line accessors kept
+# inline, pointers/refs bound to the name (`Type *name`).
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++17
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 0
+
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+
+IndentCaseLabels: false
+IndentPPDirectives: None
+NamespaceIndentation: None
+AccessModifierOffset: -4
+
+PointerAlignment: Right
+ReferenceAlignment: Right
+SpaceBeforeParens: ControlStatements
+SortIncludes: false
