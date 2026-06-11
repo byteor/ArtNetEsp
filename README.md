@@ -274,6 +274,11 @@ git submodule update --init --recursive
 
 ## Version History
 
+### 2026.1
+
+- Repeater on ESP32 actually works! DMX sender runs on Core 1
+  - Repeater tested on ESP32, ESP32-S3
+
 ### 2025.1
 
 - Repeater on ESP32
@@ -316,3 +321,13 @@ git submodule update --init --recursive
 - Long press to reset
 
 ---
+
+## Implementations
+
+### XIAO Repeater
+
+![XIAOS3 Repeater](assets/Xiao-Repeater.jpg)
+
+`[env:seeed_xiao_esp32s3]`
+or
+`[env:seeed_xiao_esp32s3_oled]` when I2S OLED is connected

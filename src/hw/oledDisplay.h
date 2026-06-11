@@ -2,7 +2,7 @@
 /**
  * SSD1306 OLED Display 128x64
  * Default I2C pins
-*/
+ */
 #include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -111,7 +111,8 @@ public:
 #endif
         display->clearDisplay();
         display->display();
-        _ticker.attach_scheduled(TICK_DURATION, std::bind(&StatusDisplay::setStatus, this));
+        //_ticker.attach_scheduled(TICK_DURATION, std::bind(&StatusDisplay::setStatus, this));
+        _ticker.attach(1, &staticTick, this);
     }
 };
 
@@ -130,7 +131,7 @@ void StatusDisplay::setStatus32()
             drawStr(0, 16, WiFi.SSID().c_str());
             sprintf(buf, "%d dBm", WiFi.RSSI());
             drawStr(48, 16, buf);
-            //drawStr(0, 60, WiFi.hostname().c_str());
+            // drawStr(0, 60, WiFi.hostname().c_str());
             break;
         default:
             // DMX channel page
@@ -138,7 +139,7 @@ void StatusDisplay::setStatus32()
 
             sprintf(buf, "%d", config->dmx[i]->channel);
             drawStr(0, 8, buf, 2);
-            //drawStr(0, 16, "DMX:");
+            // drawStr(0, 16, "DMX:");
             sprintf(buf, "%d/%d  %s", i + 1, config->dmx.size(), config->dmxTypeToString(config->dmx[i]->type).c_str());
             drawStr(48, 0, buf);
             drawStr(48, 16, "i/o:");
@@ -149,7 +150,7 @@ void StatusDisplay::setStatus32()
     else
     {
         drawStr(64, 0, PSTR("No WiFi"));
-        drawStr(0, 16, WiFi.hostname().c_str(), 2);
+        drawStr(0, 16, config->host.c_str(), 2);
     }
 }
 
@@ -168,18 +169,19 @@ void StatusDisplay::setStatus64()
             drawStr(0, 40, WiFi.SSID().c_str());
             sprintf(buf, "%d dBm", WiFi.RSSI());
             drawStr(48, 62, buf);
-            //drawStr(0, 60, WiFi.hostname().c_str());
+            // drawStr(0, 60, WiFi.hostname().c_str());
             break;
         default:
             // DMX channel page
             int i = page - MAIN_PAGES;
 
             sprintf(buf, "%d", config->dmx[i]->channel);
-            drawStr(0, 60, buf, 2);
-            //drawStr(0, 16, "DMX:");
-            sprintf(buf, "%d/%d  %s", i + 1, config->dmx.size(), config->dmxTypeToString(config->dmx[i]->type).c_str());
+            drawStr(0, 40, "DMX:");
+            drawStr(0, 62, buf);
+            String name = config->dmxTypeToString(config->dmx[i]->type);
+            sprintf(buf, "%d/%d  %s", i + 1, config->dmx.size(), name.substring(0, min(6, (int)name.length())).c_str());
             drawStr(0, 14, buf);
-            drawStr(80, 40, "i/o:");
+            drawStr(80, 40, "I/O:");
             sprintf(buf, "%d", config->dmx[i]->pin);
             drawStr(84, 62, buf);
         }
@@ -187,7 +189,7 @@ void StatusDisplay::setStatus64()
     else
     {
         drawStr(24, 16, PSTR("No WiFi"));
-        drawStr(0, 48, WiFi.hostname().c_str());
+        drawStr(0, 48, config->host.c_str());
     }
 }
 
