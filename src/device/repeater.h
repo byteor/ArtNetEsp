@@ -18,10 +18,10 @@ protected:
 
 public:
     DmxRepeater(uint8_t universe);
-    void start();
-    void handle();
-    void frame(const uint32_t univ, const uint8_t *data, const uint16_t size);
-    uint16_t getNumberOfChannels() { return DMX_CHANNELS; }
+    void start() override;
+    void handle() override;
+    void frame(const uint32_t univ, const uint8_t *data, const uint16_t size) override;
+    uint16_t getNumberOfChannels() override { return DMX_CHANNELS; }
 };
 
 DmxRepeater::DmxRepeater(uint8_t universe)

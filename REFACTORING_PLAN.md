@@ -194,7 +194,7 @@ The bench device becomes the regression gate for every phase that follows. The h
 
 ### Phase 1 — Correctness fixes on the current structure — M
 One commit per bug, in this order (independent unless noted):
-1. B10: `virtual ~Device() = default`, `getNumberOfChannels() = 0`, `override` everywhere.
+1. B10: `virtual ~Device() = default`, `getNumberOfChannels() = 0`, `override` everywhere. **Done** — `device.h` gets the virtual destructor and a pure-virtual `getNumberOfChannels()` (`Device` is now formally abstract; confirmed no code constructs a bare `Device`). All four subclasses (`DmxRelay`, `DmxServo`, `DmxRepeater`, `Strobe`) mark every overridden method `override` (the pre-existing `Strobe::handle() override` was already correct). `Strobe::start(uint8_t)` remains a declared-but-undefined overload — pre-existing, out of scope for B10. Verified: d1_mini_oled + esp32-devkitc-v4 + sonoff_basic build clean; bench T1 passes (`BOOT_RESULT=ok`, v2026.1.10, IP/WiFi/ArtNet/Repeater all correct).
 2. B6: default member initializers across `Device`, `Strobe`, `Config`.
 3. B1/B2: lambda captures — `[this]` / by-value; never `[&]` on stored callbacks.
 4. B4: `uint16_t` channels end-to-end (config → ctor → `set`/`get` → dispatch loop).

@@ -34,15 +34,15 @@ protected:
 
 public:
     Strobe(uint8_t universe, uint8_t channel, uint8_t pin = LED_BUILTIN, int pulse = DEFAULT_STROBE_PULSE, int multiplier = 1, int activeState = HIGH);
-    void start();
+    void start() override;
     void start(uint8_t value);
-    void stop();
-    void flip();
+    void stop() override;
+    void flip() override;
     void update();
-    bool isEnabled();
-    uint8_t get(uint8_t channel);
-    void set(uint8_t channel, uint8_t data);
-    uint16_t getNumberOfChannels() { return 1; } // Temporarily set to 1
+    bool isEnabled() override;
+    uint8_t get(uint8_t channel) override;
+    void set(uint8_t channel, uint8_t data) override;
+    uint16_t getNumberOfChannels() override { return 1; } // Temporarily set to 1
 
     void setInterval(int millis);
     void setDuration(int millis);

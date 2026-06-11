@@ -17,12 +17,12 @@ class DmxServo : public Device
     uint8_t data;
 
 public:
-    void start();
-    void stop();
-    void flip();
-    uint8_t get(uint8_t channel);
-    void set(uint8_t channel, uint8_t data);
-    uint16_t getNumberOfChannels() { return 1; }
+    void start() override;
+    void stop() override;
+    void flip() override;
+    uint8_t get(uint8_t channel) override;
+    void set(uint8_t channel, uint8_t data) override;
+    uint16_t getNumberOfChannels() override { return 1; }
 
     DmxServo(uint8_t universe, uint8_t channel, uint8_t pin);
 };

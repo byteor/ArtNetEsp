@@ -15,12 +15,12 @@ protected:
     uint8_t data;
 
 public:
-    void start();
-    void flip();
-    uint8_t get(uint8_t channel);
-    void set(uint8_t channel, uint8_t data);
-    uint16_t getNumberOfChannels() { return 1; }
-    bool isEnabled();
+    void start() override;
+    void flip() override;
+    uint8_t get(uint8_t channel) override;
+    void set(uint8_t channel, uint8_t data) override;
+    uint16_t getNumberOfChannels() override { return 1; }
+    bool isEnabled() override;
 
     DmxRelay(uint8_t universe, uint8_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold);
 };

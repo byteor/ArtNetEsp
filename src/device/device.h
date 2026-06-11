@@ -11,6 +11,8 @@ protected:
     unsigned long lastChange;
 
 public:
+    virtual ~Device() = default;
+
     virtual void start() {}; // allocate resources, init
     virtual void stop() {};  // deallocate resources
     virtual void flip() {};  // call to flip the state (depending on device type)
@@ -36,7 +38,7 @@ public:
     }
     uint8_t getUniverse() { return universe; }
     uint8_t getChannel() { return channel; }
-    virtual uint16_t getNumberOfChannels();
+    virtual uint16_t getNumberOfChannels() = 0;
 };
 
 #endif // DEVICE_H
