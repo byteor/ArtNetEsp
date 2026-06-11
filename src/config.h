@@ -126,7 +126,7 @@ public:
     // WiFi
     art::LinkedList<WiFiNet *> wifi;
     String host;
-    unsigned int universe;
+    unsigned int universe = 0;
     HardwareConfig hardware;
 
     Config();

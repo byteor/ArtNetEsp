@@ -8,7 +8,7 @@ class Device
 protected:
     uint8_t universe;
     uint8_t channel;
-    unsigned long lastChange;
+    unsigned long lastChange = 0;
 
 public:
     virtual ~Device() = default;

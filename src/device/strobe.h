@@ -22,13 +22,13 @@ protected:
     bool isFlipped;
     uint8_t activeState;
     uint8_t inactiveState;
-    int state; // 1/0 == ON/OFF
-    int value; // original PWM value, 0-255
+    int state;     // 1/0 == ON/OFF
+    int value = 0; // original PWM value, 0-255
     int multiplier;
-    int adjustedActiveValue;   // PWM value adjusted to the 'active' level
-    int adjustedInactiveValue; // PWM value adjusted to the 'active' level
-    int adjustedMaxValue;      // Max active PWM value adjusted to the 'active' level
-    int valueOverride;         // manually (literally!) set PWM value adjusted to the 'active' level
+    int adjustedActiveValue = 0;   // PWM value adjusted to the 'active' level
+    int adjustedInactiveValue = 0; // PWM value adjusted to the 'active' level
+    int adjustedMaxValue;          // Max active PWM value adjusted to the 'active' level
+    int valueOverride;             // manually (literally!) set PWM value adjusted to the 'active' level
     unsigned long previousMillis = 0;
     unsigned long interval;
 
