@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "device.h"
+#include "../hw/logger.h"
 
 class DmxRelay : public Device
 {
@@ -53,8 +54,7 @@ void DmxRelay::set(uint16_t dmxChannel, uint8_t data)
     {
         this->data = data;
         value = data > threshold ? active_value : inactive_value;
-        Serial.print("Relay: ");
-        Serial.println(value);
+        LOG_DEBUG("Relay: " + String(value));
         digitalWrite(pin, value);
     }
 }

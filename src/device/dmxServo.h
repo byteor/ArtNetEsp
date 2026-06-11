@@ -7,6 +7,7 @@
 #include <Servo.h>
 #endif
 #include "device.h"
+#include "../hw/logger.h"
 
 class DmxServo : public Device
 {
@@ -109,8 +110,7 @@ void DmxServo::set(uint16_t dmxChannel, uint8_t data)
     if (dmxChannel == channel)
     {
         value = getAngleValue(data);
-        Serial.print("Servo: ");
-        Serial.println(value);
+        LOG_DEBUG("Servo: " + String(value));
         if (servo.attached())
         {
             servo.writeMicroseconds(value);

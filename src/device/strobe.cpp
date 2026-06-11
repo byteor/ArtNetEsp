@@ -30,7 +30,7 @@ void Strobe::set(uint16_t dmxChannel, uint8_t data)
 {
     if (dmxChannel == channel) // Dimmer
     {
-        LOG("Dimmer: " + String(dmxChannel) + " = " + String(data));
+        LOG_DEBUG("Dimmer: " + String(dmxChannel) + " = " + String(data));
         this->value = data;
         this->adjustedActiveValue = activeState == HIGH ? value : 255 - value;
         this->adjustedInactiveValue = activeState == HIGH ? 0 : 255;
@@ -38,7 +38,7 @@ void Strobe::set(uint16_t dmxChannel, uint8_t data)
     }
     else if (dmxChannel == channel - 1) // Strobe
     {
-        LOG("Dimmer Strobe: " + String(dmxChannel) + " = " + String(data));
+        LOG_DEBUG("Dimmer Strobe: " + String(dmxChannel) + " = " + String(data));
         setDuration(pulse);
         setInterval(data * multiplier);
     }
