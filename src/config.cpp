@@ -67,6 +67,62 @@ bool Config::update(JsonVariant json)
     return true;
 }
 
+bool Config::stageUpdate(JsonVariant json)
+{
+#ifdef ESP32
+    portENTER_CRITICAL(&_pendingMux);
+#endif
+    size_t written = serializeJson(json, _pendingJson, sizeof(_pendingJson));
+    bool ok = written > 0 && written < sizeof(_pendingJson);
+    if (ok)
+        _hasPending = true;
+#ifdef ESP32
+    portEXIT_CRITICAL(&_pendingMux);
+#endif
+    if (!ok)
+        LOG(F("Config update too large to stage, dropped"));
+    return ok;
+}
+
+bool Config::applyPendingUpdate()
+{
+    if (!_hasPending)
+        return false;
+
+    StaticJsonDocument<CONFIG_BUFFER_SIZE> doc;
+    DeserializationError error;
+#ifdef ESP32
+    portENTER_CRITICAL(&_pendingMux);
+#endif
+    error = deserializeJson(doc, _pendingJson);
+    _hasPending = false;
+#ifdef ESP32
+    portEXIT_CRITICAL(&_pendingMux);
+#endif
+
+    if (error)
+    {
+        LOG(F("Failed to parse staged config update"));
+        return false;
+    }
+
+    LOG(F("Applying staged config update"));
+    if (update(doc.as<JsonVariant>()))
+    {
+        save();
+    }
+    else
+    {
+        LOG("Reloading existing config");
+        load();
+    }
+
+    String jsonString;
+    serialize(jsonString);
+    LOG(jsonString);
+    return true;
+}
+
 void Config::serialize(String &to)
 {
     StaticJsonDocument<CONFIG_BUFFER_SIZE> doc;

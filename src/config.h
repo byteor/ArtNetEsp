@@ -75,6 +75,18 @@ class Config
 {
     bool _dirty; // A flag that indicates that the module needs a reboot due to a changed config
 
+    // B11: POST /config (on ESP32, the async_tcp task) stages the raw JSON
+    // here instead of touching config.dmx/config.wifi directly - those
+    // LinkedLists are read every loop() iteration (device handle(), the
+    // button handler, StatusDisplay). applyPendingUpdate() is called from
+    // loop(), so the actual update()/cleanupDmx()/cleanupWiFi()/save() runs
+    // single-threaded, on the same task as the readers.
+    char _pendingJson[CONFIG_BUFFER_SIZE];
+    volatile bool _hasPending = false;
+#ifdef ESP32
+    portMUX_TYPE _pendingMux = portMUX_INITIALIZER_UNLOCKED;
+#endif
+
 protected:
     const String DMX_DISABLED = String("DISABLED");
     const String DMX_BINARY = String("BINARY");
@@ -133,6 +145,13 @@ public:
     bool update(JsonVariant json);
     bool save();
     void serialize(String &to);
+
+    // B11: stage a POST /config payload for application from loop().
+    // Returns false (and drops the update) if it doesn't fit CONFIG_BUFFER_SIZE.
+    bool stageUpdate(JsonVariant json);
+    // B11: called from loop(); applies + saves a staged update, if any.
+    // Returns false if there was nothing pending.
+    bool applyPendingUpdate();
 };
 
 } // namespace art

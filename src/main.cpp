@@ -204,6 +204,9 @@ void setup()
 
 void loop()
 {
+    // B11: apply any config staged by POST /config here, on the main task,
+    // before touching config.dmx/config.wifi below.
+    config.applyPendingUpdate();
     button.check();
     artnet.loop();
     for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)

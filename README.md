@@ -217,6 +217,14 @@ it is not required to send the whole payload, it can be partial, missing element
 }
 ```
 
+The request is queued and applied on the device's next main-loop iteration (effectively immediate), not while the response is being sent. Response:
+
+```json
+{ "status": "pending" }
+```
+
+with HTTP `202 Accepted`. Use `GET /config` afterward to confirm the new values and check `_needReboot`.
+
 ### Important notes:
 
 - After changes have been made, a reboot required to apply them

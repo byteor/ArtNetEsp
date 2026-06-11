@@ -36,25 +36,26 @@ void setupApi(AsyncWebServer *server, art::Config &config, Connect *connect)
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
                     request->send(response); });
 
-    // POST /reboot
+    // POST /config
     AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/config", [&](AsyncWebServerRequest *request, JsonVariant &json)
                                                                            {
         LOG("PUT /config");
 
-        if (config.update(json))
+        // B11: this lambda runs in the async_tcp task on ESP32, while loop()
+        // (main task) concurrently reads config.dmx/config.wifi (device
+        // handle(), button handler, StatusDisplay). Stage the JSON here and
+        // let loop() call applyPendingUpdate(), so update()/cleanupDmx()/
+        // cleanupWiFi()/save() run single-threaded on the same task as those
+        // readers.
+        AsyncWebServerResponse *response;
+        if (config.stageUpdate(json))
         {
-            config.save();
+            response = request->beginResponse(202, "application/json", "{\"status\":\"pending\"}");
         }
         else
         {
-            LOG("Reloading existing config");
-            config.load();
+            response = request->beginResponse(500, "application/json", "{\"error\":\"update too large\"}");
         }
-
-        String jsonString;
-        config.serialize(jsonString);
-        LOG(jsonString);
-        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", jsonString);
         request->send(response); });
 
     // POST /reboot
