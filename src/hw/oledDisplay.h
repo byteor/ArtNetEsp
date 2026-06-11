@@ -1,3 +1,5 @@
+#pragma once
+
 #ifdef OLED_SSD1306
 /**
  * SSD1306 OLED Display 128x64

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <ESPAsyncWebServer.h>
 #include <AsyncJson.h>
 #include "connect.h"
