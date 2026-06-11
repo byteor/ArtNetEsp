@@ -92,6 +92,25 @@ void handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
     }
 }
 
+// WiFi credentials, device config and the web UI all live on the
+// filesystem - nothing loop() does (button, Art-Net, devices, WiFi, web
+// server) can work without it. Blink LED_PIN and log forever instead of
+// returning into a loop() that would run against never-initialized
+// config/devices/network.
+void safeMode(const String &reason)
+{
+    pinMode(LED_PIN, OUTPUT);
+    while (true)
+    {
+        LOG("FATAL: " + reason + " - halted in safe mode");
+        for (int i = 0; i < 10; i++)
+        {
+            digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+            delay(50);
+        }
+    }
+}
+
 void setup()
 {
     Serial.begin(115200);
@@ -108,8 +127,7 @@ void setup()
     if (!ESP_FS.begin(true))
 #endif
     {
-        LOG(F("Cannot init the filesystem..."));
-        return;
+        safeMode(F("Cannot init the filesystem"));
     };
     delay(100);
 
