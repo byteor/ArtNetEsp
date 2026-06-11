@@ -214,4 +214,7 @@ void loop()
     ElegantOTA.loop();
 #endif
     connect.loop();
+#ifdef OLED_SSD1306
+    statusDisplay->loop();
+#endif
 }

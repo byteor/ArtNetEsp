@@ -9,7 +9,6 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Fonts/FreeSans9pt7b.h>
-#include <Ticker.h>
 
 #if defined(ESP8266)
 #include <ESP8266WiFi.h> //https://github.com/esp8266/Arduino
@@ -21,7 +20,6 @@
 class StatusDisplay
 {
 protected:
-    const float TICK_DURATION = 0.5f;
     const int TICKS_PER_PAGE = 2;
     const int TICKS_PER_MESSAGE = 4;
     const int MAIN_PAGES = 2; // assuming no DMX devices are setup
@@ -29,7 +27,17 @@ protected:
 
     Adafruit_SSD1306 *display = NULL;
 
-    Ticker _ticker;
+    // setStatus() is paced from loop() via millis() (B13), at roughly
+    // the same 1 Hz the old Ticker ran at - the TICKS_PER_PAGE/
+    // TICKS_PER_MESSAGE counters below are counted in setStatus() calls
+    // and assume that cadence.
+    // Not named REFRESH_INTERVAL: ESP8266 Servo.h #defines that name
+    // globally to 20000 (its PWM refresh period), which - since
+    // dmxServo.h/Servo.h is included earlier in main.cpp - would
+    // macro-substitute into this declaration.
+    static const unsigned long DISPLAY_REFRESH_INTERVAL = 1000; // ms
+    unsigned long lastRefreshTime = 0;
+
     art::Config *config;
     int page = 0, ticksForPage = 0, ticksForMessage = 0;
     char buf[128];
@@ -97,9 +105,19 @@ public:
         display->display();
     }
 
-    static void staticTick(StatusDisplay *sd)
+    // Call from loop() (B13): setStatus() does an I2C display->display()
+    // flush (~20ms), which used to run every second from a Ticker
+    // callback - timer/ISR context on both ESP8266 (soft-WDT/WiFi
+    // jitter risk) and ESP32 (blocks the shared esp_timer task). Driving
+    // it from loop() via millis() keeps that I2C transfer on the main
+    // task, like every other device's handle().
+    void loop()
     {
-        sd->setStatus();
+        if (millis() - lastRefreshTime >= DISPLAY_REFRESH_INTERVAL)
+        {
+            lastRefreshTime = millis();
+            setStatus();
+        }
     }
 
     StatusDisplay()
@@ -113,8 +131,6 @@ public:
 #endif
         display->clearDisplay();
         display->display();
-        //_ticker.attach_scheduled(TICK_DURATION, std::bind(&StatusDisplay::setStatus, this));
-        _ticker.attach(1, &staticTick, this);
     }
 };
 
