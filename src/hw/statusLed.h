@@ -16,8 +16,18 @@ class StatusLed
 
     static constexpr float STATUS_CONNECTING = 0.1f;
     static constexpr float STATUS_PORTAL = 0.5f;
-    static constexpr int STATUS_PWM_OFF = 1000;
-    static constexpr int STATUS_PWM_ON = 200;
+    // 8-bit analogWrite duty range: ESP8266 via analogWriteRange(255) in
+    // main.cpp, ESP32 "ESP32 AnalogWrite" library's default valueMax.
+    static constexpr uint8_t PWM_MAX = 255;
+    static constexpr uint8_t STATUS_BRIGHTNESS_OFF = 0;
+    static constexpr uint8_t STATUS_BRIGHTNESS_ON = 55; // dim "solid" glow - README's "Solid dimmed" normal-operation pattern
+
+    // analogWrite duty is time spent at logic HIGH. For an active-LOW LED
+    // (_onValue == LOW), more HIGH time means dimmer, so invert the duty.
+    void setBrightness(uint8_t brightness)
+    {
+        analogWrite(_ledPin, _onValue == HIGH ? brightness : PWM_MAX - brightness);
+    }
 
 public:
     enum Status
@@ -62,10 +72,10 @@ public:
         case Status::Connected:
         case Status::ON:
             stop(true);
-            analogWrite(_ledPin, STATUS_PWM_ON);
+            setBrightness(STATUS_BRIGHTNESS_ON);
             break;
         case Status::OFF:
-            analogWrite(_ledPin, STATUS_PWM_OFF);
+            setBrightness(STATUS_BRIGHTNESS_OFF);
             break;
         default:
             stop(false);

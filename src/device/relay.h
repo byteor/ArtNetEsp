@@ -75,7 +75,7 @@ void DmxRelay::flip()
 
 bool DmxRelay::isEnabled()
 {
-    return value;
+    return value == active_value;
 }
 
 #endif // RELAY_H
