@@ -13,7 +13,9 @@ class DmxRepeater : public Device
 {
 protected:
     uint8_t pin;
-    DmxProxy dmx;
+    // DmxProxy::instance() (B15) - a reference, not a value member, so
+    // multiple Repeater devices share the one hardware DMX port/task.
+    DmxProxy &dmx;
     unsigned long lastRefreshTime = 0;
 
 public:
@@ -24,7 +26,7 @@ public:
     uint16_t getNumberOfChannels() override { return DMX_CHANNELS; }
 };
 
-DmxRepeater::DmxRepeater(uint8_t universe)
+DmxRepeater::DmxRepeater(uint8_t universe) : dmx(DmxProxy::instance())
 {
     Serial.printf("New Repeater\r\n");
     dmx.init();
@@ -38,10 +40,7 @@ void DmxRepeater::start()
 
 void DmxRepeater::frame(const uint32_t univ, const uint8_t *data, const uint16_t size)
 {
-    for (uint16_t i = 0; i < size; i++)
-    {
-        dmx.write(i + 1, data[i]);
-    }
+    dmx.writeFrame(data, size);
     Device::frame();
 }
 
