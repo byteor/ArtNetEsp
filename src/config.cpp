@@ -4,23 +4,20 @@ namespace art
 #include "hw/board.h"
 Config::Config()
 {
-    if (ESP_FS.exists(CONFIG_FILE))
-    {
-        _fileName = CONFIG_FILE;
-    }
-    else
-    {
-        LOG(F("Config file does not exist, using default"));
-        _fileName = DEFAULT_FILE;
-    }
     _dirty = false;
 }
 
 bool Config::load()
 {
+    String fileName = CONFIG_FILE;
+    if (!ESP_FS.exists(CONFIG_FILE))
+    {
+        LOG(F("Config file does not exist, using default"));
+        fileName = DEFAULT_FILE;
+    }
     LOG(F("Loading config from"));
-    LOG(_fileName);
-    File file = ESP_FS.open(_fileName, "r");
+    LOG(fileName);
+    File file = ESP_FS.open(fileName, "r");
     cleanup();
     StaticJsonDocument<CONFIG_BUFFER_SIZE> doc;
     DeserializationError error = deserializeJson(doc, file);
@@ -42,12 +39,12 @@ bool Config::save()
     LOG(F("Saving config..."));
     StaticJsonDocument<CONFIG_BUFFER_SIZE> doc;
     configToJson(doc);
-    if (!ESP_FS.remove(_fileName))
+    if (ESP_FS.exists(CONFIG_FILE) && !ESP_FS.remove(CONFIG_FILE))
         LOG(F("Failed to delete file"));
-    File file = ESP_FS.open(_fileName, "w");
+    File file = ESP_FS.open(CONFIG_FILE, "w");
     if (!file)
     {
-        LOG("Failed to create file " + _fileName);
+        LOG("Failed to create file " + CONFIG_FILE);
         return false;
     }
     // Serialize JSON to file

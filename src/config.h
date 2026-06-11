@@ -73,7 +73,6 @@ typedef struct
 
 class Config
 {
-    String _fileName;
     bool _dirty; // A flag that indicates that the module needs a reboot due to a changed config
 
 protected:
