@@ -77,7 +77,7 @@ void handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
                 dmx_devices[i]->flip();
             }
         }
-        if (config.dmx.size() > 0)
+        if (config.dmx.size() > 0 && dmx_devices[0])
         {
             if (dmx_devices[0]->isEnabled())
             {
