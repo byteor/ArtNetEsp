@@ -137,7 +137,7 @@ is accessible via default IP address: [192.168.4.1](192.168.4.1)
 
 If a known network comes back to life while the Captive Portal is active, the device will be automatically connected to it.
 
-WiFi connection is constantly being checked every second. If connection is lost, a reconnect attempt will be made following the same logic as at startup.
+WiFi connection is constantly being checked every second. If connection is lost *after* startup, the device keeps running - DMX devices, Art-Net, the web UI/API, etc. are unaffected - and a non-blocking reconnect to the last-known network is attempted every second in the background. The Captive Portal is **not** re-opened for a runtime disconnect; only a fresh boot without a working network falls back to the Captive Portal as described above.
 
 ## Variations
 

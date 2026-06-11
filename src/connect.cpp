@@ -29,6 +29,7 @@ void Connect::connect(String hostName)
     }
     LOG("Connected :)");
     LOG(WiFi.localIP());
+    wifiConnected = true;
     status->set(StatusLed::Connected);
 }
 
@@ -50,8 +51,25 @@ void Connect::loop()
         lastRefreshTime = millis();
         if (!WiFi.isConnected())
         {
-            LOG(F("WiFi connection lost, reconnecting"));
-            connect(hostName);
+            if (wifiConnected)
+            {
+                wifiConnected = false;
+                LOG(F("WiFi connection lost, reconnecting in background"));
+                status->set(StatusLed::Connecting);
+            }
+            // Non-blocking (B12): ask the WiFi stack to retry with the
+            // last-used credentials and return immediately, so loop()
+            // keeps running devices/Art-Net/etc while WiFi is down.
+            // Unlike connect()'s autoConnect(), this never opens the
+            // captive portal - that stays a cold-boot-only behavior.
+            WiFi.reconnect();
+        }
+        else if (!wifiConnected)
+        {
+            wifiConnected = true;
+            LOG(F("WiFi reconnected"));
+            LOG(WiFi.localIP());
+            status->set(StatusLed::Connected);
         }
     }
 }

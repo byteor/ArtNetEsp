@@ -23,6 +23,10 @@ protected:
     static const unsigned long REFRESH_INTERVAL = 1000; // ms
     unsigned long lastRefreshTime;
     String hostName;
+    // Tracks WiFi connection state across loop() ticks so the
+    // lost/reconnected transitions are logged once, not every
+    // second (B12).
+    bool wifiConnected = true;
 
 public:
     void init(AsyncWebServer *server, DNSServer *dns);
