@@ -41,7 +41,7 @@ void ArtnetHandler::init(int universe, const String &shortName, const String &lo
 
     artnet.begin();
 
-    artnet.subscribeArtDmxUniverse(universe, [&](const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote)
+    artnet.subscribeArtDmxUniverse(universe, [this](const uint8_t *data, uint16_t size, const ArtDmxMetadata &metadata, const ArtNetRemoteInfo &remote)
                                    {
                                        if (size >= 2)
                                        {
@@ -49,7 +49,7 @@ void ArtnetHandler::init(int universe, const String &shortName, const String &lo
                                            {
                                                if (devices[k])
                                                {
-                                                   devices[k]->frame(universe, data, size);
+                                                   devices[k]->frame(this->universe, data, size);
 
                                                    for (int i = devices[k]->getChannel(); i < devices[k]->getChannel() + devices[k]->getNumberOfChannels(); i++)
                                                    {

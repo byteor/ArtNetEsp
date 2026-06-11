@@ -67,7 +67,7 @@ void setupApi(AsyncWebServer *server, art::Config &config, Connect *connect)
         apiTicker.once_ms(200, restart); });
 
     // POST /reset-wifi
-    server->on("/reset-wifi", HTTP_POST, [&](AsyncWebServerRequest *request)
+    server->on("/reset-wifi", HTTP_POST, [connect](AsyncWebServerRequest *request)
                {
         LOG("POST /reset-wifi");
 
