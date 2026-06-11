@@ -143,7 +143,12 @@ void setup()
     analogWriteRange(255);
 #endif
 
-    for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
+    // config.cpp clamps config.dmx to MAX_DMX_DEVICES at load time; reuse that
+    // bound everywhere dmx_devices[MAX_DMX_DEVICES] is indexed or its size is
+    // handed off, so a stale/oversized config can't cause an OOB read (B8).
+    uint8_t deviceCount = config.dmx.size() < MAX_DMX_DEVICES ? config.dmx.size() : MAX_DMX_DEVICES;
+
+    for (int i = 0; i < deviceCount; i++)
     {
         dmx_devices[i] = NULL;
         switch (config.dmx[i]->type)
@@ -177,15 +182,12 @@ void setup()
 
     // ArtNet
     String longName = config.host;
-    if (config.dmx.size() > 0)
+    for (int i = 0; i < deviceCount; i++)
     {
-        for (int i = 0; i < config.dmx.size(); i++)
-        {
-            longName += " " + config.dmxTypeToString(config.dmx[i]->type) + " #" + String(config.dmx[i]->channel);
-        }
+        longName += " " + config.dmxTypeToString(config.dmx[i]->type) + " #" + String(config.dmx[i]->channel);
     }
     LOG("ArtNet Node: " + config.host + " : " + longName);
-    artnet.init(config.universe, config.host, longName, dmx_devices, config.dmx.size());
+    artnet.init(config.universe, config.host, longName, dmx_devices, deviceCount);
 
     // Setup WWW
     server.reset();

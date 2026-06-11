@@ -138,8 +138,12 @@ void Config::configFromJson(JsonVariant doc)
     {
         LOG("DMX:");
         cleanupDmx();
+        if (channels.size() > MAX_DMX_DEVICES)
+            LOG("  WARNING: " + String(channels.size()) + " dmx entries in config, only the first " + String(MAX_DMX_DEVICES) + " will be used");
         for (JsonObject channel : channels)
         {
+            if (dmx.size() >= MAX_DMX_DEVICES)
+                break;
             DmxChannel *dmxChannel = new DmxChannel();
             dmxChannel->type = dmxTypeFromString(channel["type"].as<String>());
             dmxChannel->channel = channel["channel"] | 0;
