@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: build (${{ matrix.env }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - d1_mini_oled
+          - d1_mini
+          - nodemcuv2
+          - heltec_wifi_kit_8
+          - sonoff_basic
+          - sonoff_s31
+          - lolin32
+          - esp32-devkitc-v4
+          - lolin_s2_mini
+          - esp32-s3-devkitc-1
+          - seeed_xiao_esp32s3
+          - seeed_xiao_esp32s3_oled
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Cache PlatformIO platforms/packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio
+          key: platformio-${{ matrix.env }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            platformio-${{ matrix.env }}-
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      # lolin_s2_mini fails to build out of the box: mathieucarbou/ESPAsyncWebServer
+      # has a const-correctness bug (ESPAsyncWebServer.h:1691) that is incompatible
+      # with this codebase's const Device methods. This is pre-existing (B26 in
+      # REFACTORING_PLAN.md), independent of any Phase 0 changes, and deferred
+      # pending ESP32-S2 bench hardware. Run it for visibility but don't fail CI.
+      - name: Build (${{ matrix.env }})
+        continue-on-error: ${{ matrix.env == 'lolin_s2_mini' }}
+        run: pio run -e ${{ matrix.env }}
+        # Note: extra_scripts (platformio_version_increment) bump `version` and
+        # include/Version.h on every build. CI never commits these changes -
+        # the runner's checkout is discarded after the job finishes.
+
+  lint:
+    name: cppcheck (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+
+      # Advisory only: embedded/Arduino headers aren't on cppcheck's include path,
+      # so missingInclude noise is suppressed. Findings don't fail the build yet -
+      # this is a starting point for Phase 1+ cleanup, not a gate.
+      - name: cppcheck src/
+        continue-on-error: true
+        run: |
+          cppcheck --enable=warning,style,performance,portability \
+            --std=c++17 --inline-suppr --force \
+            --suppress=missingInclude --suppress=unusedFunction \
+            -I src src
