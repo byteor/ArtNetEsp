@@ -8,13 +8,13 @@ int receivePin = DMX_RX_PIN;
 int enablePin = DMX_ENABLE_PIN;
 dmx_port_t dmxPort = DMX_PORT;
 
-void DmxProxy::senderTaskThunk(void *param)
+void DmxPort::senderTaskThunk(void *param)
 {
-    DmxProxy *self = static_cast<DmxProxy *>(param);
+    DmxPort *self = static_cast<DmxPort *>(param);
     self->senderTaskLoop();
 }
 
-void DmxProxy::senderTaskLoop()
+void DmxPort::senderTaskLoop()
 {
     uint8_t localBuf[DMX_BUFFER_SIZE];
     memset(localBuf, 0, DMX_BUFFER_SIZE);
@@ -34,9 +34,9 @@ void DmxProxy::senderTaskLoop()
     }
 }
 
-void DmxProxy::init()
+void DmxPort::init()
 {
-    // instance() guarantees one DmxProxy, but init() is still called
+    // instance() guarantees one DmxPort, but init() is still called
     // once per DmxRepeater constructed - make it idempotent so a
     // second Repeater config doesn't re-install the driver / spawn a
     // second sender task on the same UART (B15).
@@ -57,7 +57,7 @@ void DmxProxy::init()
     const uint32_t stackSize = 4096;
     const UBaseType_t priority = 2;
     const BaseType_t result = xTaskCreatePinnedToCore(
-        DmxProxy::senderTaskThunk,
+        DmxPort::senderTaskThunk,
         "DmxSender",
         stackSize,
         this,
@@ -74,7 +74,7 @@ void DmxProxy::init()
     }
 }
 
-void DmxProxy::write(int channel, uint8_t value)
+void DmxPort::write(int channel, uint8_t value)
 {
     // Set DMX channel value (1-512; data[0] is the start code - B5)
     if (channel > 0 && channel <= DMX_CHANNELS)
@@ -87,7 +87,7 @@ void DmxProxy::write(int channel, uint8_t value)
     }
 }
 
-void DmxProxy::writeFrame(const uint8_t *frameData, uint16_t size)
+void DmxPort::writeFrame(const uint8_t *frameData, uint16_t size)
 {
     if (size > DMX_CHANNELS)
         size = DMX_CHANNELS;
@@ -100,7 +100,7 @@ void DmxProxy::writeFrame(const uint8_t *frameData, uint16_t size)
     }
 }
 
-void DmxProxy::update()
+void DmxPort::update()
 {
     if (!senderTask)
     {

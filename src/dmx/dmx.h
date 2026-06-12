@@ -22,7 +22,7 @@
 // checks; DMX_BUFFER_SIZE is the buffer/wire size.
 #define DMX_BUFFER_SIZE (DMX_CHANNELS + 1)
 
-class DmxProxy
+class DmxPort
 {
 protected:
 #ifdef ESP32
@@ -38,13 +38,13 @@ protected:
     bool initialized = false;
 
 public:
-    // DmxProxy wraps a singleton hardware UART (B15) - always go
-    // through instance() rather than constructing a DmxProxy
+    // DmxPort wraps a singleton hardware UART (B15) - always go
+    // through instance() rather than constructing a DmxPort
     // directly, so multiple Repeater devices share one port/task.
-    static DmxProxy &instance()
+    static DmxPort &instance()
     {
-        static DmxProxy proxy;
-        return proxy;
+        static DmxPort port;
+        return port;
     }
 
     void init();

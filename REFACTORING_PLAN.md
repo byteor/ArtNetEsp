@@ -244,6 +244,10 @@ One commit per rename, in this order:
 
 Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS, v2026.1.26->v2026.1.27.
 
+**Done (item 2):** `DmxProxy` -> `DmxPort`, pure rename across `src/dmx/dmx.h`, `dmx32.cpp`, `dmx8266.cpp`, `device/repeater.h` - class name, all `DmxProxy::` method-definition prefixes, the `instance()` singleton accessor and its local (`proxy` -> `port`), the `DmxRepeater::dmx` reference member, and every comment referencing the old name (including the "(B15)" singleton-pattern notes). Global namespace, unchanged. No JSON/REST surface involved.
+
+Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
+
 ### Phase 3 — Platform layer — M
 - Create `src/platform/`; move every `#if ESP8266/ESP32` from `main.cpp`, `config.*`, `connect.*`, `oledDisplay.h`, device headers into it. Single `ESP_FS`/filesystem accessor; hostname set via one platform call (resolves the `WiFi.hostname` question on ESP32).
 - `Pwm` class: LEDC on ESP32 (channel allocation + `pwmFreq` honored — fixes the silent TODO at `main.cpp:139`), `analogWrite/analogWriteFreq` on 8266. Drop `erropix/ESP32 AnalogWrite`.
