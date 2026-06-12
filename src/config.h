@@ -49,8 +49,8 @@ typedef struct
 enum DmxType
 {
     Disabled = 0,
-    Binary = 1, // AKA Relay
-    Dimmable = 2,
+    Relay = 1,
+    Dimmer = 2,
     Servo = 3,
     Repeater = 4, // AKA Art-Net --> DMX gateway
 };
@@ -59,7 +59,7 @@ typedef struct
 {
     uint16_t channel;    // DMX channel
     DmxType type;        // DMX channel features
-    uint8_t threshold;   // ON/OFF threshold for a DmxType::Binary switch (relay)
+    uint8_t threshold;   // ON/OFF threshold for a DmxType::Relay switch
     uint16_t pulse;      // Strobe pulse length
     uint16_t multiplier; // Strobe period multiplier
     uint8_t pin;         // Pin (Arduino numbering)
@@ -93,8 +93,9 @@ class Config
 
 protected:
     const String DMX_DISABLED = String("DISABLED");
-    const String DMX_BINARY = String("BINARY");
-    const String DMX_DIMMABLE = String("DIMMER");
+    const String DMX_BINARY = String("BINARY"); // legacy wire string for Relay - still emitted (R5)
+    const String DMX_RELAY = String("RELAY");   // canonical alias for Relay, accepted on input only
+    const String DMX_DIMMER = String("DIMMER");
     const String DMX_SERVO = String("SERVO");
     const String DMX_REPEATER = String("REPEATER");
 
@@ -105,10 +106,10 @@ protected:
 
     DmxType dmxTypeFromString(String type)
     {
-        if (DMX_BINARY.equals(type))
-            return DmxType::Binary;
-        if (DMX_DIMMABLE.equals(type))
-            return DmxType::Dimmable;
+        if (DMX_BINARY.equals(type) || DMX_RELAY.equals(type))
+            return DmxType::Relay;
+        if (DMX_DIMMER.equals(type))
+            return DmxType::Dimmer;
         if (DMX_SERVO.equals(type))
             return DmxType::Servo;
         if (DMX_REPEATER.equals(type))
@@ -125,10 +126,10 @@ protected:
 public:
     String dmxTypeToString(DmxType type)
     {
-        if (type == DmxType::Binary)
+        if (type == DmxType::Relay)
             return DMX_BINARY;
-        if (type == DmxType::Dimmable)
-            return DMX_DIMMABLE;
+        if (type == DmxType::Dimmer)
+            return DMX_DIMMER;
         if (type == DmxType::Servo)
             return DMX_SERVO;
         if (type == DmxType::Repeater)

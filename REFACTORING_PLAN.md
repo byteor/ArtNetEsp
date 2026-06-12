@@ -252,6 +252,10 @@ Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
 
 Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
 
+**Done (item 4):** `enum DmxType`: `Binary`->`Relay`, `Dimmable`->`Dimmer` (`config.h`); `main.cpp`'s device-instantiation switch updated (`case art::DmxType::Relay:`/`Dimmer:`). `dmxTypeToString()` (output/codec) is unchanged in behavior - still emits `"BINARY"`/`"DIMMER"`/`"SERVO"`/`"REPEATER"`/`"DISABLED"` per R5, just via the renamed enum values and a renamed-for-consistency `DMX_DIMMER` string constant (still `"DIMMER"`). `dmxTypeFromString()` (input/codec) now accepts a new `DMX_RELAY = "RELAY"` constant as an alias for `Relay`, alongside the still-accepted legacy `"BINARY"` - so a Phase-1-era config with `"type": "BINARY"` and a brand-new config with `"type": "RELAY"` both parse to the same enum value. README: added a note in the RELAY section explaining the `"BINARY"`/`"RELAY"` relationship (kills the "third name" - RELAY heading vs BINARY string - per item 2's bullet), and the existing `POST /config` type-list comment (`DIMMER | RELAY | SERVO | REPEATER`, line 176) is now accurate for input.
+
+Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
+
 ### Phase 3 — Platform layer — M
 - Create `src/platform/`; move every `#if ESP8266/ESP32` from `main.cpp`, `config.*`, `connect.*`, `oledDisplay.h`, device headers into it. Single `ESP_FS`/filesystem accessor; hostname set via one platform call (resolves the `WiFi.hostname` question on ESP32).
 - `Pwm` class: LEDC on ESP32 (channel allocation + `pwmFreq` honored — fixes the silent TODO at `main.cpp:139`), `analogWrite/analogWriteFreq` on 8266. Drop `erropix/ESP32 AnalogWrite`.

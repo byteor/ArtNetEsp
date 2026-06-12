@@ -171,14 +171,14 @@ void setup()
         dmx_devices[i] = NULL;
         switch (config.dmx[i]->type)
         {
-        case art::DmxType::Binary:
+        case art::DmxType::Relay:
             dmx_devices[i] = new DmxRelay(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->level, config.dmx[i]->threshold);
             break;
 #ifndef SONOFF_BASIC
         case art::DmxType::Servo:
             dmx_devices[i] = new DmxServo(1, config.dmx[i]->channel, config.dmx[i]->pin);
             break;
-        case art::DmxType::Dimmable:
+        case art::DmxType::Dimmer:
             dmx_devices[i] = new Strobe(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->pulse, config.dmx[i]->multiplier, config.dmx[i]->level);
             break;
         case art::DmxType::Repeater:

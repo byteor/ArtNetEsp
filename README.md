@@ -70,6 +70,8 @@ There is a global setting for PWM frequency - `freq`. See [GET config](#get-conf
 
 Uses one DMX `channel`. When a value reaches `threshold` the output `pin` changes its `level` to 'active' which could be either `HIGH` or `LOW`.
 
+The JSON `type` for this device is `"BINARY"`, kept for compatibility with existing configs. `"RELAY"` is also accepted as an alias when POSTing `/config`, but `GET /config` will continue to return `"BINARY"`.
+
 ```json
 	"dmx": [
 		{
