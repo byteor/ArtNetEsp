@@ -1,13 +1,9 @@
 #ifndef SONOFF_BASIC
 
 #include <Arduino.h>
-#ifdef ESP32
-#include <ESP32Servo.h>
-#else
-#include <Servo.h>
-#endif
 #include "device.h"
 #include "../hw/logger.h"
+#include "platform/servo.h"
 
 class DmxServo : public Device
 {

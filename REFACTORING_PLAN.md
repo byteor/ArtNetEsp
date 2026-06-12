@@ -292,6 +292,8 @@ Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
 
 Build matrix: full `pio run` (12 envs, cross-cutting `platformio.ini` change touching 7 envs) - 11/12 SUCCESS, `lolin_s2_mini` FAILED (pre-existing B26, unrelated `ESPAsyncWebServer`/`AsyncTCP` `const`-qualifier error, not a regression). `lolin32` also failed on the first pass (4s, SCons `.sconsign`/`.d` "No such file or directory" - a transient directory-creation race right after `Pwm`'s `lib_deps` change triggered a from-scratch rebuild of this env, `.pio/build/lolin32/` didn't exist afterward); a solo `pio run -e lolin32` retry succeeded cleanly (15s), confirming it wasn't a code issue.
 
+**Done (item 4):** `src/platform/servo.h` wraps `#ifdef ESP32 #include <ESP32Servo.h> #else #include <Servo.h> #endif`, replacing the inline block in `device/dmxServo.h` (lines 4-8). Pure include consolidation, same pattern as item 1's `filesystem.h` - no behavioral change. Covered by the same full build matrix as item 3 (every non-`SONOFF_BASIC` env compiles `dmxServo.h`): 11/12 SUCCESS (`lolin_s2_mini` pre-existing B26, as above).
+
 ### Phase 4 — Board layer — S/M
 - `boards/<env>.h` per environment carrying *all* pins and `FEATURE_*` flags; `platformio.ini` passes exactly one `-D BOARD_<NAME>`; `boards/board.h` dispatches. `lolin_s2_mini` gets an explicit header (kills AGENTS Gotcha #3).
 - `features.h`: `SONOFF_BASIC` becomes `BOARD_SONOFF_*` profiles that set `FEATURE_*=0`; all `#ifndef SONOFF_BASIC` in code becomes `#if FEATURE_DMX_PORT`, `#if FEATURE_SERVO`, etc. `lib_ignore` stays per-env.
