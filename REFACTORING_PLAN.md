@@ -260,6 +260,8 @@ Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
 
 Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
 
+**Phase 2 verified:** bench T1 (`tools/verify.sh seeed_xiao_esp32s3 --quick`) on the HIL device - `BOOT_RESULT=ok`, v2026.1.27. `GET /config` matches hil_smoke.py's schema contract (`REQUIRED_TOP`/`REQUIRED_INFO`/`REQUIRED_DMX_FIELDS`), with the configured `dmx[0]` still reporting `"type": "REPEATER"`. R5 compat contract exercised live via POST/GET round-trips on `dmx[0].type`: `"BINARY"` -> `Relay` -> `"BINARY"` (legacy string still parses and round-trips, confirming a Phase-1-era `config.json` loads correctly through the renamed enum), `"DIMMER"` -> `Dimmer` -> `"DIMMER"`, `"RELAY"` (new alias) -> `Relay` -> `"BINARY"` (alias collapses to the canonical wire string), `"REPEATER"` -> `Repeater` -> `"REPEATER"` (unaffected, confirmed after settling the staged-update delay). Device rebooted afterward to restore a clean `_needReboot: false` state with the repeater device re-instantiated correctly.
+
 ### Phase 3 — Platform layer — M
 - Create `src/platform/`; move every `#if ESP8266/ESP32` from `main.cpp`, `config.*`, `connect.*`, `oledDisplay.h`, device headers into it. Single `ESP_FS`/filesystem accessor; hostname set via one platform call (resolves the `WiFi.hostname` question on ESP32).
 - `Pwm` class: LEDC on ESP32 (channel allocation + `pwmFreq` honored — fixes the silent TODO at `main.cpp:139`), `analogWrite/analogWriteFreq` on 8266. Drop `erropix/ESP32 AnalogWrite`.
