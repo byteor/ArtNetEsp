@@ -248,6 +248,10 @@ Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS, v2026.1.
 
 Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
 
+**Done (item 3):** `DmxChannel` -> `DeviceConfig`, pure rename, `art::DeviceConfig` (stays in `art::`). Only 4 occurrences total, all in `config.h`/`config.cpp` - the typedef (`config.h:67`), the `art::LinkedList<DeviceConfig *> dmx` member (`config.h:140`), and two local-variable sites in `config.cpp` (`configFromJson`'s `new DeviceConfig()` builder loop, renamed `dmxChannel`->`deviceConfig` for consistency; and `configToJson`'s `dmx.get(i)` accessor). `main.cpp` never named the type directly (it only accesses fields through `config.dmx[i]->...`), so it needed no changes. JSON key `"dmx"` and all field names (`channel`/`type`/`threshold`/`pulse`/`multiplier`/`pin`/`level`) unchanged.
+
+Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
+
 ### Phase 3 — Platform layer — M
 - Create `src/platform/`; move every `#if ESP8266/ESP32` from `main.cpp`, `config.*`, `connect.*`, `oledDisplay.h`, device headers into it. Single `ESP_FS`/filesystem accessor; hostname set via one platform call (resolves the `WiFi.hostname` question on ESP32).
 - `Pwm` class: LEDC on ESP32 (channel allocation + `pwmFreq` honored — fixes the silent TODO at `main.cpp:139`), `analogWrite/analogWriteFreq` on 8266. Drop `erropix/ESP32 AnalogWrite`.

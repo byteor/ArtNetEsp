@@ -196,15 +196,15 @@ void Config::configFromJson(JsonVariant doc)
         {
             if (dmx.size() >= MAX_DMX_DEVICES)
                 break;
-            DmxChannel *dmxChannel = new DmxChannel();
-            dmxChannel->type = dmxTypeFromString(channel["type"].as<String>());
-            dmxChannel->channel = channel["channel"] | 0;
-            dmxChannel->level = channel["level"].as<String>().equalsIgnoreCase("high") ? HIGH : LOW;
-            dmxChannel->pin = channel["pin"] | LED_BUILTIN;
-            dmxChannel->multiplier = channel["multiplier"] | 1;
-            dmxChannel->pulse = channel["pulse"] | 10;
-            dmxChannel->threshold = channel["threshold"] | 127;
-            dmx.add(dmxChannel);
+            DeviceConfig *deviceConfig = new DeviceConfig();
+            deviceConfig->type = dmxTypeFromString(channel["type"].as<String>());
+            deviceConfig->channel = channel["channel"] | 0;
+            deviceConfig->level = channel["level"].as<String>().equalsIgnoreCase("high") ? HIGH : LOW;
+            deviceConfig->pin = channel["pin"] | LED_BUILTIN;
+            deviceConfig->multiplier = channel["multiplier"] | 1;
+            deviceConfig->pulse = channel["pulse"] | 10;
+            deviceConfig->threshold = channel["threshold"] | 127;
+            dmx.add(deviceConfig);
             LOG("  channel: " + channel["channel"].as<String>());
             LOG("  type: " + channel["type"].as<String>() + " on pin " + channel["pin"].as<String>() + " active: " + channel["level"].as<String>());
         }
@@ -262,7 +262,7 @@ void Config::configToJson(JsonDocument &doc)
     JsonArray channels = doc.createNestedArray("dmx");
     for (int i = 0; i < dmx.size() && i < MAX_DMX_DEVICES; i++)
     {
-        DmxChannel *channel = dmx.get(i);
+        DeviceConfig *channel = dmx.get(i);
         channels[i]["channel"] = channel->channel;
         channels[i]["type"] = dmxTypeToString(channel->type);
         channels[i]["pin"] = channel->pin;

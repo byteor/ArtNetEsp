@@ -64,7 +64,7 @@ typedef struct
     uint16_t multiplier; // Strobe period multiplier
     uint8_t pin;         // Pin (Arduino numbering)
     uint8_t level;       // Active level: 0=LOW, 1=HIGH
-} DmxChannel;
+} DeviceConfig;
 
 typedef struct
 {
@@ -137,7 +137,7 @@ public:
     }
 
     // DMX
-    art::LinkedList<DmxChannel *> dmx;
+    art::LinkedList<DeviceConfig *> dmx;
     // WiFi
     art::LinkedList<WiFiNet *> wifi;
     String host;
