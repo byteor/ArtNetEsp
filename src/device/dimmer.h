@@ -1,5 +1,5 @@
-#ifndef STROBE_H
-#define STROBE_H
+#ifndef DIMMER_H
+#define DIMMER_H
 
 #include <Arduino.h>
 #ifdef ESP32
@@ -12,7 +12,7 @@
 // default strobe pulse length, ms
 #define DEFAULT_STROBE_PULSE 5
 
-class Strobe : public Device
+class PwmDimmer : public Device
 {
 protected:
     uint8_t pin;
@@ -33,7 +33,7 @@ protected:
     unsigned long interval;
 
 public:
-    Strobe(uint8_t universe, uint16_t channel, uint8_t pin = LED_BUILTIN, int pulse = DEFAULT_STROBE_PULSE, int multiplier = 1, int activeState = HIGH);
+    PwmDimmer(uint8_t universe, uint16_t channel, uint8_t pin = LED_BUILTIN, int pulse = DEFAULT_STROBE_PULSE, int multiplier = 1, int activeState = HIGH);
     void start() override;
     void start(uint8_t value);
     void stop() override;

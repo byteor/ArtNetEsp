@@ -1,8 +1,8 @@
-#include "strobe.h"
+#include "dimmer.h"
 
-Strobe::Strobe(uint8_t universe, uint16_t channel, uint8_t pin, int pulse, int multiplier, int activeState)
+PwmDimmer::PwmDimmer(uint8_t universe, uint16_t channel, uint8_t pin, int pulse, int multiplier, int activeState)
 {
-    LOG("New Strobe: pin=" + String(pin) + " DMX channel:" + String(channel));
+    LOG("New Dimmer: pin=" + String(pin) + " DMX channel:" + String(channel));
 
     this->universe = universe;
     this->channel = channel;
@@ -21,12 +21,12 @@ Strobe::Strobe(uint8_t universe, uint16_t channel, uint8_t pin, int pulse, int m
     digitalWrite(pin, inactiveState);
 }
 
-uint8_t Strobe::get(uint16_t channel)
+uint8_t PwmDimmer::get(uint16_t channel)
 {
     return value;
 }
 
-void Strobe::set(uint16_t dmxChannel, uint8_t data)
+void PwmDimmer::set(uint16_t dmxChannel, uint8_t data)
 {
     if (dmxChannel == channel) // Dimmer
     {
@@ -45,7 +45,7 @@ void Strobe::set(uint16_t dmxChannel, uint8_t data)
     }
 }
 
-void Strobe::update()
+void PwmDimmer::update()
 {
     if (enabled && state == activeState)
     {
@@ -58,21 +58,21 @@ void Strobe::update()
     }
 }
 
-void Strobe::setInterval(int millis)
+void PwmDimmer::setInterval(int millis)
 {
     period = millis;
     if (period < 0)
         period = pulse;
 }
 
-void Strobe::setDuration(int millis)
+void PwmDimmer::setDuration(int millis)
 {
     pulse = millis;
     if (pulse < 0)
         pulse = 0;
 }
 
-void Strobe::setPin(int number)
+void PwmDimmer::setPin(int number)
 {
     if (pin != number)
     {
@@ -83,7 +83,7 @@ void Strobe::setPin(int number)
     }
 }
 
-void Strobe::handle()
+void PwmDimmer::handle()
 {
     if (!enabled)
         return;
@@ -123,11 +123,11 @@ void Strobe::handle()
     }
 }
 
-void Strobe::start()
+void PwmDimmer::start()
 {
     if (!enabled)
     {
-        LOG(F("Strobe Started"));
+        LOG(F("Dimmer Started"));
         interval = 0;
         state = activeState;
         enabled = true;
@@ -135,13 +135,13 @@ void Strobe::start()
     }
 }
 
-void Strobe::stop()
+void PwmDimmer::stop()
 {
     enabled = false;
     digitalWrite(pin, inactiveState);
 }
 
-void Strobe::flip()
+void PwmDimmer::flip()
 {
     enabled = !enabled;
     if (enabled)
@@ -158,7 +158,7 @@ void Strobe::flip()
     update();
 }
 
-bool Strobe::isEnabled()
+bool PwmDimmer::isEnabled()
 {
     return enabled;
 }

@@ -33,7 +33,7 @@
 #include "device/device.h"
 #include "device/relay.h"
 #ifndef SONOFF_BASIC
-#include "device/strobe.h"
+#include "device/dimmer.h"
 #include "device/repeater.h"
 #include "device/dmxServo.h"
 #endif
@@ -179,7 +179,7 @@ void setup()
             dmx_devices[i] = new DmxServo(1, config.dmx[i]->channel, config.dmx[i]->pin);
             break;
         case art::DmxType::Dimmer:
-            dmx_devices[i] = new Strobe(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->pulse, config.dmx[i]->multiplier, config.dmx[i]->level);
+            dmx_devices[i] = new PwmDimmer(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->pulse, config.dmx[i]->multiplier, config.dmx[i]->level);
             break;
         case art::DmxType::Repeater:
             dmx_devices[i] = new DmxRepeater(1);

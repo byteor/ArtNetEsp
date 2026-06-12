@@ -271,7 +271,7 @@ OTA is supported via [http://<DEVICE_IP>/update](http://<DEVICE_IP>/update) URL
 - [ ] Respect Universe in Repeater mode
 - [x] Reconnect on WiFi disconnects
 - [ ] Make blackout on DMX timeout optional
-- [ ] Rename Strobe class (it is meaningless)
+- [x] Rename Strobe class (it is meaningless)
 
 ## Build
 

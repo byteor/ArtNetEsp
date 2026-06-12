@@ -256,6 +256,10 @@ Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
 
 Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
 
+**Done (item 5):** `Strobe` -> `PwmDimmer`, `src/device/strobe.h`/`strobe.cpp` -> `src/device/dimmer.h`/`dimmer.cpp` (`git mv` to preserve history). Header guard `STROBE_H`->`DIMMER_H`, class declaration and all 12 method definitions (constructor, `get`/`set`/`update`/`setInterval`/`setDuration`/`setPin`/`handle`/`start`/`stop`/`flip`/`isEnabled`), the `#include`, and the two log strings naming the class (`"New Strobe: ..."`->`"New Dimmer: ..."`, `"Strobe Started"`->`"Dimmer Started"`) all renamed. `main.cpp`: `#include "device/strobe.h"`->`#include "device/dimmer.h"`, `new Strobe(...)`->`new PwmDimmer(...)` with identical constructor args. `DEFAULT_STROBE_PULSE` macro, `config.h`'s `pulse`/`multiplier` field comments ("Strobe pulse length"/"Strobe period multiplier"), and `dimmer.cpp`'s "Strobe" debug log/comment for the secondary (channel-1) flash feature are all left as-is per item 2's namespace-decision note - these name the strobe/flash *sub-feature* that `PwmDimmer` still implements, not the class. README: checked off `- [x] Rename Strobe class (it is meaningless)` (line 274); the separate Stroboscope/Flip TODOs (lines 264-265) are unaffected and stay open. No JSON/REST surface touched.
+
+Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
+
 ### Phase 3 — Platform layer — M
 - Create `src/platform/`; move every `#if ESP8266/ESP32` from `main.cpp`, `config.*`, `connect.*`, `oledDisplay.h`, device headers into it. Single `ESP_FS`/filesystem accessor; hostname set via one platform call (resolves the `WiFi.hostname` question on ESP32).
 - `Pwm` class: LEDC on ESP32 (channel allocation + `pwmFreq` honored — fixes the silent TODO at `main.cpp:139`), `analogWrite/analogWriteFreq` on 8266. Drop `erropix/ESP32 AnalogWrite`.
