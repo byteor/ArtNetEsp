@@ -227,7 +227,16 @@ One commit per bug, in this order (independent unless noted):
 - Kill the third name everywhere (README "RELAY" heading vs `"BINARY"` type string gets an explicit alias note).
 - Decide the namespace: everything project-owned under `artnode::` (or keep `art::` but apply it to all modules, not just config). Fix the includes-inside-namespace hazard (§1.2.1) while touching these files.
 
-**Verify:** build matrix; `GET /config` byte-compatible with Phase 1 output; old config.json files load.
+**Namespace decision:** keep `art::` — it's the existing, working namespace for `Config`/`DmxType`/`WiFiNet`/`HardwareConfig`; `artnode::` would mean renaming an already-correct namespace for purely cosmetic reasons. The "apply to all modules" half of the bullet (wrapping `Device`/`DmxRelay`/`PwmDimmer`/`DmxPort`/`ArtnetHandler`/`Connect`/etc. in `art::`) is a separate, larger sweep with no functional payoff on its own — deferred rather than bolted onto this "S"-sized phase; it can land incrementally as Phase 3-5 already touch those files for other reasons, or as its own quick-win pass. This phase only fixes the **includes-inside-namespace hazard** (§1.2 item 1) in `config.h`/`config.cpp`, since that's a two-line hygiene fix independent of any broader namespace sweep. `DmxPort` (was `DmxProxy`, `dmx/`) and `PwmDimmer` (was `Strobe`, `device/`) stay in the global namespace, alongside their un-renamed siblings (`Device`, `DmxRelay`, `DmxServo`, `DmxRepeater`) — consistent with their current scope, avoiding a half-namespaced `device/`+`dmx/`.
+
+One commit per rename, in this order:
+1. Fix includes-inside-namespace (§1.2 item 1): move `#include <LinkedList.h>` (`config.h:33`) and `#include "hw/board.h"` (`config.cpp:2-4`) outside `namespace art { ... }`.
+2. `DmxProxy` → `DmxPort` (`src/dmx/dmx.h`, `dmx32.cpp`, `dmx8266.cpp`, `device/repeater.h`) — pure rename, global namespace.
+3. `DmxChannel` → `DeviceConfig` (`config.h`, `config.cpp`, `main.cpp`) — pure rename, stays `art::DeviceConfig`; JSON key `"dmx"` and all field names unchanged.
+4. `enum DmxType`: `Binary` → `Relay`, `Dimmable` → `Dimmer` (`config.h`, `main.cpp`'s device-instantiation switch). `dmxTypeToString()` keeps emitting the legacy wire strings (`"BINARY"`/`"DIMMER"`/...) per the R5 compat contract; `dmxTypeFromString()` additionally accepts `"RELAY"` as an alias for `Relay` (alongside the still-accepted `"BINARY"`). README: add an explicit RELAY/BINARY alias note next to the `POST /config` type list (making line 176's `DIMMER | RELAY | SERVO | REPEATER` comment finally accurate).
+5. `Strobe` → `PwmDimmer`; `device/strobe.h`/`strobe.cpp` → `device/dimmer.h`/`dimmer.cpp` (`main.cpp`'s include + instantiation). Check off README's `- [ ] Rename Strobe class (it is meaningless)` TODO (line 272) — this is exactly what it asked for; the separate Stroboscope/Flip behavioral TODOs (lines 262-263) are unaffected and stay open.
+
+**Verify:** build matrix (Gotcha-#12 trio) after each commit; bench T1 once at the end of the phase, plus `GET /config` byte-compatible with Phase 1 output and a Phase-1-era `config.json` still loading (old `"BINARY"`/`"DIMMER"` strings must still parse via the now-renamed enum values).
 
 ### Phase 3 — Platform layer — M
 - Create `src/platform/`; move every `#if ESP8266/ESP32` from `main.cpp`, `config.*`, `connect.*`, `oledDisplay.h`, device headers into it. Single `ESP_FS`/filesystem accessor; hostname set via one platform call (resolves the `WiFi.hostname` question on ESP32).
