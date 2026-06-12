@@ -8,8 +8,8 @@
 #define ESP_FS LittleFS
 #else
 #include <WiFi.h>
-#include <SPIFFS.h>
-#define ESP_FS SPIFFS
+#include <LittleFS.h>
+#define ESP_FS LittleFS
 #endif
 
 #endif

@@ -34,6 +34,7 @@ The next step was to use this platform for experimental devices like NepPixel li
   - [POST /reset-wifi](#post-reset-wifi)
   - [GET /heap](#get-heap)
 - [OTA](#ota)
+- [Upgrading](#upgrading)
 - [TODO List](#todo)
 - [Build](#build)
 - [Version History](#version-history)
@@ -248,6 +249,20 @@ Returns the heap size
 ## OTA
 
 OTA is supported via [http://<DEVICE_IP>/update](http://<DEVICE_IP>/update) URL
+
+---
+
+## Upgrading
+
+### ESP32: filesystem switched from SPIFFS to LittleFS (v2026.1.28+)
+
+ESP32 builds now use **LittleFS** instead of SPIFFS - matching ESP8266, which has always used LittleFS. SPIFFS and LittleFS use incompatible on-flash formats, so **the first OTA update to this version on an already-deployed ESP32 device cannot read its existing `/config/config.json`**. The device falls back to `data/config/default.json` and starts the WiFi captive portal, exactly like a fresh device.
+
+To recover:
+1. Connect to the device's captive portal (`192.168.4.1`) and re-enter your WiFi credentials, as during initial setup.
+2. Once back on your network, re-apply your DMX/device configuration via [`POST /config`](#post-config).
+
+ESP8266 devices are unaffected - no action needed.
 
 ---
 
