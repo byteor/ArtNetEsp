@@ -146,9 +146,10 @@ def check_config_roundtrip(check, host):
             scratch = (original + 2) % 64
 
         resp1 = json.loads(http_post_json(host, "/config", {"universe": scratch}))
-        if resp1.get("universe") != scratch:
-            check.fail("POST /config round-trip", f"POST response universe={resp1.get('universe')!r}, expected {scratch}")
+        if resp1.get("status") != "pending":
+            check.fail("POST /config round-trip", f"POST response={resp1!r}, expected status=pending")
             return
+        time.sleep(0.2)  # queued update is applied on the next loop() iteration
 
         after_set = json.loads(http_get(host, "/config"))
         if after_set.get("universe") != scratch:
@@ -156,9 +157,10 @@ def check_config_roundtrip(check, host):
             return
 
         resp2 = json.loads(http_post_json(host, "/config", {"universe": original}))
-        if resp2.get("universe") != original:
-            check.fail("POST /config round-trip", f"revert response universe={resp2.get('universe')!r}, expected {original}")
+        if resp2.get("status") != "pending":
+            check.fail("POST /config round-trip", f"revert POST response={resp2!r}, expected status=pending")
             return
+        time.sleep(0.2)  # queued update is applied on the next loop() iteration
 
         after_revert = json.loads(http_get(host, "/config"))
         if after_revert.get("universe") != original:
