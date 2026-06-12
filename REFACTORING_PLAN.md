@@ -268,6 +268,16 @@ Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
 - Unify LittleFS on ESP32 (`board_build.filesystem = littlefs` + code), **gated by the migration decision in Risks (R2)**.
 - Servo include/`#ifdef` moves behind `platform/servo.h`.
 
+**R2 decision (2026-06-12):** option (a) - accept. ESP32 switches straight to LittleFS with no migration shim; already-deployed ESP32 devices lose `/config/config.json` on first OTA to this version and fall back to `default.json`/captive portal (re-pair WiFi, re-POST `/config` - ~5 lines of JSON). README gets an upgrade note for ESP32 users. R2 closed.
+
+One commit per item, in this order:
+1. Filesystem + hostname platform consolidation: `src/platform/filesystem.h` - single `#if defined(ESP8266)/#else` block defining `ESP_FS` (`LittleFS`/`SPIFFS`, per-platform choice unchanged for now - item 3 flips the ESP32 side) and its includes, replacing the three duplicated copies in `config.h`, `connect.h`, `main.cpp`. A small `src/platform/wifi.h` wraps hostname assignment behind one call, replacing the raw `WiFi.hostname(config.host)` in `main.cpp:137` (resolves whether `setHostname` is needed on ESP32).
+2. `Pwm` platform class (`src/platform/pwm.h`/`.cpp`): per-pin setup/write/frequency, backed by LEDC on ESP32 (fixes the silently-ignored `pwmFreq` - the commented-out `analogWriteFrequency` TODO in `main.cpp`'s `setup()`, ESP32 branch) and `analogWrite`/`analogWriteFreq`/`analogWriteRange` on ESP8266. Replaces direct `analogWrite()` calls in `hw/statusLed.h` and `device/dimmer.h`/`.cpp`, and the ESP8266-only global PWM setup in `main.cpp`. Drops `erropix/ESP32 AnalogWrite` from `platformio.ini` and the `#include <analogWrite.h>` in `main.cpp`/`statusLed.h`/`dimmer.h`.
+3. ESP32 -> LittleFS (R2 = accept, above): flip `platform/filesystem.h`'s ESP32 branch to `LittleFS`, add `board_build.filesystem = littlefs` to all 6 ESP32 envs (`lolin32`, `esp32-devkitc-v4`, `lolin_s2_mini`, `esp32-s3-devkitc-1`, `seeed_xiao_esp32s3`, `seeed_xiao_esp32s3_oled`) in `platformio.ini`. README: upgrade note for ESP32 users (config reset, re-pair via portal/REST).
+4. Servo platform header: `src/platform/servo.h` wraps `#ifdef ESP32 #include <ESP32Servo.h> #else #include <Servo.h> #endif`, replacing the inline block in `device/dmxServo.h`.
+
+Scope note: this phase targets the four named consolidations above, not an exhaustive sweep of every `#ifdef ESP32`/`#if defined(ESP8266)` in the tree - e.g. `config.cpp`'s `portENTER_CRITICAL`/`portMUX_TYPE` blocks (B11, genuinely different RTOS primitives, no shared abstraction) and `oledDisplay.h`'s ESP8266-only `<ESP8266WiFi.h>` include are left as-is.
+
 **Verify:** build matrix; dimmer PWM frequency measured on a scope/LED flicker on both platforms; FS read/write + OTA on ESP32 after the LittleFS switch.
 
 ### Phase 4 — Board layer — S/M
@@ -315,7 +325,7 @@ Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
 | # | Risk | Mitigation |
 |---|------|------------|
 | R1 | **Core-1 DMX task regressions** (Phase 1.9, 7). | Never hold `dataMutex` across `dmx_*` calls (pattern preserved verbatim); bench-test with RS485 fixture + 512-ch frames before/after; keep 40 ms cadence constant in exactly one place. |
-| R2 | **SPIFFS→LittleFS on ESP32 wipes stored config** on already-deployed devices (Phase 3). | Decision needed: (a) accept (DIY fleet, config is 5 lines — re-enter via portal/REST), (b) one-release migration shim (mount SPIFFS read-only, copy config.json, format), or (c) keep SPIFFS behind a board flag for legacy units. Recommend (b) for one release, then delete the shim. |
+| R2 | **SPIFFS→LittleFS on ESP32 wipes stored config** on already-deployed devices (Phase 3). | **Decided 2026-06-12: option (a), accept.** No migration shim; ESP32 devices lose `/config/config.json` on first OTA to the Phase-3 release and fall back to `default.json`/captive portal - re-pair WiFi, re-POST `/config`. README documents this for the upgrade. Closed. |
 | R3 | **Behavior change: no captive portal on runtime WiFi loss** (Phase 1.11). | Deliberate (a blocked `loop()` mid-show is worse); README updated; long-press still forces portal. |
 | R4 | **ArtNet/webserver lib bumps change APIs** (Phase 7). | All isolated behind `artnetService`/`webApi` after Phase 5; one dep per commit with matrix build. |
 | R5 | **Fielded-device compatibility** (config schema, REST, OTA). | Compatibility contract: JSON keys/strings and routes frozen through Phase 8; new fields additive with defaults; OTA upgrade tested from 2026.1.2 image at Phases 1, 5, 7. |
