@@ -280,6 +280,10 @@ Scope note: this phase targets the four named consolidations above, not an exhau
 
 **Verify:** build matrix; dimmer PWM frequency measured on a scope/LED flicker on both platforms; FS read/write + OTA on ESP32 after the LittleFS switch.
 
+**Done (item 1):** New `src/platform/filesystem.h` consolidates the duplicated `#if defined(ESP8266)/#else` FS+WiFi-header block - previously three near-identical copies in `config.h`, `main.cpp`, and a WiFi-header-only subset in `connect.h` - into a single `ESP_FS` definition (`LittleFS`/ESP8266, `SPIFFS`/ESP32, per-platform choice unchanged for now - item 3 flips the ESP32 side). The planned `src/platform/wifi.h` hostname wrapper was **not** created: investigated `WiFi.hostname(config.host)` (`main.cpp`, in `setup()`) against both frameworks' sources and found it's already portable as-is - `WiFiGenericClass::hostname` (arduino-esp32, aliased to `setHostname`) and `LwipIntf::hostname` (arduino-esp8266) both implement the identical `bool hostname(const String&)` signature. No behavioral difference to wrap, so a comment documenting this (and why no `#ifdef` is needed) was added at the call site instead of an abstraction with nothing to abstract.
+
+Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS, v2026.1.27->v2026.1.28.
+
 ### Phase 4 — Board layer — S/M
 - `boards/<env>.h` per environment carrying *all* pins and `FEATURE_*` flags; `platformio.ini` passes exactly one `-D BOARD_<NAME>`; `boards/board.h` dispatches. `lolin_s2_mini` gets an explicit header (kills AGENTS Gotcha #3).
 - `features.h`: `SONOFF_BASIC` becomes `BOARD_SONOFF_*` profiles that set `FEATURE_*=0`; all `#ifndef SONOFF_BASIC` in code becomes `#if FEATURE_DMX_PORT`, `#if FEATURE_SERVO`, etc. `lib_ignore` stays per-env.

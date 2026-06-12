@@ -1,15 +1,6 @@
 #include "hw/board.h"
 
-#if defined(ESP8266)
-#include <ESP8266WiFi.h> //https://github.com/esp8266/Arduino
-#include <FS.h>
-#include <LittleFS.h>
-#define ESP_FS LittleFS
-#else
-#include <WiFi.h>
-#include <SPIFFS.h>
-#define ESP_FS SPIFFS
-#endif
+#include "platform/filesystem.h"
 
 #include <ESPAsyncWebServer.h>
 #ifndef DISABLE_OTA
@@ -134,6 +125,9 @@ void setup()
     config.load();
     if (config.host.length())
     {
+        // hostname(const String&) is the portable spelling: ESP8266's
+        // LwipIntf and ESP32's WiFiGenericClass (-> setHostname) both
+        // implement it with the same signature/return type.
         WiFi.hostname(config.host);
     }
     status = new StatusLed(config.hardware.ledPin, LOW);

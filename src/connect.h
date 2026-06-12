@@ -1,11 +1,7 @@
 #ifndef CONNECT_H
 #define CONNECT_H
 
-#if defined(ESP8266)
-#include <ESP8266WiFi.h> //https://github.com/esp8266/Arduino
-#else
-#include <WiFi.h>
-#endif
+#include "platform/filesystem.h"
 
 #include <ESPAsyncWebServer.h>
 #include <ESPAsyncWiFiManager.h> //https://github.com/tzapu/WiFiManager
