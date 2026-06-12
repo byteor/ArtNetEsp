@@ -7,8 +7,9 @@
 #include <ElegantOTA.h>
 #endif
 
+#include "platform/pwm.h"
+
 #ifdef ESP32
-#include <analogWrite.h>
 //  https://github.com/espressif/arduino-esp32/issues/863#issuecomment-347179737
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
@@ -147,13 +148,7 @@ void setup()
 #endif
 
     // Devices
-#ifdef ESP32
-    // TODO: investigate - analogWriteFrequency doesn't compile despite it is defined in analogWrite library
-    // analogWriteFrequency((double)config.hardware.pwmFreq);
-#else
-    analogWriteFreq(config.hardware.pwmFreq);
-    analogWriteRange(255);
-#endif
+    Pwm::init(config.hardware.pwmFreq);
 
     // config.cpp clamps config.dmx to MAX_DMX_DEVICES at load time; reuse that
     // bound everywhere dmx_devices[MAX_DMX_DEVICES] is indexed or its size is

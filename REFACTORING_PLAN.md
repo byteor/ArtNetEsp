@@ -284,6 +284,10 @@ Scope note: this phase targets the four named consolidations above, not an exhau
 
 Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS, v2026.1.27->v2026.1.28.
 
+**Done (item 2):** New `src/platform/pwm.h`/`pwm.cpp` - a `Pwm` class with two static methods, `init(freq)` and `write(pin, value)`. ESP8266: a thin wrapper - `init()` calls `analogWriteFreq`/`analogWriteRange(255)` (relocated unchanged from `main.cpp`'s global setup), `write()` calls `analogWrite()`. ESP32: LEDC-based, replacing `erropix/ESP32 AnalogWrite` - `write()` lazily allocates one LEDC channel per pin on first use (`ledcSetup`/`ledcAttachPin` at 8-bit resolution and the frequency from `init()`, then `ledcWrite`), capped at 8 channels (the limit on ESP32-S2/S3, safe across all ESP32 variants for this project's pin counts). This **fixes the silently-ignored `pwmFreq` on ESP32**: the old code's ESP32 branch was a commented-out `analogWriteFrequency` TODO that never ran, so `erropix/ESP32 AnalogWrite` always used its own default frequency regardless of `config.hardware.pwmFreq`; now `Pwm::init(config.hardware.pwmFreq)` (called from `main.cpp::setup()`, same "Devices" spot as the old block) sets the actual LEDC frequency used by every dimmer/status-LED pin. Call sites: `hw/statusLed.h::setBrightness` and both `analogWrite` calls in `device/dimmer.cpp::update()` now call `Pwm::write()`. Dropped `erropix/ESP32 AnalogWrite@^0.2` from `platformio.ini`'s `common_esp32.lib_deps`, and the `#ifdef ESP32 #include <analogWrite.h> #endif` blocks in `main.cpp`, `hw/statusLed.h`, and `device/dimmer.h`.
+
+Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS.
+
 ### Phase 4 — Board layer — S/M
 - `boards/<env>.h` per environment carrying *all* pins and `FEATURE_*` flags; `platformio.ini` passes exactly one `-D BOARD_<NAME>`; `boards/board.h` dispatches. `lolin_s2_mini` gets an explicit header (kills AGENTS Gotcha #3).
 - `features.h`: `SONOFF_BASIC` becomes `BOARD_SONOFF_*` profiles that set `FEATURE_*=0`; all `#ifndef SONOFF_BASIC` in code becomes `#if FEATURE_DMX_PORT`, `#if FEATURE_SERVO`, etc. `lib_ignore` stays per-env.

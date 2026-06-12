@@ -2,12 +2,10 @@
 #define DIMMER_H
 
 #include <Arduino.h>
-#ifdef ESP32
-#include <analogWrite.h>
-#endif
 #include "device.h"
 #include "hw/board.h"
 #include "hw/logger.h"
+#include "platform/pwm.h"
 
 // default strobe pulse length, ms
 #define DEFAULT_STROBE_PULSE 5

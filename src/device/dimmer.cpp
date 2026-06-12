@@ -49,12 +49,12 @@ void PwmDimmer::update()
 {
     if (enabled && state == activeState)
     {
-        analogWrite(pin, valueOverride);
+        Pwm::write(pin, valueOverride);
         LOG(" =" + String(valueOverride));
     }
     else
     {
-        analogWrite(pin, adjustedInactiveValue);
+        Pwm::write(pin, adjustedInactiveValue);
     }
 }
 

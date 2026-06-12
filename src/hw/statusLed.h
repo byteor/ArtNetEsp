@@ -3,10 +3,8 @@
 
 #include <Ticker.h>
 #include <Arduino.h>
-#ifdef ESP32
-#include <analogWrite.h>
-#endif
 #include "logger.h"
+#include "platform/pwm.h"
 
 class StatusLed
 {
@@ -16,17 +14,16 @@ class StatusLed
 
     static constexpr float STATUS_CONNECTING = 0.1f;
     static constexpr float STATUS_PORTAL = 0.5f;
-    // 8-bit analogWrite duty range: ESP8266 via analogWriteRange(255) in
-    // main.cpp, ESP32 "ESP32 AnalogWrite" library's default valueMax.
+    // 8-bit PWM duty range (Pwm::write(), see platform/pwm.h).
     static constexpr uint8_t PWM_MAX = 255;
     static constexpr uint8_t STATUS_BRIGHTNESS_OFF = 0;
     static constexpr uint8_t STATUS_BRIGHTNESS_ON = 55; // dim "solid" glow - README's "Solid dimmed" normal-operation pattern
 
-    // analogWrite duty is time spent at logic HIGH. For an active-LOW LED
+    // PWM duty is time spent at logic HIGH. For an active-LOW LED
     // (_onValue == LOW), more HIGH time means dimmer, so invert the duty.
     void setBrightness(uint8_t brightness)
     {
-        analogWrite(_ledPin, _onValue == HIGH ? brightness : PWM_MAX - brightness);
+        Pwm::write(_ledPin, _onValue == HIGH ? brightness : PWM_MAX - brightness);
     }
 
 public:
