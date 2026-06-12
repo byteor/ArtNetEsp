@@ -238,6 +238,12 @@ One commit per rename, in this order:
 
 **Verify:** build matrix (Gotcha-#12 trio) after each commit; bench T1 once at the end of the phase, plus `GET /config` byte-compatible with Phase 1 output and a Phase-1-era `config.json` still loading (old `"BINARY"`/`"DIMMER"` strings must still parse via the now-renamed enum values).
 
+**Done (item 1):** Turned out to be two unrelated includes with very different stories:
+- `config.cpp`'s `#include "hw/board.h"` inside `namespace art {}` was genuinely dead: `config.h` (included at the top of `config.cpp`, outside any namespace) already pulls in `hw/board.h` at global scope, and `board.h` is `#pragma once`-guarded, so this second include was a silent no-op. Removed outright.
+- `config.h`'s `#include <LinkedList.h>` inside `namespace art {}` is **not** the hazard it looked like - it's load-bearing. Moving it to global scope (and dropping the `art::` qualifier from `art::LinkedList<DmxChannel*> dmx`/`wifi`) builds clean in isolation, but `main.cpp` also (transitively, via `ESPAsyncWebServer.h` -> `StringArray.h`) brings in `ESPAsyncWebServer-esphome`'s own global-scope `template<class T, template<class> class Item> class LinkedList` (2 template params). Two global `::LinkedList` templates with different arities can't coexist - confirmed by an actual build failure (`error: redeclared with 1 template parameter`, plus a cascade of "incomplete type" errors from `main.cpp`/`oledDisplay.h` once `config.dmx`'s type silently became the *other* `LinkedList`). Putting ivanseidel's `LinkedList<T>` inside `namespace art` is precisely what avoids this collision (`art::LinkedList` vs. global `::LinkedList`). Left in place, `art::LinkedList<DmxChannel*> dmx`/`wifi` unchanged, and added a comment at the include explaining why it must stay there so a future pass doesn't repeat this.
+
+Build matrix (d1_mini_oled/esp32-devkitc-v4/sonoff_basic): all SUCCESS, v2026.1.26->v2026.1.27.
+
 ### Phase 3 — Platform layer — M
 - Create `src/platform/`; move every `#if ESP8266/ESP32` from `main.cpp`, `config.*`, `connect.*`, `oledDisplay.h`, device headers into it. Single `ESP_FS`/filesystem accessor; hostname set via one platform call (resolves the `WiFi.hostname` question on ESP32).
 - `Pwm` class: LEDC on ESP32 (channel allocation + `pwmFreq` honored — fixes the silent TODO at `main.cpp:139`), `analogWrite/analogWriteFreq` on 8266. Drop `erropix/ESP32 AnalogWrite`.

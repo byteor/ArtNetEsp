@@ -30,6 +30,10 @@ only the first MAX_DMX_DEVICES will be saved and taken into account
 
 namespace art
 {
+// This <LinkedList.h> include MUST stay inside namespace art: ivanseidel's
+// LinkedList<T> (1 template param) would otherwise collide at global scope
+// with ESPAsyncWebServer-esphome's own LinkedList<T, Item> (2 template
+// params, StringArray.h) - confirmed by a build failure when moved out.
 #include <LinkedList.h>
 
 #define CONFIG_BUFFER_SIZE 1024

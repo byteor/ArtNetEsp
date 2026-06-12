@@ -1,7 +1,6 @@
 #include "config.h"
 namespace art
 {
-#include "hw/board.h"
 Config::Config()
 {
     _dirty = false;
