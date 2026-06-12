@@ -256,13 +256,17 @@ OTA is supported via [http://<DEVICE_IP>/update](http://<DEVICE_IP>/update) URL
 
 ### ESP32: filesystem switched from SPIFFS to LittleFS (v2026.1.28+)
 
-ESP32 builds now use **LittleFS** instead of SPIFFS - matching ESP8266, which has always used LittleFS. SPIFFS and LittleFS use incompatible on-flash formats, so **the first OTA update to this version on an already-deployed ESP32 device cannot read its existing `/config/config.json`**. The device falls back to `data/config/default.json` and starts the WiFi captive portal, exactly like a fresh device.
+ESP32 builds now use **LittleFS** instead of SPIFFS - matching ESP8266, which has always used LittleFS. SPIFFS and LittleFS use incompatible on-flash formats, so **the first update to this version on an already-deployed ESP32 device can't read its existing filesystem contents** - `/config/config.json`, `/config/default.json`, and the web UI (`/www/*`) all become unreadable, and the partition is reformatted empty on boot.
+
+**WiFi is unaffected** - saved network credentials live in the ESP32's own NVS storage, separate from this filesystem, so the device reconnects to your network automatically. The captive portal does **not** open.
+
+What's lost is everything that lived in `/config/config.json`: hostname, universe, PWM frequency, and any configured DMX devices (e.g. a REPEATER) all revert to firmware defaults (empty device list, default hostname).
 
 To recover:
-1. Connect to the device's captive portal (`192.168.4.1`) and re-enter your WiFi credentials, as during initial setup.
-2. Once back on your network, re-apply your DMX/device configuration via [`POST /config`](#post-config).
+1. Reflash **both** the firmware and the filesystem image - `pio run -t upload` and `pio run -t uploadfs` (or the equivalent `firmware.bin`/`littlefs.bin` OTA uploads). This restores `default.json` and the web UI.
+2. Re-apply your DMX/device configuration via [`POST /config`](#post-config), then [`POST /reboot`](#post-reboot).
 
-ESP8266 devices are unaffected - no action needed.
+ESP8266 devices are unaffected - they've always used LittleFS.
 
 ---
 
