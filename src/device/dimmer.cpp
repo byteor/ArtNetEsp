@@ -1,3 +1,7 @@
+#include "boards/features.h"
+
+#if FEATURE_DIMMER
+
 #include "dimmer.h"
 
 PwmDimmer::PwmDimmer(uint8_t universe, uint16_t channel, uint8_t pin, int pulse, int multiplier, int activeState)
@@ -162,3 +166,5 @@ bool PwmDimmer::isEnabled()
 {
     return enabled;
 }
+
+#endif // FEATURE_DIMMER

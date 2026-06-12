@@ -8,8 +8,9 @@
 #include <Arduino.h>
 
 #include "Version.h"
+#include "features.h"
 
-#ifndef SONOFF_BASIC
+#if FEATURE_OLED
 #include <Wire.h>
 #include <SPI.h>
 #endif

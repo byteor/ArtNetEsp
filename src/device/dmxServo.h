@@ -1,4 +1,6 @@
-#ifndef SONOFF_BASIC
+#include "../boards/features.h"
+
+#if FEATURE_SERVO
 
 #include <Arduino.h>
 #include "device.h"
@@ -139,4 +141,4 @@ void DmxServo::flip()
     // do nothing
 }
 
-#endif // SONOFF_BASIC
+#endif // FEATURE_SERVO

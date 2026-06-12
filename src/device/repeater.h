@@ -1,4 +1,6 @@
-#ifndef SONOFF_BASIC
+#include "../boards/features.h"
+
+#if FEATURE_DMX_PORT
 
 #ifndef REPEATER_H
 #define REPEATER_H
@@ -53,5 +55,5 @@ void DmxRepeater::handle()
     }
 }
 
-#endif
-#endif
+#endif // REPEATER_H
+#endif // FEATURE_DMX_PORT

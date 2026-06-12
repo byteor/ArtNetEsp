@@ -1,6 +1,8 @@
 #pragma once
 
-#ifdef OLED_SSD1306
+#include "../boards/features.h"
+
+#if FEATURE_OLED
 /**
  * SSD1306 OLED Display 128x64
  * Default I2C pins
@@ -211,4 +213,4 @@ void StatusDisplay::setStatus64()
     }
 }
 
-#endif
+#endif // FEATURE_OLED

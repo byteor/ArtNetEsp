@@ -1,5 +1,6 @@
 #ifdef ESP8266
-#ifndef SONOFF_BASIC
+#include "../boards/features.h"
+#if FEATURE_DMX_PORT
 
 #include "dmx.h"
 
@@ -45,5 +46,5 @@ void DmxPort::update()
     this->dmx.update();
 }
 
-#endif
-#endif
+#endif // FEATURE_DMX_PORT
+#endif // ESP8266

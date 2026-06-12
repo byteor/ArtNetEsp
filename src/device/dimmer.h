@@ -1,3 +1,7 @@
+#include "boards/features.h"
+
+#if FEATURE_DIMMER
+
 #ifndef DIMMER_H
 #define DIMMER_H
 
@@ -48,4 +52,6 @@ public:
     void handle() override;
 };
 
-#endif
+#endif // DIMMER_H
+
+#endif // FEATURE_DIMMER

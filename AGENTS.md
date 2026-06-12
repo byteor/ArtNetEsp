@@ -30,13 +30,14 @@ There are no unit tests (`test/` is just the PlatformIO placeholder) and no CI. 
 
    **Caveat — flags read by third-party library code must stay global `-D` flags.** A board header is only visible to files that `#include "boards/board.h"`, but a library's own `.cpp` (a separate translation unit) only sees `platformio.ini`'s `build_flags`. `ELEGANTOTA_USE_ASYNC_WEBSERVER=1` is the flag that bites: it must remain a `-D` in `platformio.ini` (ElegantOTA's own source reads it to pick its `begin(AsyncWebServer*, ...)` overload), not a `#define` in a board header — moving it produced a link error (`undefined reference to ElegantOTAClass::begin(AsyncWebServer*, const char*, const char*)`) because the library compiled without the macro while `main.cpp` compiled with it. `DISABLE_OTA` (sonoff_basic/sonoff_s31) is fine as a header-only `#define` because `main.cpp` includes `boards/board.h` *before* `<ElegantOTA.h>` and ElegantOTA isn't in those envs' `lib_deps` at all.
 
-4. **`SONOFF_BASIC` excludes whole modules, not just a feature flag.** When defined (`sonoff_basic`, `sonoff_s31` environments):
-   - `src/dmx/dmx.h` — and therefore all of `src/dmx/` — is excluded entirely (the whole header is wrapped in `#ifndef SONOFF_BASIC`).
-   - `device/strobe.h`, `device/repeater.h`, and `device/dmxServo.h` are not `#include`d in `main.cpp`.
-   - The device-type `switch` in `main.cpp::setup()` only handles `DmxType::Binary` for these boards; `Servo`/`Dimmable`/`Repeater` config entries fall to `default:` and just log "Incompatible DMX device type".
-   - `lib_ignore` drops `Wire`, `SPI`, and `Servo` — new code that unconditionally includes these will fail to link on Sonoff boards.
+4. **`src/boards/features.h` derives four always-defined `FEATURE_*` flags from `BOARD_<NAME>`, gating whole modules.** `FEATURE_DMX_PORT`, `FEATURE_SERVO`, and `FEATURE_DIMMER` are `0` on `BOARD_SONOFF_BASIC`/`BOARD_SONOFF_S31` (the `sonoff_basic`/`sonoff_s31` environments) and `1` everywhere else; `FEATURE_OLED` is `1` on `BOARD_D1_MINI_OLED`/`BOARD_HELTEC_WIFI_KIT_8`/`BOARD_SEEED_XIAO_ESP32S3_OLED` and `0` everywhere else. Because these are value macros (always defined), code tests them with `#if FEATURE_X`, never `#ifdef`/`#ifndef`.
+   - `src/dmx/dmx.h` and `src/dmx/dmx8266.cpp` — and therefore all of `src/dmx/` — are wrapped in `#if FEATURE_DMX_PORT`.
+   - `device/repeater.h` is wrapped in `#if FEATURE_DMX_PORT`; `device/dmxServo.h` in `#if FEATURE_SERVO`; `device/dimmer.h`/`.cpp` (`PwmDimmer`) self-guard with `#if FEATURE_DIMMER`.
+   - `src/hw/oledDisplay.h` (`StatusDisplay`) is wrapped in `#if FEATURE_OLED`, as is `src/boards/board.h`'s `<Wire.h>`/`<SPI.h>` include block.
+   - `main.cpp` mirrors this: each of the three conditional device includes (`device/dimmer.h`, `device/repeater.h`, `device/dmxServo.h`) and each non-`Relay` `case` in the device-instantiation `switch` (`Servo`/`Dimmer`/`Repeater`) gets its own `#if FEATURE_*`/`#endif` pair; `Relay` and `default:` are unguarded.
+   - `lib_ignore` on `sonoff_basic`/`sonoff_s31` still drops `Wire`, `SPI`, and `Servo` as belt-and-suspenders — new code that unconditionally includes these will fail to link on Sonoff boards even though `FEATURE_OLED=0`/`FEATURE_SERVO=0` already keep the referencing headers out of those builds.
 
-   **Any new device type or feature that needs Servo/SPI/Wire/extra flash must be wrapped in `#ifndef SONOFF_BASIC`.**
+   **Any new device type or feature that needs Servo/SPI/Wire/extra flash must be wrapped in the matching `#if FEATURE_*`** (add a new flag to `features.h` if none of the existing four fit).
 
 5. **The ESP32 core-1 DMX sender task (`src/dmx/dmx32.cpp`) is fragile and load-bearing.** It's a FreeRTOS task pinned to core 1 (priority 2), looping every `refreshIntervalMs` (40ms), double-buffered through `dataMutex`. The existing pattern copies the buffer under the mutex, **releases the mutex, then** does the blocking `dmx_write`/`dmx_send_num`/`dmx_wait_sent` calls — preserve this ordering; doing blocking I/O while holding `dataMutex` would stall `write()` callers on core 0 (the Art-Net frame handler). `write()` itself uses a 10ms mutex-timeout and **silently drops** the value if it can't get the lock — no error is logged, so "DMX channel not updating" can be this. This code only landed in v2026.1.2 (commit `9d82329`) after the repeater was previously broken on ESP32 — treat it as fragile, not a casual refactor target. `dmx8266.cpp` is a completely different, simple synchronous wrapper around `ESPDMX` — don't assume the two `DmxProxy` implementations behave the same beyond their shared interface.
 
@@ -98,20 +99,20 @@ platformio.ini        # 12 build environments - see table below
 
 `platformio.ini` defines 12 environments. Every environment passes exactly one `-D BOARD_<NAME>` flag (e.g. `-DBOARD_LOLIN_S2_MINI`), selecting the header in the "Board Header" column below — see Gotcha #3 for what each header defines and for the `ELEGANTOTA_USE_ASYNC_WEBSERVER` caveat. The columns cover what differs *architecturally* between environments — `platformio.ini` itself remains the source of truth for exact `lib_deps` versions and the full `build_flags` list.
 
-| Environment | Chip | Board | Board Header | Other `-D` Flags | DMX Repeater | Notes |
-|---|---|---|---|---|---|---|
-| `d1_mini_oled` | ESP8266 | d1_mini | `boards/d1_mini_oled.h` | `OLED_SSD1306=1` | n/a (ESPDMX) | 64px OLED |
-| `d1_mini` | ESP8266 | d1_mini | `boards/d1_mini.h` | — | n/a | baseline |
-| `nodemcuv2` | ESP8266 | nodemcuv2 | `boards/nodemcuv2.h` | — | n/a | |
-| `heltec_wifi_kit_8` | ESP8266 | heltec_wifi_kit_8 | `boards/heltec_wifi_kit_8.h` | `OLED_SSD1306=1` | n/a | 32px OLED variant |
-| `sonoff_basic` | ESP8266 | sonoff_basic | `boards/sonoff_basic.h` | `SONOFF_BASIC` | No (`dmx/` excluded) | relay-only, no Wire/SPI/Servo |
-| `sonoff_s31` | ESP8266 | sonoff_basic | `boards/sonoff_s31.h` | `SONOFF_BASIC` | No | smart-plug variant |
-| `lolin32` | ESP32 | lolin32 | `boards/lolin32.h` | — | Yes | |
-| `esp32-devkitc-v4` | ESP32 | esp32dev | `boards/esp32-devkitc-v4.h` | — | Yes | |
-| `lolin_s2_mini` | ESP32-S2 | lolin_s2_mini | `boards/lolin_s2_mini.h` | — | Yes | |
-| `esp32-s3-devkitc-1` | ESP32-S3 | esp32-s3-devkitc-1 | `boards/esp32-s3-devkitc-1.h` | — | Yes | |
-| `seeed_xiao_esp32s3` | ESP32-S3 | seeed_xiao_esp32s3 | `boards/seeed_xiao_esp32s3.h` | — | Yes | see `assets/Xiao-Repeater.jpg` |
-| `seeed_xiao_esp32s3_oled` | ESP32-S3 | seeed_xiao_esp32s3 | `boards/seeed_xiao_esp32s3_oled.h` | `OLED_SSD1306=1` | Yes | with I2S OLED |
+| Environment | Chip | Board | Board Header | DMX Repeater | Notes |
+|---|---|---|---|---|---|
+| `d1_mini_oled` | ESP8266 | d1_mini | `boards/d1_mini_oled.h` | n/a (ESPDMX) | 64px OLED |
+| `d1_mini` | ESP8266 | d1_mini | `boards/d1_mini.h` | n/a | baseline |
+| `nodemcuv2` | ESP8266 | nodemcuv2 | `boards/nodemcuv2.h` | n/a | |
+| `heltec_wifi_kit_8` | ESP8266 | heltec_wifi_kit_8 | `boards/heltec_wifi_kit_8.h` | n/a | 32px OLED variant |
+| `sonoff_basic` | ESP8266 | sonoff_basic | `boards/sonoff_basic.h` | No (`dmx/` excluded) | relay-only, no Wire/SPI/Servo |
+| `sonoff_s31` | ESP8266 | sonoff_basic | `boards/sonoff_s31.h` | No | smart-plug variant |
+| `lolin32` | ESP32 | lolin32 | `boards/lolin32.h` | Yes | |
+| `esp32-devkitc-v4` | ESP32 | esp32dev | `boards/esp32-devkitc-v4.h` | Yes | |
+| `lolin_s2_mini` | ESP32-S2 | lolin_s2_mini | `boards/lolin_s2_mini.h` | Yes | |
+| `esp32-s3-devkitc-1` | ESP32-S3 | esp32-s3-devkitc-1 | `boards/esp32-s3-devkitc-1.h` | Yes | |
+| `seeed_xiao_esp32s3` | ESP32-S3 | seeed_xiao_esp32s3 | `boards/seeed_xiao_esp32s3.h` | Yes | see `assets/Xiao-Repeater.jpg` |
+| `seeed_xiao_esp32s3_oled` | ESP32-S3 | seeed_xiao_esp32s3 | `boards/seeed_xiao_esp32s3_oled.h` | Yes | with I2S OLED |
 
 ### Conditional compilation flags
 
@@ -119,8 +120,7 @@ platformio.ini        # 12 build environments - see table below
 |---|---|
 | `BOARD_<NAME>` (e.g. `BOARD_D1_MINI_OLED`) | Selects the per-board header in `src/boards/` — see Gotcha #3 |
 | `ESP8266` / `ESP32` | Platform — set automatically by PlatformIO based on `platform =` |
-| `SONOFF_BASIC` | Excludes DMX/servo/strobe/repeater modules entirely — see Gotcha #4 |
-| `OLED_SSD1306` | Compiles in `StatusDisplay` (`hw/oledDisplay.h`) |
+| `FEATURE_DMX_PORT` / `FEATURE_SERVO` / `FEATURE_DIMMER` / `FEATURE_OLED` | Always-defined 0/1 flags from `src/boards/features.h`, derived from `BOARD_<NAME>` — gate the DMX port, servo, dimmer, and OLED modules — see Gotcha #4 |
 | `DISABLE_OTA` | Strips ElegantOTA from the build |
 | `ELEGANTOTA_USE_ASYNC_WEBSERVER=1` | Set on most envs so ElegantOTA uses AsyncWebServer mode |
 

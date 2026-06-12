@@ -54,8 +54,8 @@ void ArtnetHandler::init(int universe, const String &shortName, const String &lo
                                                    // Frame-consuming devices (e.g. the Repeater, whose frame()
                                                    // already copied the whole packet) report 512 channels - skip
                                                    // the per-channel set()/get() dispatch for them. 512 ==
-                                                   // DMX_CHANNELS (dmx/dmx.h), not includable here under
-                                                   // SONOFF_BASIC (AGENTS.md Gotcha #4).
+                                                   // DMX_CHANNELS (dmx/dmx.h), not includable here when
+                                                   // FEATURE_DMX_PORT=0 (AGENTS.md Gotcha #4).
                                                    if (devices[k]->getNumberOfChannels() == 512)
                                                        continue;
 

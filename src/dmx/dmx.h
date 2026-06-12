@@ -1,6 +1,8 @@
 #pragma once
 
-#ifndef SONOFF_BASIC
+#include "../boards/features.h"
+
+#if FEATURE_DMX_PORT
 
 #include <Arduino.h>
 
@@ -56,4 +58,4 @@ public:
     void update();
 };
 
-#endif
+#endif // FEATURE_DMX_PORT

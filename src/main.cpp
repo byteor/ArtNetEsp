@@ -1,4 +1,5 @@
 #include "boards/board.h"
+#include "boards/features.h"
 
 #include "platform/filesystem.h"
 
@@ -24,9 +25,13 @@
 #include "config.h"
 #include "device/device.h"
 #include "device/relay.h"
-#ifndef SONOFF_BASIC
+#if FEATURE_DIMMER
 #include "device/dimmer.h"
+#endif
+#if FEATURE_DMX_PORT
 #include "device/repeater.h"
+#endif
+#if FEATURE_SERVO
 #include "device/dmxServo.h"
 #endif
 
@@ -43,7 +48,7 @@ StatusLed *status;
 ButtonConfig buttonConfig;
 AceButton button;
 
-#ifdef OLED_SSD1306
+#if FEATURE_OLED
 #include "hw/oledDisplay.h"
 StatusDisplay *statusDisplay;
 #endif
@@ -58,7 +63,7 @@ void handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
         ESP.restart();
         break;
     case AceButton::kEventPressed:
-#ifdef OLED_SSD1306
+#if FEATURE_OLED
         statusDisplay->message("v." + String(VERSION) + String("\nHold for 5 seconds\nto reset WiFi"));
 #endif
         LOG(F("Button pressed"));
@@ -142,7 +147,7 @@ void setup()
 
     LOG("Button on pin: " + String(config.hardware.buttonPin) + " long press is: " + String(config.hardware.longPressDelay) + " ms");
 
-#ifdef OLED_SSD1306
+#if FEATURE_OLED
     statusDisplay = new StatusDisplay();
     statusDisplay->setConfig(&config);
 #endif
@@ -163,13 +168,17 @@ void setup()
         case art::DmxType::Relay:
             dmx_devices[i] = new DmxRelay(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->level, config.dmx[i]->threshold);
             break;
-#ifndef SONOFF_BASIC
+#if FEATURE_SERVO
         case art::DmxType::Servo:
             dmx_devices[i] = new DmxServo(1, config.dmx[i]->channel, config.dmx[i]->pin);
             break;
+#endif
+#if FEATURE_DIMMER
         case art::DmxType::Dimmer:
             dmx_devices[i] = new PwmDimmer(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->pulse, config.dmx[i]->multiplier, config.dmx[i]->level);
             break;
+#endif
+#if FEATURE_DMX_PORT
         case art::DmxType::Repeater:
             dmx_devices[i] = new DmxRepeater(1);
             break;
@@ -224,7 +233,7 @@ void loop()
     ElegantOTA.loop();
 #endif
     connect.loop();
-#ifdef OLED_SSD1306
+#if FEATURE_OLED
     statusDisplay->loop();
 #endif
 }
