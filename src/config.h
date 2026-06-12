@@ -5,7 +5,7 @@
 
 #include <ArduinoJson.h>
 #include "hw/logger.h"
-#include "hw/board.h"
+#include "boards/board.h"
 #include "Version.h"
 
 // efficiently a max number of "Art-Net Node Ports" (DMX devices) that can be configured

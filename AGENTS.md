@@ -14,7 +14,7 @@ pio run -e <env> -t upload                # flash firmware over USB
 pio run -e <env> -t uploadfs              # flash data/ (LittleFS/SPIFFS) - default config + web UI
 pio run -e <env> -t monitor               # serial monitor @ 115200
 
-pio run                                   # build ALL 11 environments - good sanity check
+pio run                                   # build ALL 12 environments - good sanity check
                                            # before committing a cross-cutting change
 ```
 
@@ -26,7 +26,9 @@ There are no unit tests (`test/` is just the PlatformIO placeholder) and no CI. 
 
 2. **The build depends on a git submodule.** `platformio_version_increment/` is referenced by `extra_scripts` in every environment. If it's empty (fresh clone without `--recurse-submodules`), `pio run` fails with an error that doesn't obviously point at "missing submodule" — run `git submodule update --init --recursive` first.
 
-3. **`src/hw/board.h` and `platformio.ini` are tightly coupled.** `board.h` defines pin/feature defaults via `#ifndef` guards (e.g. `DMX_TX_PIN=17`, `DMX_RX_PIN=16`, `DMX_ENABLE_PIN=21`, `LED_PIN=LED_BUILTIN`, `DEFAULT_BUTTON_PIN=0`, `SCREEN_WIDTH`/`SCREEN_HEIGHT`). Most ESP32 environments override these per-board via `-D` defines in `build_flags`, but `lolin_s2_mini` does **not** — it falls through to `board.h`'s defaults. Before changing any default in `board.h`, grep `platformio.ini` for that macro name so you know exactly which boards are affected (and which silently inherit the new default).
+3. **Each environment's hardware identity is a single `-D BOARD_<NAME>` flag, dispatched by `src/boards/board.h`.** `platformio.ini` passes exactly one `BOARD_<NAME>` define per environment (e.g. `-DBOARD_LOLIN_S2_MINI`); `src/boards/board.h` `#include`s the matching `src/boards/<name>.h`, a small self-contained header defining that board's `LED_PIN`, `DEFAULT_BUTTON_PIN`, and — for the 6 ESP32 envs — `DMX_TX_PIN`/`DMX_RX_PIN`/`DMX_ENABLE_PIN`/`DMX_PORT` (plus `SCREEN_WIDTH`/`SCREEN_HEIGHT`/`SCREEN_ADDRESS`/`OLED_RESET` for the 3 OLED boards). There's no more `#ifndef`-based fallback: `lolin_s2_mini.h` now spells out its DMX pins explicitly (17/16/21/1) instead of silently inheriting them from a shared default. To add a new board: create `src/boards/<name>.h`, add an `#elif defined(BOARD_<NAME>) #include "boards/<name>.h"` branch to `src/boards/board.h`, and give the new environment exactly one `-D BOARD_<NAME>` in `platformio.ini`.
+
+   **Caveat — flags read by third-party library code must stay global `-D` flags.** A board header is only visible to files that `#include "boards/board.h"`, but a library's own `.cpp` (a separate translation unit) only sees `platformio.ini`'s `build_flags`. `ELEGANTOTA_USE_ASYNC_WEBSERVER=1` is the flag that bites: it must remain a `-D` in `platformio.ini` (ElegantOTA's own source reads it to pick its `begin(AsyncWebServer*, ...)` overload), not a `#define` in a board header — moving it produced a link error (`undefined reference to ElegantOTAClass::begin(AsyncWebServer*, const char*, const char*)`) because the library compiled without the macro while `main.cpp` compiled with it. `DISABLE_OTA` (sonoff_basic/sonoff_s31) is fine as a header-only `#define` because `main.cpp` includes `boards/board.h` *before* `<ElegantOTA.h>` and ElegantOTA isn't in those envs' `lib_deps` at all.
 
 4. **`SONOFF_BASIC` excludes whole modules, not just a feature flag.** When defined (`sonoff_basic`, `sonoff_s31` environments):
    - `src/dmx/dmx.h` — and therefore all of `src/dmx/` — is excluded entirely (the whole header is wrapped in `#ifndef SONOFF_BASIC`).
@@ -63,9 +65,10 @@ src/
 ├── connect.h/.cpp    # Connect - WiFi + ESPAsyncWiFiManager captive portal (192.168.4.1),
 │                      #   reconnect check every 1s
 ├── api.h             # REST API: GET/POST /config, POST /reboot, POST /reset-wifi, GET /heap
+├── boards/
+│   ├── board.h       # Dispatches on -D BOARD_<NAME> to the matching per-board header - see Gotcha #3
+│   └── <env>.h       # One self-contained header per environment: pins, LED, button, OLED geometry
 ├── hw/
-│   ├── board.h       # Per-board pin/feature defaults (#ifndef-guarded, overridable via
-│   │                  #   platformio.ini build_flags) - see Gotcha #3
 │   ├── logger.h      # LOG() macro = Serial.println
 │   ├── statusLed.h   # StatusLed - Ticker-based blink patterns (connecting/portal/on/off)
 │   └── oledDisplay.h # StatusDisplay (only if OLED_SSD1306) - auto-cycling status pages,
@@ -88,36 +91,36 @@ data/
 
 include/Version.h     # AUTO-GENERATED - do not edit (Gotcha #1)
 assets/*.jpg          # board pinout reference images
-platformio.ini        # 11 build environments - see table below
+platformio.ini        # 12 build environments - see table below
 ```
 
 ## 4. Build Environments
 
-`platformio.ini` defines 11 environments. The columns below cover what differs *architecturally* between them — `platformio.ini` itself remains the source of truth for exact `lib_deps` versions and the full `build_flags` list.
+`platformio.ini` defines 12 environments. Every environment passes exactly one `-D BOARD_<NAME>` flag (e.g. `-DBOARD_LOLIN_S2_MINI`), selecting the header in the "Board Header" column below — see Gotcha #3 for what each header defines and for the `ELEGANTOTA_USE_ASYNC_WEBSERVER` caveat. The columns cover what differs *architecturally* between environments — `platformio.ini` itself remains the source of truth for exact `lib_deps` versions and the full `build_flags` list.
 
-| Environment | Chip | Board | Special Flags | DMX Repeater | Notes |
-|---|---|---|---|---|---|
-| `d1_mini_oled` | ESP8266 | d1_mini | `OLED_SSD1306`, `BUTTON_PIN=0`, `LED_PIN=13` | n/a (ESPDMX) | 64px OLED |
-| `d1_mini` | ESP8266 | d1_mini | — | n/a | baseline |
-| `nodemcuv2` | ESP8266 | nodemcuv2 | — | n/a | |
-| `heltec_wifi_kit_8` | ESP8266 | heltec_wifi_kit_8 | `OLED_SSD1306`, `ARDUINO_ESP8266_HELTEC_WIFI_KIT_8` | n/a | 32px OLED variant |
-| `sonoff_basic` | ESP8266 | sonoff_basic | `SONOFF_BASIC`, `DISABLE_OTA` | No (`dmx/` excluded) | relay-only, no Wire/SPI/Servo |
-| `sonoff_s31` | ESP8266 | sonoff_basic | `SONOFF_BASIC`, `DISABLE_OTA`, `LED_PIN=13` | No | smart-plug variant |
-| `lolin32` | ESP32 | lolin32 | `DMX_TX_PIN=17`, `DMX_RX_PIN=12`, `DMX_ENABLE_PIN=13`, `LED_PIN=4`, `DEFAULT_BUTTON_PIN=16` | Yes | |
-| `esp32-devkitc-v4` | ESP32 | esp32dev | `DMX_TX_PIN=26`, `DMX_RX_PIN=12`(unused), `DMX_ENABLE_PIN=13`(unused), `LED_PIN=14`, `DEFAULT_BUTTON_PIN=27`, `LED_BUILTIN=2` | Yes | |
-| `lolin_s2_mini` | ESP32-S2 | lolin_s2_mini | (no DMX pin overrides) | Yes, default pins from `board.h` (TX=17/RX=16/EN=21) | |
-| `esp32-s3-devkitc-1` | ESP32-S3 | esp32-s3-devkitc-1 | `DMX_TX_PIN=17`, `DMX_RX_PIN=12`, `DMX_ENABLE_PIN=13`, `LED_PIN=4`, `DEFAULT_BUTTON_PIN=16` | Yes | |
-| `seeed_xiao_esp32s3` | ESP32-S3 | seeed_xiao_esp32s3 | `DMX_TX_PIN=3`, `DMX_RX_PIN=12`(unused), `LED_PIN=21`, `DMX_ENABLE_PIN=13`(unused) | Yes | see `assets/Xiao-Repeater.jpg` |
-| `seeed_xiao_esp32s3_oled` | ESP32-S3 | seeed_xiao_esp32s3 | same as above + `OLED_SSD1306` | Yes | with I2S OLED |
+| Environment | Chip | Board | Board Header | Other `-D` Flags | DMX Repeater | Notes |
+|---|---|---|---|---|---|---|
+| `d1_mini_oled` | ESP8266 | d1_mini | `boards/d1_mini_oled.h` | `OLED_SSD1306=1` | n/a (ESPDMX) | 64px OLED |
+| `d1_mini` | ESP8266 | d1_mini | `boards/d1_mini.h` | — | n/a | baseline |
+| `nodemcuv2` | ESP8266 | nodemcuv2 | `boards/nodemcuv2.h` | — | n/a | |
+| `heltec_wifi_kit_8` | ESP8266 | heltec_wifi_kit_8 | `boards/heltec_wifi_kit_8.h` | `OLED_SSD1306=1` | n/a | 32px OLED variant |
+| `sonoff_basic` | ESP8266 | sonoff_basic | `boards/sonoff_basic.h` | `SONOFF_BASIC` | No (`dmx/` excluded) | relay-only, no Wire/SPI/Servo |
+| `sonoff_s31` | ESP8266 | sonoff_basic | `boards/sonoff_s31.h` | `SONOFF_BASIC` | No | smart-plug variant |
+| `lolin32` | ESP32 | lolin32 | `boards/lolin32.h` | — | Yes | |
+| `esp32-devkitc-v4` | ESP32 | esp32dev | `boards/esp32-devkitc-v4.h` | — | Yes | |
+| `lolin_s2_mini` | ESP32-S2 | lolin_s2_mini | `boards/lolin_s2_mini.h` | — | Yes | |
+| `esp32-s3-devkitc-1` | ESP32-S3 | esp32-s3-devkitc-1 | `boards/esp32-s3-devkitc-1.h` | — | Yes | |
+| `seeed_xiao_esp32s3` | ESP32-S3 | seeed_xiao_esp32s3 | `boards/seeed_xiao_esp32s3.h` | — | Yes | see `assets/Xiao-Repeater.jpg` |
+| `seeed_xiao_esp32s3_oled` | ESP32-S3 | seeed_xiao_esp32s3 | `boards/seeed_xiao_esp32s3_oled.h` | `OLED_SSD1306=1` | Yes | with I2S OLED |
 
 ### Conditional compilation flags
 
 | Flag | Effect |
 |---|---|
+| `BOARD_<NAME>` (e.g. `BOARD_D1_MINI_OLED`) | Selects the per-board header in `src/boards/` — see Gotcha #3 |
 | `ESP8266` / `ESP32` | Platform — set automatically by PlatformIO based on `platform =` |
 | `SONOFF_BASIC` | Excludes DMX/servo/strobe/repeater modules entirely — see Gotcha #4 |
 | `OLED_SSD1306` | Compiles in `StatusDisplay` (`hw/oledDisplay.h`) |
-| `ARDUINO_ESP8266_HELTEC_WIFI_KIT_8` | Selects the 32px OLED layout instead of the default 64px |
 | `DISABLE_OTA` | Strips ElegantOTA from the build |
 | `ELEGANTOTA_USE_ASYNC_WEBSERVER=1` | Set on most envs so ElegantOTA uses AsyncWebServer mode |
 

@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include "device.h"
-#include "hw/board.h"
+#include "boards/board.h"
 #include "hw/logger.h"
 #include "platform/pwm.h"
 

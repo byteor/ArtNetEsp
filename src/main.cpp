@@ -1,4 +1,4 @@
-#include "hw/board.h"
+#include "boards/board.h"
 
 #include "platform/filesystem.h"
 

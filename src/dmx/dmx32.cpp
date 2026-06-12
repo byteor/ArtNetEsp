@@ -1,7 +1,7 @@
 #ifdef ESP32
 
 #include "dmx.h"
-#include "../hw/board.h"
+#include "../boards/board.h"
 
 int transmitPin = DMX_TX_PIN;
 int receivePin = DMX_RX_PIN;
