@@ -24,7 +24,7 @@ public:
     DmxRepeater(uint8_t universe);
     void start() override;
     void tick() override;
-    void frame(const uint32_t univ, const uint8_t *data, const uint16_t size) override;
+    void onDmx(uint32_t univ, const uint8_t *data, uint16_t len) override;
     uint16_t channelCount() override { return DMX_CHANNELS; }
 };
 
@@ -43,9 +43,11 @@ void DmxRepeater::start()
 {
 }
 
-void DmxRepeater::frame(const uint32_t univ, const uint8_t *data, const uint16_t size)
+void DmxRepeater::onDmx(uint32_t univ, const uint8_t *data, uint16_t len)
 {
-    dmx.writeFrame(data, size);
+    // Bypass the base onDmx's per-channel set()/get() loop entirely (B14) -
+    // the repeater consumes the whole slice in one bulk-locked writeFrame.
+    dmx.writeFrame(data, len);
     Device::frame();
 }
 
