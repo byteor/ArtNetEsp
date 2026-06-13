@@ -24,16 +24,7 @@
 #include "api.h"
 #include "config.h"
 #include "device/device.h"
-#include "device/relay.h"
-#if FEATURE_DIMMER
-#include "device/dimmer.h"
-#endif
-#if FEATURE_DMX_PORT
-#include "device/repeater.h"
-#endif
-#if FEATURE_SERVO
-#include "device/dmxServo.h"
-#endif
+#include "app/deviceFactory.h"
 
 using namespace ace_button;
 
@@ -162,34 +153,16 @@ void setup()
 
     for (int i = 0; i < deviceCount; i++)
     {
-        dmx_devices[i] = NULL;
-        switch (config.dmx[i].type)
+        dmx_devices[i] = app::makeDevice(config.dmx[i], 1).release();
+        if (dmx_devices[i])
         {
-        case art::DmxType::Relay:
-            dmx_devices[i] = new DmxRelay(1, config.dmx[i].channel, config.dmx[i].pin, config.dmx[i].level, config.dmx[i].threshold);
-            break;
-#if FEATURE_SERVO
-        case art::DmxType::Servo:
-            dmx_devices[i] = new DmxServo(1, config.dmx[i].channel, config.dmx[i].pin);
-            break;
-#endif
-#if FEATURE_DIMMER
-        case art::DmxType::Dimmer:
-            dmx_devices[i] = new PwmDimmer(1, config.dmx[i].channel, config.dmx[i].pin, config.dmx[i].pulse, config.dmx[i].multiplier, config.dmx[i].level);
-            break;
-#endif
-#if FEATURE_DMX_PORT
-        case art::DmxType::Repeater:
-            dmx_devices[i] = new DmxRepeater(1);
-            break;
-#endif
-        default:
+            dmx_devices[i]->setBlackout(config.dmx[i].blackout);
+        }
+        else
+        {
             LOG(F("Incompatible DMX device type:"));
             LOG(static_cast<int>(config.dmx[i].type));
-            break;
         }
-        if (dmx_devices[i])
-            dmx_devices[i]->setBlackout(config.dmx[i].blackout);
     }
 
     LOG("Init WiFi...");
