@@ -119,7 +119,7 @@ _Universe is ignored for now_
 - **Solid dimmed** - normal operating mode
 - **Fast blinking** - trying to connect to WiFi
 - **Slow blinking** - soft AP mode
-- **Very fast blinking + repeated "FATAL" message on serial** - filesystem failed to mount; device halted in safe mode. Re-flash the filesystem image (`pio run -t uploadfs`)
+- **Very fast blinking + repeated "FATAL" message on serial** - filesystem failed to mount; device halted in safe mode, serving a diagnostic page (chip ID, failure reason, re-flash instructions) from an open WiFi AP named `ArtNet-<chip id>-SAFE` at [192.168.4.1](http://192.168.4.1). Re-flash the firmware and filesystem image (`pio run -t upload` and `pio run -t uploadfs`)
 
 ### Button
 
