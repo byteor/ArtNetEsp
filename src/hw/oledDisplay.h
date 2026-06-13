@@ -157,13 +157,13 @@ void StatusDisplay::setStatus32()
             // DMX channel page
             int i = page - MAIN_PAGES;
 
-            sprintf(buf, "%d", config->dmx[i]->channel);
+            sprintf(buf, "%d", config->dmx[i].channel);
             drawStr(0, 8, buf, 2);
             // drawStr(0, 16, "DMX:");
-            sprintf(buf, "%d/%d  %s", i + 1, config->dmx.size(), config->dmxTypeToString(config->dmx[i]->type).c_str());
+            sprintf(buf, "%d/%d  %s", i + 1, config->dmx.size(), config->dmxTypeToString(config->dmx[i].type).c_str());
             drawStr(48, 0, buf);
             drawStr(48, 16, "i/o:");
-            sprintf(buf, "%d", config->dmx[i]->pin);
+            sprintf(buf, "%d", config->dmx[i].pin);
             drawStr(80, 16, buf);
         }
     }
@@ -195,14 +195,14 @@ void StatusDisplay::setStatus64()
             // DMX channel page
             int i = page - MAIN_PAGES;
 
-            sprintf(buf, "%d", config->dmx[i]->channel);
+            sprintf(buf, "%d", config->dmx[i].channel);
             drawStr(0, 40, "DMX:");
             drawStr(0, 62, buf);
-            String name = config->dmxTypeToString(config->dmx[i]->type);
+            String name = config->dmxTypeToString(config->dmx[i].type);
             sprintf(buf, "%d/%d  %s", i + 1, config->dmx.size(), name.substring(0, min(6, (int)name.length())).c_str());
             drawStr(0, 14, buf);
             drawStr(80, 40, "I/O:");
-            sprintf(buf, "%d", config->dmx[i]->pin);
+            sprintf(buf, "%d", config->dmx[i].pin);
             drawStr(84, 62, buf);
         }
     }

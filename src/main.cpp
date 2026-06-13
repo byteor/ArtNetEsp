@@ -163,19 +163,19 @@ void setup()
     for (int i = 0; i < deviceCount; i++)
     {
         dmx_devices[i] = NULL;
-        switch (config.dmx[i]->type)
+        switch (config.dmx[i].type)
         {
         case art::DmxType::Relay:
-            dmx_devices[i] = new DmxRelay(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->level, config.dmx[i]->threshold);
+            dmx_devices[i] = new DmxRelay(1, config.dmx[i].channel, config.dmx[i].pin, config.dmx[i].level, config.dmx[i].threshold);
             break;
 #if FEATURE_SERVO
         case art::DmxType::Servo:
-            dmx_devices[i] = new DmxServo(1, config.dmx[i]->channel, config.dmx[i]->pin);
+            dmx_devices[i] = new DmxServo(1, config.dmx[i].channel, config.dmx[i].pin);
             break;
 #endif
 #if FEATURE_DIMMER
         case art::DmxType::Dimmer:
-            dmx_devices[i] = new PwmDimmer(1, config.dmx[i]->channel, config.dmx[i]->pin, config.dmx[i]->pulse, config.dmx[i]->multiplier, config.dmx[i]->level);
+            dmx_devices[i] = new PwmDimmer(1, config.dmx[i].channel, config.dmx[i].pin, config.dmx[i].pulse, config.dmx[i].multiplier, config.dmx[i].level);
             break;
 #endif
 #if FEATURE_DMX_PORT
@@ -185,7 +185,7 @@ void setup()
 #endif
         default:
             LOG(F("Incompatible DMX device type:"));
-            LOG(static_cast<int>(config.dmx[i]->type));
+            LOG(static_cast<int>(config.dmx[i].type));
             break;
         }
     }
@@ -200,7 +200,7 @@ void setup()
     String longName = config.host;
     for (int i = 0; i < deviceCount; i++)
     {
-        longName += " " + config.dmxTypeToString(config.dmx[i]->type) + " #" + String(config.dmx[i]->channel);
+        longName += " " + config.dmxTypeToString(config.dmx[i].type) + " #" + String(config.dmx[i].channel);
     }
     LOG("ArtNet Node: " + config.host + " : " + longName);
     artnet.init(config.universe, config.host, longName, dmx_devices, deviceCount);

@@ -4,6 +4,7 @@
 #include "platform/filesystem.h"
 
 #include <ArduinoJson.h>
+#include <vector>
 #include "hw/logger.h"
 #include "boards/board.h"
 #include "core/dmxTypes.h"
@@ -22,12 +23,6 @@ only the first MAX_DMX_DEVICES will be saved and taken into account
 
 namespace art
 {
-// This <LinkedList.h> include MUST stay inside namespace art: ivanseidel's
-// LinkedList<T> (1 template param) would otherwise collide at global scope
-// with ESPAsyncWebServer-esphome's own LinkedList<T, Item> (2 template
-// params, StringArray.h) - confirmed by a build failure when moved out.
-#include <LinkedList.h>
-
 #define CONFIG_BUFFER_SIZE 1024
 
 typedef struct
@@ -68,7 +63,7 @@ class Config
 
     // B11: POST /config (on ESP32, the async_tcp task) stages the raw JSON
     // here instead of touching config.dmx/config.wifi directly - those
-    // LinkedLists are read every loop() iteration (device handle(), the
+    // vectors are read every loop() iteration (device handle(), the
     // button handler, StatusDisplay). applyPendingUpdate() is called from
     // loop(), so the actual update()/cleanupDmx()/cleanupWiFi()/save() runs
     // single-threaded, on the same task as the readers.
@@ -105,9 +100,9 @@ public:
     }
 
     // DMX
-    art::LinkedList<DeviceConfig *> dmx;
+    std::vector<DeviceConfig> dmx;
     // WiFi
-    art::LinkedList<WiFiNet *> wifi;
+    std::vector<WiFiNet> wifi;
     String host;
     unsigned int universe = 0;
     HardwareConfig hardware;

@@ -131,19 +131,11 @@ void Config::serialize(String &to)
 
 void Config::cleanupWiFi()
 {
-    for (int i = 0; i < wifi.size(); i++)
-    {
-        delete wifi.get(i);
-    }
     wifi.clear();
 }
 
 void Config::cleanupDmx()
 {
-    for (int i = 0; i < dmx.size(); i++)
-    {
-        delete dmx.get(i);
-    }
     dmx.clear();
 }
 
@@ -175,13 +167,13 @@ void Config::configFromJson(JsonVariant doc)
         cleanupWiFi();
         for (JsonObject net : nets)
         {
-            WiFiNet *wifiNet = new WiFiNet();
-            wifiNet->ssid = net["ssid"].as<String>();
-            wifiNet->pass = net["pass"].as<String>();
-            wifiNet->dhcp = true;
-            wifiNet->order = net["order"] | 1;
-            wifi.add(wifiNet);
-            LOG("  " + wifiNet->ssid);
+            WiFiNet wifiNet;
+            wifiNet.ssid = net["ssid"].as<String>();
+            wifiNet.pass = net["pass"].as<String>();
+            wifiNet.dhcp = true;
+            wifiNet.order = net["order"] | 1;
+            wifi.push_back(wifiNet);
+            LOG("  " + wifiNet.ssid);
         }
     }
 
@@ -196,15 +188,15 @@ void Config::configFromJson(JsonVariant doc)
         {
             if (dmx.size() >= MAX_DMX_DEVICES)
                 break;
-            DeviceConfig *deviceConfig = new DeviceConfig();
-            deviceConfig->type = dmxTypeFromString(channel["type"].as<String>());
-            deviceConfig->channel = channel["channel"] | 0;
-            deviceConfig->level = channel["level"].as<String>().equalsIgnoreCase("high") ? HIGH : LOW;
-            deviceConfig->pin = channel["pin"] | LED_BUILTIN;
-            deviceConfig->multiplier = channel["multiplier"] | 1;
-            deviceConfig->pulse = channel["pulse"] | 10;
-            deviceConfig->threshold = channel["threshold"] | 127;
-            dmx.add(deviceConfig);
+            DeviceConfig deviceConfig;
+            deviceConfig.type = dmxTypeFromString(channel["type"].as<String>());
+            deviceConfig.channel = channel["channel"] | 0;
+            deviceConfig.level = channel["level"].as<String>().equalsIgnoreCase("high") ? HIGH : LOW;
+            deviceConfig.pin = channel["pin"] | LED_BUILTIN;
+            deviceConfig.multiplier = channel["multiplier"] | 1;
+            deviceConfig.pulse = channel["pulse"] | 10;
+            deviceConfig.threshold = channel["threshold"] | 127;
+            dmx.push_back(deviceConfig);
             LOG("  channel: " + channel["channel"].as<String>());
             LOG("  type: " + channel["type"].as<String>() + " on pin " + channel["pin"].as<String>() + " active: " + channel["level"].as<String>());
         }
@@ -251,25 +243,25 @@ void Config::configToJson(JsonDocument &doc)
     doc["universe"] = universe;
 
     JsonArray wifiNets = doc.createNestedArray("wifi");
-    for (int i = 0; i < wifi.size(); i++)
+    for (size_t i = 0; i < wifi.size(); i++)
     {
-        WiFiNet *net = wifi.get(i);
-        wifiNets[i]["ssid"] = net->ssid;
-        wifiNets[i]["pass"] = net->pass;
-        wifiNets[i]["dhcp"] = net->dhcp;
-        wifiNets[i]["order"] = net->order;
+        const WiFiNet &net = wifi[i];
+        wifiNets[i]["ssid"] = net.ssid;
+        wifiNets[i]["pass"] = net.pass;
+        wifiNets[i]["dhcp"] = net.dhcp;
+        wifiNets[i]["order"] = net.order;
     }
     JsonArray channels = doc.createNestedArray("dmx");
-    for (int i = 0; i < dmx.size() && i < MAX_DMX_DEVICES; i++)
+    for (size_t i = 0; i < dmx.size() && i < MAX_DMX_DEVICES; i++)
     {
-        DeviceConfig *channel = dmx.get(i);
-        channels[i]["channel"] = channel->channel;
-        channels[i]["type"] = dmxTypeToString(channel->type);
-        channels[i]["pin"] = channel->pin;
-        channels[i]["level"] = channel->level ? "HIGH" : "LOW";
-        channels[i]["multiplier"] = channel->multiplier;
-        channels[i]["pulse"] = channel->pulse;
-        channels[i]["threshold"] = channel->threshold;
+        const DeviceConfig &channel = dmx[i];
+        channels[i]["channel"] = channel.channel;
+        channels[i]["type"] = dmxTypeToString(channel.type);
+        channels[i]["pin"] = channel.pin;
+        channels[i]["level"] = channel.level ? "HIGH" : "LOW";
+        channels[i]["multiplier"] = channel.multiplier;
+        channels[i]["pulse"] = channel.pulse;
+        channels[i]["threshold"] = channel.threshold;
     }
 }
 } // namespace art
