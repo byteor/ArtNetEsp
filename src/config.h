@@ -8,6 +8,7 @@
 #include "hw/logger.h"
 #include "boards/board.h"
 #include "core/dmxTypes.h"
+#include "core/configModel.h"
 #include "Version.h"
 
 // efficiently a max number of "Art-Net Node Ports" (DMX devices) that can be configured
@@ -43,26 +44,11 @@ typedef struct
 // this alias preserves the art::DmxType spelling used throughout this codebase.
 using DmxType = core::DmxType;
 
-typedef struct
-{
-    uint16_t channel;    // DMX channel
-    DmxType type;        // DMX channel features
-    uint8_t threshold;   // ON/OFF threshold for a DmxType::Relay switch
-    uint16_t pulse;      // Strobe pulse length
-    uint16_t multiplier; // Strobe period multiplier
-    uint8_t pin;         // Pin (Arduino numbering)
-    uint8_t level;       // Active level: 0=LOW, 1=HIGH
-    bool blackout = true; // B20: blackout this device on DMX silence (Device::setBlackout)
-} DeviceConfig;
-
-typedef struct
-{
-    // PWM frequency
-    uint16_t pwmFreq = DEFAULT_PWM_FREQ; // ESP8266 default is 1000 which may cause some MOSFET overheat
-    uint8_t ledPin = LED_PIN;
-    uint8_t buttonPin = DEFAULT_BUTTON_PIN;
-    uint16_t longPressDelay = DEFAULT_BUTTON_LONG_PRESS * 1000;
-} HardwareConfig;
+// DeviceConfig/HardwareConfig are the platform-free PODs from
+// core/configModel.h - these aliases preserve the art:: spelling used
+// throughout this codebase.
+using DeviceConfig = core::DeviceConfig;
+using HardwareConfig = core::HardwareConfig;
 
 class Config
 {
@@ -85,14 +71,6 @@ protected:
     const String CONFIG_FILE = String("/config/config.json");
 
     const String DEFAULT_HOST_NAME = String("Art-" + CHIP_ID);
-
-    // Thin adapters over core::fromWireString/toWireString (src/core/dmxTypes.h)
-    // - kept here so existing call sites (Config::dmxTypeFromString/ToString)
-    // don't need to change.
-    DmxType dmxTypeFromString(String type)
-    {
-        return core::fromWireString(type.c_str());
-    }
 
     void configFromJson(JsonVariant doc);
     void configToJson(JsonDocument &doc);

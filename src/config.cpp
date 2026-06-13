@@ -1,9 +1,18 @@
 #include "config.h"
+#include "core/configCodec.h"
 namespace art
 {
 Config::Config()
 {
     _dirty = false;
+    // core::HardwareConfig (config.h's HardwareConfig alias) has no default
+    // member initializers - its defaults are board-specific Arduino macros
+    // (DEFAULT_PWM_FREQ/LED_PIN/DEFAULT_BUTTON_PIN/DEFAULT_BUTTON_LONG_PRESS),
+    // which core/configModel.h can't depend on.
+    hardware.pwmFreq = DEFAULT_PWM_FREQ;
+    hardware.ledPin = LED_PIN;
+    hardware.buttonPin = DEFAULT_BUTTON_PIN;
+    hardware.longPressDelay = DEFAULT_BUTTON_LONG_PRESS * 1000;
 }
 
 bool Config::load()
@@ -169,11 +178,12 @@ void Config::configFromJson(JsonVariant doc)
         cleanupWiFi();
         for (JsonObject net : nets)
         {
+            core::WifiNet coreNet = core::wifiNetFromJson(net);
             WiFiNet wifiNet;
-            wifiNet.ssid = net["ssid"].as<String>();
-            wifiNet.pass = net["pass"].as<String>();
-            wifiNet.dhcp = true;
-            wifiNet.order = net["order"] | 1;
+            wifiNet.ssid = String(coreNet.ssid.c_str());
+            wifiNet.pass = String(coreNet.pass.c_str());
+            wifiNet.dhcp = coreNet.dhcp;
+            wifiNet.order = coreNet.order;
             wifi.push_back(wifiNet);
             LOG("  " + wifiNet.ssid);
         }
@@ -186,45 +196,27 @@ void Config::configFromJson(JsonVariant doc)
         cleanupDmx();
         if (channels.size() > MAX_DMX_DEVICES)
             LOG("  WARNING: " + String(channels.size()) + " dmx entries in config, only the first " + String(MAX_DMX_DEVICES) + " will be used");
+        DeviceConfig defaults;
+        defaults.channel = 0;
+        defaults.type = DmxType::Disabled;
+        defaults.threshold = 127;
+        defaults.pulse = 10;
+        defaults.multiplier = 1;
+        defaults.pin = LED_BUILTIN;
+        defaults.level = LOW;
+        defaults.blackout = true;
         for (JsonObject channel : channels)
         {
             if (dmx.size() >= MAX_DMX_DEVICES)
                 break;
-            DeviceConfig deviceConfig;
-            deviceConfig.type = dmxTypeFromString(channel["type"].as<String>());
-            deviceConfig.channel = channel["channel"] | 0;
-            deviceConfig.level = channel["level"].as<String>().equalsIgnoreCase("high") ? HIGH : LOW;
-            deviceConfig.pin = channel["pin"] | LED_BUILTIN;
-            deviceConfig.multiplier = channel["multiplier"] | 1;
-            deviceConfig.pulse = channel["pulse"] | 10;
-            deviceConfig.threshold = channel["threshold"] | 127;
-            deviceConfig.blackout = channel["blackout"] | true;
+            DeviceConfig deviceConfig = core::dmxChannelFromJson(channel, defaults);
             dmx.push_back(deviceConfig);
             LOG("  channel: " + channel["channel"].as<String>());
             LOG("  type: " + channel["type"].as<String>() + " on pin " + channel["pin"].as<String>() + " active: " + channel["level"].as<String>());
         }
     }
 
-    if (!doc["hw"]["freq"].isNull())
-    {
-        hardware.pwmFreq = doc["hw"]["freq"] | DEFAULT_PWM_FREQ;
-        LOG("PWM: " + doc["hw"]["freq"].as<String>() + " Hz");
-    }
-    if (!doc["hw"]["ledPin"].isNull())
-    {
-        hardware.ledPin = doc["hw"]["ledPin"] | LED_PIN;
-        LOG("Led i/o: " + String(hardware.ledPin));
-    }
-    if (!doc["hw"]["buttonPin"].isNull())
-    {
-        hardware.buttonPin = doc["hw"]["buttonPin"] | DEFAULT_BUTTON_PIN;
-        LOG("Button i/o: " + String(hardware.buttonPin));
-    }
-    if (!doc["hw"]["longPressDelay"].isNull())
-    {
-        hardware.longPressDelay = doc["hw"]["longPressDelay"] | DEFAULT_BUTTON_LONG_PRESS * 1000;
-        LOG("Long press: " + String(hardware.longPressDelay) + " ms");
-    }
+    hardware = core::hardwareFromJson(doc["hw"], hardware);
 }
 
 void Config::configToJson(JsonDocument &doc)
@@ -232,10 +224,7 @@ void Config::configToJson(JsonDocument &doc)
     doc.clear();
     doc["configVersion"] = CONFIG_SCHEMA_VERSION;
     doc["_needReboot"] = _dirty;
-    doc["hw"]["freq"] = hardware.pwmFreq;
-    doc["hw"]["ledPin"] = hardware.ledPin;
-    doc["hw"]["buttonPin"] = hardware.buttonPin;
-    doc["hw"]["longPressDelay"] = hardware.longPressDelay;
+    core::hardwareToJson(hardware, doc["hw"].to<JsonObject>());
     doc["info"]["id"] = CHIP_ID;
     doc["info"]["chip"] = CHIP_ARC;
     doc["info"]["version"] = VERSION;
@@ -250,23 +239,17 @@ void Config::configToJson(JsonDocument &doc)
     for (size_t i = 0; i < wifi.size(); i++)
     {
         const WiFiNet &net = wifi[i];
-        wifiNets[i]["ssid"] = net.ssid;
-        wifiNets[i]["pass"] = net.pass;
-        wifiNets[i]["dhcp"] = net.dhcp;
-        wifiNets[i]["order"] = net.order;
+        core::WifiNet coreNet;
+        coreNet.ssid = net.ssid.c_str();
+        coreNet.pass = net.pass.c_str();
+        coreNet.dhcp = net.dhcp;
+        coreNet.order = net.order;
+        core::wifiNetToJson(coreNet, wifiNets.createNestedObject());
     }
     JsonArray channels = doc.createNestedArray("dmx");
     for (size_t i = 0; i < dmx.size() && i < MAX_DMX_DEVICES; i++)
     {
-        const DeviceConfig &channel = dmx[i];
-        channels[i]["channel"] = channel.channel;
-        channels[i]["type"] = dmxTypeToString(channel.type);
-        channels[i]["pin"] = channel.pin;
-        channels[i]["level"] = channel.level ? "HIGH" : "LOW";
-        channels[i]["multiplier"] = channel.multiplier;
-        channels[i]["pulse"] = channel.pulse;
-        channels[i]["threshold"] = channel.threshold;
-        channels[i]["blackout"] = channel.blackout;
+        core::dmxChannelToJson(dmx[i], channels.createNestedObject());
     }
 }
 } // namespace art
