@@ -18,7 +18,7 @@ bool Config::load()
     LOG(fileName);
     File file = ESP_FS.open(fileName, "r");
     cleanup();
-    StaticJsonDocument<CONFIG_BUFFER_SIZE> doc;
+    JsonDocument doc;
     DeserializationError error = deserializeJson(doc, file);
     if (error)
     {
@@ -36,7 +36,7 @@ bool Config::load()
 bool Config::save()
 {
     LOG(F("Saving config..."));
-    StaticJsonDocument<CONFIG_BUFFER_SIZE> doc;
+    JsonDocument doc;
     configToJson(doc);
     if (ESP_FS.exists(CONFIG_FILE) && !ESP_FS.remove(CONFIG_FILE))
         LOG(F("Failed to delete file"));
@@ -88,7 +88,7 @@ bool Config::applyPendingUpdate()
     if (!_hasPending)
         return false;
 
-    StaticJsonDocument<CONFIG_BUFFER_SIZE> doc;
+    JsonDocument doc;
     DeserializationError error;
 #ifdef ESP32
     portENTER_CRITICAL(&_pendingMux);
@@ -124,7 +124,7 @@ bool Config::applyPendingUpdate()
 
 void Config::serialize(String &to)
 {
-    StaticJsonDocument<CONFIG_BUFFER_SIZE> doc;
+    JsonDocument doc;
     configToJson(doc);
     serializeJsonPretty(doc, to);
 }
@@ -149,6 +149,8 @@ void Config::cleanup()
 
 void Config::configFromJson(JsonVariant doc)
 {
+    configVersion = doc["configVersion"] | 1;
+
     if (!doc["host"].isNull())
     {
         host = doc["host"].as<String>();
@@ -228,6 +230,7 @@ void Config::configFromJson(JsonVariant doc)
 void Config::configToJson(JsonDocument &doc)
 {
     doc.clear();
+    doc["configVersion"] = CONFIG_SCHEMA_VERSION;
     doc["_needReboot"] = _dirty;
     doc["hw"]["freq"] = hardware.pwmFreq;
     doc["hw"]["ledPin"] = hardware.ledPin;

@@ -25,6 +25,12 @@ namespace art
 {
 #define CONFIG_BUFFER_SIZE 1024
 
+// Schema version written by configToJson(); bumped whenever a future config
+// migration needs to distinguish old/new on-disk JSON shapes. configFromJson
+// reads "configVersion" (defaulting to 1 for configs that predate this field)
+// but doesn't act on it yet - this just establishes the migration hook.
+#define CONFIG_SCHEMA_VERSION 1
+
 typedef struct
 {
     String ssid; // SSID
@@ -107,6 +113,11 @@ public:
     String host;
     unsigned int universe = 0;
     HardwareConfig hardware;
+    // Schema version of the config this instance was loaded from (defaults
+    // to 1 for configs written before this field existed). configToJson()
+    // always writes CONFIG_SCHEMA_VERSION, not this value - migrations (none
+    // yet) would compare this against CONFIG_SCHEMA_VERSION in configFromJson.
+    uint8_t configVersion = CONFIG_SCHEMA_VERSION;
 
     Config();
     bool load();
