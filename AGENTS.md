@@ -49,7 +49,7 @@ pio test -e native                        # run the platform-free native test su
 
 6. **`MAX_DMX_DEVICES` differs by platform** (8 on ESP32, 4 on ESP8266 — `config.h`, via `#ifdef ESP32`). The fixed-size `dmx_devices[MAX_DMX_DEVICES]` array in `main.cpp` and all the `for (... && i < MAX_DMX_DEVICES; ...)` loop bounds must stay consistent with this if it's ever changed.
 
-7. **The config JSON buffer is a fixed `StaticJsonDocument<CONFIG_BUFFER_SIZE>` (1024 bytes)** — `config.h`. Adding new config fields, especially per-DMX-channel fields that get multiplied by up to 8 devices on ESP32, risks silently overflowing/truncating this buffer. ArduinoJson won't necessarily throw — check `doc.overflowed()` if you grow the schema.
+7. **`config.load()`/`save()`/`serialize()`/`applyPendingUpdate()` use an elastic ArduinoJson 7 `JsonDocument`** (heap-allocated, no fixed capacity) — `config.cpp`, since Phase 6 item 1's ArduinoJson 6→7 upgrade. There's no more `doc.overflowed()` (AJ7 doesn't have it); a malformed/huge `POST /config` payload now fails via `DeserializationError` from `deserializeJson()`. The one surviving fixed-size buffer is `_pendingJson[CONFIG_BUFFER_SIZE]` (still 1024 bytes, `config.h`) — B11's staged-update copy of a raw `POST /config` body; `stageUpdate()` rejects (`written < sizeof(_pendingJson)` fails) anything that doesn't fit, so a single `POST /config` payload is still capped at ~1024 bytes even though the in-memory `JsonDocument` itself can grow. Adding new config fields no longer risks silent truncation of the persisted config, but very large `dmx[]`/`wifi[]` arrays can still hit this `POST /config` payload ceiling.
 
 8. **`server.begin()` must only be called after WiFi connects.** `main.cpp` has an explicit comment: `// Call ONLY AFTER WiFi gets connected !!!!! (or reboot loop)`. Preserve this ordering if you reorganize `setup()`.
 
@@ -71,7 +71,6 @@ src/
 ├── connect.h/.cpp    # Connect - WiFi + ESPAsyncWiFiManager captive portal (192.168.4.1),
 │                      #   non-blocking reconnect every 1s (Gotcha #8's StatusLed* is injected
 │                      #   via Connect::init, not an extern global)
-├── api.h             # REST API: GET/POST /config, POST /reboot, POST /reset-wifi, GET /heap
 ├── app/
 │   ├── app.h/.cpp    # App - owns every top-level instance (server, connect, config, artnet,
 │   │                  #   status, button, devices[]) and encodes the boot order - see §5
@@ -81,10 +80,16 @@ src/
 ├── core/             # Platform-free C++ (no Arduino.h/String/millis) - natively unit-tested
 │   │                  #   under [env:native], see test/test_*
 │   ├── dmxTypes.h    # enum class DmxType, toWireString/fromWireString, DMX_CHANNELS/DMX_PACKET_SIZE
-│   └── dimmerLogic.h # DimmerLogic - PWM dimmer/strobe timing state machine (used by PwmDimmer)
+│   ├── dimmerLogic.h # DimmerLogic - PWM dimmer/strobe timing state machine (used by PwmDimmer)
+│   ├── configModel.h # DeviceConfig/HardwareConfig/WifiNet PODs (aliased as art:: in config.h) - header-only
+│   └── configCodec.h # inline ArduinoJson <-> configModel.h conversions (dmxChannelToJson/FromJson,
+│                      #   hardwareToJson/FromJson, wifiNetToJson/FromJson) - header-only (Phase 5
+│                      #   binding rule: [env:native] doesn't compile src/*.cpp, so no configCodec.cpp)
 ├── net/
-│   └── artnetService.h/.cpp  # ArtnetService - Art-Net UDP receive; single-path slice dispatch
-│                      #   to device->onDmx(universe, slice) - see §5
+│   ├── artnetService.h/.cpp  # ArtnetService - Art-Net UDP receive; single-path slice dispatch
+│   │                  #   to device->onDmx(universe, slice) - see §5
+│   └── webApi.h/.cpp  # REST API (replaces the old top-level api.h): GET/POST /config, GET /status,
+│                      #   POST /reboot, POST /reset-wifi, GET /heap - see §7
 ├── platform/
 │   ├── filesystem.h  # ESP_FS - unified LittleFS (ESP8266) / LittleFS (ESP32, since R2) wrapper
 │   ├── pwm.h/.cpp    # Pwm::init/write - LEDC on ESP32, analogWrite on ESP8266
@@ -166,7 +171,7 @@ void loop()  { app.loop(); }
 `App` (`src/app/app.{h,cpp}`) owns every top-level instance by value or `std::unique_ptr` (`server`, `dnsServer`, `connect`, `config`, `artnet`, `status`, `buttonConfig`/`button`, `std::array<std::unique_ptr<Device>, MAX_DMX_DEVICES> devices` + a parallel raw `Device *deviceList[MAX_DMX_DEVICES]` for `ArtnetService::init`'s `Device**` API, and `#if FEATURE_OLED statusDisplay`).
 
 **`App::setup()`**, roughly in order:
-1. Mount the filesystem — LittleFS on both ESP8266 and ESP32 (`ESP_FS`, `src/platform/filesystem.h`); `safeMode()` (`app/safeMode.{h,cpp}`) halts (blinking `LED_PIN` forever) if this fails
+1. Mount the filesystem — LittleFS on both ESP8266 and ESP32 (`ESP_FS`, `src/platform/filesystem.h`); `safeMode()` (`app/safeMode.{h,cpp}`) halts if this fails: it brings up an open diagnostic AP (`ArtNet-<chip id>-SAFE`, 192.168.4.1) serving an inline-HTML page with the chip ID/failure reason/re-flash instructions, then blinks `LED_PIN` forever (the AP is best-effort - if WiFi/AsyncWebServer are also broken, the LED blink remains the last-resort signal)
 2. `config.load()` — reads `/config/config.json` (falling back to `/config/default.json`)
 3. Create `StatusLed`
 4. Init the button (AceButton) — `buttonConfig.setIEventHandler(this)` registers `App::handleEvent` (App implements `ace_button::IEventHandler`); short press flips DMX devices, long press (5s, configurable) resets WiFi
@@ -234,12 +239,15 @@ The default `tick()` blacks out the device (`set(channel, 0)`) if `frame()` hasn
 
 ## 7. Configuration System
 
-- `art::Config` (`config.h`/`.cpp`) loads/saves JSON via ArduinoJson, using a `StaticJsonDocument<CONFIG_BUFFER_SIZE>` where `CONFIG_BUFFER_SIZE` is **1024 bytes** (Gotcha #7).
+- `art::Config` (`config.h`/`.cpp`) loads/saves JSON via ArduinoJson 7's elastic `JsonDocument` (Gotcha #7) — `configFromJson`/`configToJson` (the persisted-config envelope: `configVersion`/`_needReboot`/`hw`/`host`/`universe`/`wifi`/`dmx`, deliberately *not* `info`) delegate per-section conversions to `core::configCodec` (`src/core/configCodec.h`, header-only, natively tested under `test/test_configcodec/`): `dmxChannelToJson`/`dmxChannelFromJson`, `hardwareToJson`/`hardwareFromJson`, `wifiNetToJson`/`wifiNetFromJson`. The PODs they convert (`DeviceConfig`, `HardwareConfig`, `WifiNet`) live in `core::configModel` and are aliased into `art::` (`config.h`) for spelling compatibility.
+- `configVersion` (`CONFIG_SCHEMA_VERSION`, currently `1`, `config.h`): `configToJson()` always writes the current constant; `configFromJson()` reads `"configVersion"` defaulting to `1` for configs that predate the field. No migration logic exists yet — this just establishes the hook for one.
 - `data/config/default.json` is the initial/fallback config (flashed via `pio run -t uploadfs`); the runtime config persists to `/config/config.json` on the device's filesystem (LittleFS on both ESP8266 and ESP32, since R2).
 - The `dmx` and `wifi` collections are `std::vector<DeviceConfig>` / `std::vector<WiFiNet>` by value.
 - Each `DeviceConfig` has an additive `bool blackout = true` field — wired to `Device::setBlackout()` (§6); old configs without the key default to `true` (unchanged behavior).
+- `HardwareConfig` (`hw`) has additive `bool authEnabled = false`, `std::string authUser`, `std::string authPass` fields (R5 compat: configs without these keys parse with auth disabled) — see "HTTP basic-auth" below.
 - `POST /config` (B11): the async-context handler only `stageUpdate()`s the raw JSON and returns `202 {"status":"pending"}` immediately; `App::loop()`'s `config.applyPendingUpdate()` does the actual `update()`/`save()` on the main task on the next iteration. Use `GET /config` afterward to confirm.
-- REST surface (full spec in README): `GET/POST /config` (partial updates supported, but `dmx[]` is index-based so **all** elements must be sent together when updating that array; `_needReboot` flags pending changes), `POST /reboot`, `POST /reset-wifi`, `GET /heap`.
+- REST surface (full spec in README, `src/net/webApi.{h,cpp}`): `GET/POST /config`, `GET /status` (lightweight `info`-only poll endpoint), `POST /reboot`, `POST /reset-wifi`, `GET /heap`. `POST /config` partial updates are supported, but `dmx[]` is index-based so **all** elements must be sent together when updating that array; `_needReboot` flags pending changes.
+- **HTTP basic-auth** (optional, off by default): if `hw.authEnabled` is `true`, `webApi.cpp`'s `checkAuth()` helper requires HTTP basic-auth (`hw.authUser`/`hw.authPass`) for `POST /config`, `POST /reboot`, `POST /reset-wifi`, and `app/app.cpp` calls `ElegantOTA.setAuth(...)` to also gate `/update`. `GET /config`, `GET /status`, `GET /heap`, and the static web UI stay unauthenticated.
 
 ## 8. Conventions
 

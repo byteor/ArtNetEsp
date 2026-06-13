@@ -159,6 +159,7 @@ Response example:
 
 ```json
 {
+  "configVersion": 1, // Schema version of the persisted config (informational; no migrations yet)
   "_needReboot": false, //reboot needed flag indicating config changes were not applied yet
   "hw": {
     "freq": 600, // PWM frequency
@@ -170,9 +171,16 @@ Response example:
     "authPass": "" // Basic-auth password (used only if authEnabled)
   },
   "info": {
+    // Runtime WiFi/build/chip identity - same fields as GET /status, nested here for back-compat
+    "id": "d6b6b8",
+    "chip": "ESP32",
     "version": "2021.4",
+    "built": "2026-06-13 14:05:21.993261",
+    "max_dmx_devices": 8,
     "ssid": "BAM",
-    "rssi": -47
+    "rssi": -47,
+    "uptime": 123456,
+    "free_heap": 47820
   },
   "id": "d6b6b8", // Chip ID
   "host": "GREEN-d6d8", // Host name (used in ArtNet discovery)
