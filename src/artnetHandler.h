@@ -5,6 +5,7 @@
 #include "config.h"
 #include "hw/logger.h"
 #include "device/device.h"
+#include "core/dmxTypes.h"
 
 class ArtnetHandler
 {
@@ -52,11 +53,12 @@ void ArtnetHandler::init(int universe, const String &shortName, const String &lo
                                                    devices[k]->frame(this->universe, data, size);
 
                                                    // Frame-consuming devices (e.g. the Repeater, whose frame()
-                                                   // already copied the whole packet) report 512 channels - skip
-                                                   // the per-channel set()/get() dispatch for them. 512 ==
-                                                   // DMX_CHANNELS (dmx/dmx.h), not includable here when
-                                                   // FEATURE_DMX_PORT=0 (AGENTS.md Gotcha #4).
-                                                   if (devices[k]->getNumberOfChannels() == 512)
+                                                   // already copied the whole packet) report DMX_CHANNELS
+                                                   // channels - skip the per-channel set()/get() dispatch
+                                                   // for them. core::DMX_CHANNELS (src/core/dmxTypes.h) is
+                                                   // platform-free, includable even when FEATURE_DMX_PORT=0
+                                                   // (AGENTS.md Gotcha #4).
+                                                   if (devices[k]->getNumberOfChannels() == core::DMX_CHANNELS)
                                                        continue;
 
                                                    for (int i = devices[k]->getChannel(); i < devices[k]->getChannel() + devices[k]->getNumberOfChannels(); i++)

@@ -185,7 +185,7 @@ void setup()
 #endif
         default:
             LOG(F("Incompatible DMX device type:"));
-            LOG(config.dmx[i]->type);
+            LOG(static_cast<int>(config.dmx[i]->type));
             break;
         }
     }

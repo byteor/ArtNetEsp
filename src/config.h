@@ -6,6 +6,7 @@
 #include <ArduinoJson.h>
 #include "hw/logger.h"
 #include "boards/board.h"
+#include "core/dmxTypes.h"
 #include "Version.h"
 
 // efficiently a max number of "Art-Net Node Ports" (DMX devices) that can be configured
@@ -37,14 +38,9 @@ typedef struct
     uint8_t order; // Order number
 } WiFiNet;
 
-enum DmxType
-{
-    Disabled = 0,
-    Relay = 1,
-    Dimmer = 2,
-    Servo = 3,
-    Repeater = 4, // AKA Art-Net --> DMX gateway
-};
+// core::DmxType is the canonical enum (src/core/dmxTypes.h, platform-free);
+// this alias preserves the art::DmxType spelling used throughout this codebase.
+using DmxType = core::DmxType;
 
 typedef struct
 {
@@ -83,29 +79,17 @@ class Config
 #endif
 
 protected:
-    const String DMX_DISABLED = String("DISABLED");
-    const String DMX_BINARY = String("BINARY"); // legacy wire string for Relay - still emitted (R5)
-    const String DMX_RELAY = String("RELAY");   // canonical alias for Relay, accepted on input only
-    const String DMX_DIMMER = String("DIMMER");
-    const String DMX_SERVO = String("SERVO");
-    const String DMX_REPEATER = String("REPEATER");
-
     const String DEFAULT_FILE = String("/config/default.json");
     const String CONFIG_FILE = String("/config/config.json");
 
     const String DEFAULT_HOST_NAME = String("Art-" + CHIP_ID);
 
+    // Thin adapters over core::fromWireString/toWireString (src/core/dmxTypes.h)
+    // - kept here so existing call sites (Config::dmxTypeFromString/ToString)
+    // don't need to change.
     DmxType dmxTypeFromString(String type)
     {
-        if (DMX_BINARY.equals(type) || DMX_RELAY.equals(type))
-            return DmxType::Relay;
-        if (DMX_DIMMER.equals(type))
-            return DmxType::Dimmer;
-        if (DMX_SERVO.equals(type))
-            return DmxType::Servo;
-        if (DMX_REPEATER.equals(type))
-            return DmxType::Repeater;
-        return DmxType::Disabled;
+        return core::fromWireString(type.c_str());
     }
 
     void configFromJson(JsonVariant doc);
@@ -117,15 +101,7 @@ protected:
 public:
     String dmxTypeToString(DmxType type)
     {
-        if (type == DmxType::Relay)
-            return DMX_BINARY;
-        if (type == DmxType::Dimmer)
-            return DMX_DIMMER;
-        if (type == DmxType::Servo)
-            return DMX_SERVO;
-        if (type == DmxType::Repeater)
-            return DMX_REPEATER;
-        return DMX_DISABLED;
+        return String(core::toWireString(type));
     }
 
     // DMX
