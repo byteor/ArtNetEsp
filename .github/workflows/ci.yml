@@ -59,6 +59,34 @@ jobs:
         # include/Version.h on every build. CI never commits these changes -
         # the runner's checkout is discarded after the job finishes.
 
+  native-test:
+    name: native unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Cache PlatformIO platforms/packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio
+          key: platformio-native-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            platformio-native-
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Run native tests
+        run: pio test -e native
+
   lint:
     name: cppcheck (advisory)
     runs-on: ubuntu-latest
