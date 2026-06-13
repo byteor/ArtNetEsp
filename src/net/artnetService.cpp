@@ -7,9 +7,6 @@ void ArtnetService::init(int universe, const String &shortName, const String &lo
     this->universe = universe;
     devices = dmxDevice;
     this->devicesCount = devicesCount;
-    for (uint8_t i = 0; i < devicesCount; i++)
-        if (dmxDevice[i])
-            dmxDevice[i]->start();
 
     artnet.setArtPollReplyConfig(0xFF, // OemUnknown https://github.com/tobiasebsen/ArtNode/blob/master/src/Art-NetOemCodes.h
                                  0x00, // ESTA manufacturer code

@@ -1,20 +1,17 @@
 #include "connect.h"
 
-// gets called when WiFiManager enters configuration mode
-void configModeCallback(AsyncWiFiManager *myWiFiManager)
+void Connect::init(AsyncWebServer *server, DNSServer *dns, StatusLed *status)
 {
-    status->set(StatusLed::CaptivePortal);
-    LOG("Entered config mode");
-    LOG(WiFi.softAPIP());
-    // if you used auto generated SSID, print it
-    LOG(myWiFiManager->getConfigPortalSSID());
-}
-
-void Connect::init(AsyncWebServer *server, DNSServer *dns)
-{
+    this->status = status;
     wifiManager = new AsyncWiFiManager(server, dns);
     // Set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode (Captive Portal)
-    wifiManager->setAPCallback(configModeCallback);
+    wifiManager->setAPCallback([this](AsyncWiFiManager *myWiFiManager)
+                                {
+        this->status->set(StatusLed::CaptivePortal);
+        LOG("Entered config mode");
+        LOG(WiFi.softAPIP());
+        // if you used auto generated SSID, print it
+        LOG(myWiFiManager->getConfigPortalSSID()); });
 }
 
 void Connect::connect(String hostName)

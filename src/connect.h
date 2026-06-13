@@ -9,12 +9,11 @@
 #include "hw/logger.h"
 #include "hw/statusLed.h"
 
-extern StatusLed *status;
-
 class Connect
 {
 protected:
     AsyncWiFiManager *wifiManager;
+    StatusLed *status;
 
     static const unsigned long REFRESH_INTERVAL = 1000; // ms
     unsigned long lastRefreshTime;
@@ -25,7 +24,8 @@ protected:
     bool wifiConnected = true;
 
 public:
-    void init(AsyncWebServer *server, DNSServer *dns);
+    // status outlives this Connect (owned by App) - Connect only observes it.
+    void init(AsyncWebServer *server, DNSServer *dns, StatusLed *status);
     void connect(String hostName);
     void loop();
     void reset();

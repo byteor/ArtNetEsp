@@ -136,7 +136,7 @@ public:
     }
 };
 
-void StatusDisplay::setStatus32()
+inline void StatusDisplay::setStatus32()
 {
     display->setFont();
     if (WiFi.status() == WL_CONNECTED)
@@ -174,7 +174,7 @@ void StatusDisplay::setStatus32()
     }
 }
 
-void StatusDisplay::setStatus64()
+inline void StatusDisplay::setStatus64()
 {
     display->setFont(&FreeSans9pt7b);
     if (WiFi.status() == WL_CONNECTED)
