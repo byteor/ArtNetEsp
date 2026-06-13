@@ -35,7 +35,10 @@ public:
     bool isEnabled() override;
     uint8_t get(uint16_t channel) override;
     void set(uint16_t channel, uint8_t data) override;
-    uint16_t channelCount() override { return 1; } // Temporarily set to 1
+    void onDmx(uint32_t univ, const uint8_t *data, uint16_t len) override;
+    // B17 fix: 2 channels - data[0] is the dimmer level, data[1] is the
+    // strobe speed (channel+1), now reachable via onDmx's slice.
+    uint16_t channelCount() override { return 2; }
 
     void setInterval(int millis);
     void setDuration(int millis);

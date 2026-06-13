@@ -50,7 +50,7 @@ Such limits are not a memory or performance concern, or a result of testing, but
 
 ### DIMMER
 
-Uses one DMX `channel`, translates DMX value to PWM on selected `pin`.
+Uses **two** DMX channels starting at `channel`: `channel` translates the DMX value to PWM on the selected `pin`, and `channel + 1` controls strobe speed (0 = steady on, higher values = faster strobing - `pulse`/`multiplier` tune the strobe timing).
 
 There is a global setting for PWM frequency - `freq`. See [GET config](#get-config)
 
@@ -281,7 +281,7 @@ ESP8266 devices are unaffected - they've always used LittleFS.
 - [ ] DMX: single-channel Dimmer (new type)
 - [ ] DMX: NeoPixel strip (new type)
 - [x] Strobe: Flip
-- [ ] Strobe: Fix Stroboscope (or remove stroboscope at all)
+- [x] Strobe: Fix Stroboscope (or remove stroboscope at all)
 - [x] ArtNet: BUG: Repeater skips broadcasts
 - [x] ArtNet: Discovery
 - [x] BUG: only one DMX config works

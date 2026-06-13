@@ -96,6 +96,35 @@ void test_flip_restores_dmx_value_when_nonzero(void)
     TEST_ASSERT_EQUAL_UINT8(80, logic.duty());
 }
 
+// B17 fix (Phase 5 item 8): PwmDimmer::onDmx now re-applies setDuration()/
+// setInterval() from the strobe-speed channel on EVERY incoming frame
+// (~44fps), not just on change. Pin that repeating the same
+// setDuration()/setInterval() values mid-cycle doesn't reset/disrupt an
+// in-progress strobe cycle (no interval/state/previousMillis side effects).
+void test_repeated_setduration_setinterval_does_not_disrupt_cycle(void)
+{
+    DimmerLogic logic(HIGH_STATE);
+    logic.setValue(200);
+    logic.setDuration(5);
+    logic.setInterval(50);
+
+    TEST_ASSERT_TRUE(logic.tick(0));
+    TEST_ASSERT_EQUAL_UINT8(0, logic.duty());
+
+    // Simulate per-frame onDmx re-applying the same strobe-speed channel
+    // while inactive, partway through the 45ms "off" segment.
+    logic.setDuration(5);
+    logic.setInterval(50);
+    TEST_ASSERT_FALSE(logic.tick(44));
+    TEST_ASSERT_EQUAL_UINT8(0, logic.duty());
+
+    // Cycle still completes on schedule (+45ms -> active again).
+    logic.setDuration(5);
+    logic.setInterval(50);
+    TEST_ASSERT_TRUE(logic.tick(45));
+    TEST_ASSERT_EQUAL_UINT8(200, logic.duty());
+}
+
 int main(int argc, char **argv)
 {
     UNITY_BEGIN();
@@ -104,5 +133,6 @@ int main(int argc, char **argv)
     RUN_TEST(test_strobe_cycle_alternates);
     RUN_TEST(test_flip_to_full_when_value_zero);
     RUN_TEST(test_flip_restores_dmx_value_when_nonzero);
+    RUN_TEST(test_repeated_setduration_setinterval_does_not_disrupt_cycle);
     return UNITY_END();
 }

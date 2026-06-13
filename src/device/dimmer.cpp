@@ -36,11 +36,26 @@ void PwmDimmer::set(uint16_t dmxChannel, uint8_t data)
         logic.setValue(data);
         update();
     }
-    else if (dmxChannel == channel - 1) // Strobe
+}
+
+void PwmDimmer::onDmx(uint32_t univ, const uint8_t *data, uint16_t len)
+{
+    frame(univ, data, len);
+
+    if (len > 0 && data[0] != logic.getValue())
     {
-        LOG_DEBUG("Dimmer Strobe: " + String(dmxChannel) + " = " + String(data));
+        LOG_DEBUG("Dimmer: " + String(channel) + " = " + String(data[0]));
+        logic.setValue(data[0]);
+        update();
+    }
+
+    // B17 fix: channel+1 is the strobe speed, finally reachable now that
+    // channelCount()==2 makes ArtnetService include it in the slice.
+    if (len > 1)
+    {
+        LOG_DEBUG("Dimmer Strobe: " + String(channel + 1) + " = " + String(data[1]));
         logic.setDuration(pulse);
-        logic.setInterval(data * multiplier);
+        logic.setInterval(data[1] * multiplier);
     }
 }
 
