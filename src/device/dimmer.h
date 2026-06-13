@@ -10,6 +10,7 @@
 #include "boards/board.h"
 #include "hw/logger.h"
 #include "platform/pwm.h"
+#include "core/dimmerLogic.h"
 
 // default strobe pulse length, ms
 #define DEFAULT_STROBE_PULSE 5
@@ -18,21 +19,11 @@ class PwmDimmer : public Device
 {
 protected:
     uint8_t pin;
-    int pulse = 0;  // 'active' duration, ms
-    int period = 0; // 'total' duration, ms
-    bool enabled;
-    bool isFlipped;
+    int pulse;     // configured 'active' duration, ms (reapplied on each Strobe-channel update)
+    int multiplier;
     uint8_t activeState;
     uint8_t inactiveState;
-    int state;     // 1/0 == ON/OFF
-    int value = 0; // original PWM value, 0-255
-    int multiplier;
-    int adjustedActiveValue = 0;   // PWM value adjusted to the 'active' level
-    int adjustedInactiveValue = 0; // PWM value adjusted to the 'active' level
-    int adjustedMaxValue;          // Max active PWM value adjusted to the 'active' level
-    int valueOverride;             // manually (literally!) set PWM value adjusted to the 'active' level
-    unsigned long previousMillis = 0;
-    unsigned long interval;
+    core::DimmerLogic logic; // pure timing/value state machine - src/core/dimmerLogic.h
 
 public:
     PwmDimmer(uint8_t universe, uint16_t channel, uint8_t pin = LED_BUILTIN, int pulse = DEFAULT_STROBE_PULSE, int multiplier = 1, int activeState = HIGH);

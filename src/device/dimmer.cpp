@@ -5,6 +5,7 @@
 #include "dimmer.h"
 
 PwmDimmer::PwmDimmer(uint8_t universe, uint16_t channel, uint8_t pin, int pulse, int multiplier, int activeState)
+    : logic(activeState == HIGH ? 1 : 0)
 {
     LOG("New Dimmer: pin=" + String(pin) + " DMX channel:" + String(channel));
 
@@ -13,21 +14,18 @@ PwmDimmer::PwmDimmer(uint8_t universe, uint16_t channel, uint8_t pin, int pulse,
     this->pin = pin;
     this->pulse = pulse;
     this->multiplier = multiplier;
-    enabled = true;
     this->activeState = activeState;
     this->inactiveState = activeState == HIGH ? LOW : HIGH;
-    this->state = activeState;
-    this->valueOverride = activeState == HIGH ? 0 : 255;
-    this->adjustedMaxValue = activeState == HIGH ? 255 : 0;
 
-    interval = 0;
+    logic.setDuration(pulse);
+
     pinMode(pin, OUTPUT);
     digitalWrite(pin, inactiveState);
 }
 
 uint8_t PwmDimmer::get(uint16_t channel)
 {
-    return value;
+    return logic.getValue();
 }
 
 void PwmDimmer::set(uint16_t dmxChannel, uint8_t data)
@@ -35,38 +33,27 @@ void PwmDimmer::set(uint16_t dmxChannel, uint8_t data)
     if (dmxChannel == channel) // Dimmer
     {
         LOG_DEBUG("Dimmer: " + String(dmxChannel) + " = " + String(data));
-        this->value = data;
-        this->adjustedActiveValue = activeState == HIGH ? value : 255 - value;
-        this->adjustedInactiveValue = activeState == HIGH ? 0 : 255;
-        this->valueOverride = adjustedActiveValue;
+        logic.setValue(data);
         update();
     }
     else if (dmxChannel == channel - 1) // Strobe
     {
         LOG_DEBUG("Dimmer Strobe: " + String(dmxChannel) + " = " + String(data));
-        setDuration(pulse);
-        setInterval(data * multiplier);
+        logic.setDuration(pulse);
+        logic.setInterval(data * multiplier);
     }
 }
 
 void PwmDimmer::update()
 {
-    if (enabled && state == activeState)
-    {
-        Pwm::write(pin, valueOverride);
-        LOG(" =" + String(valueOverride));
-    }
-    else
-    {
-        Pwm::write(pin, adjustedInactiveValue);
-    }
+    uint8_t duty = logic.duty();
+    Pwm::write(pin, duty);
+    LOG(" =" + String(duty));
 }
 
 void PwmDimmer::setInterval(int millis)
 {
-    period = millis;
-    if (period < 0)
-        period = pulse;
+    logic.setInterval(millis);
 }
 
 void PwmDimmer::setDuration(int millis)
@@ -74,6 +61,7 @@ void PwmDimmer::setDuration(int millis)
     pulse = millis;
     if (pulse < 0)
         pulse = 0;
+    logic.setDuration(pulse);
 }
 
 void PwmDimmer::setPin(int number)
@@ -89,7 +77,7 @@ void PwmDimmer::setPin(int number)
 
 void PwmDimmer::handle()
 {
-    if (!enabled)
+    if (!logic.isEnabled())
         return;
     unsigned long currentMillis = millis();
     if (lastChange != 0 && millis() - lastChange > DMX_SILENCE_TIMEOUT)
@@ -98,73 +86,45 @@ void PwmDimmer::handle()
         set(channel, 0);
         lastChange = millis();
     }
-    else if (period <= pulse && enabled)
+    else if (logic.tick(currentMillis))
     {
-        previousMillis = currentMillis;
-        if (state != activeState)
-        {
-            state = activeState;
-            update();
-        }
-    }
-    else
-    {
-        if (currentMillis - previousMillis >= interval && enabled)
-        {
-            previousMillis = currentMillis;
-            if (state == activeState)
-            {
-                state = inactiveState;
-                interval = period - pulse;
-            }
-            else
-            {
-                state = activeState;
-                interval = pulse;
-            }
-            update();
-        }
+        update();
     }
 }
 
 void PwmDimmer::start()
 {
-    if (!enabled)
+    if (!logic.isEnabled())
     {
         LOG(F("Dimmer Started"));
-        interval = 0;
-        state = activeState;
-        enabled = true;
+        logic.start();
         lastChange = millis();
     }
 }
 
 void PwmDimmer::stop()
 {
-    enabled = false;
+    logic.setEnabled(false);
     digitalWrite(pin, inactiveState);
 }
 
 void PwmDimmer::flip()
 {
-    enabled = !enabled;
-    if (enabled)
+    logic.flip();
+    if (logic.isEnabled())
     {
         LOG(F("Flip - ON"));
-        // flipping when DMX value is set to 0. Manual flip should bring the full light on
-        valueOverride = value > 0 ? adjustedActiveValue : adjustedMaxValue;
     }
     else
     {
         LOG(F("Flip - OFF"));
-        valueOverride = adjustedInactiveValue;
     }
     update();
 }
 
 bool PwmDimmer::isEnabled()
 {
-    return enabled;
+    return logic.isEnabled();
 }
 
 #endif // FEATURE_DIMMER
