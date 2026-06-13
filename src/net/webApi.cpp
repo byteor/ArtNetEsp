@@ -25,6 +25,21 @@ void disconnectAndRestart(Connect *cn)
     ESP.restart();
 }
 
+// Optional HTTP basic-auth (config.hardware.authEnabled), guarding mutating
+// routes (POST /config, /reboot, /reset-wifi) and, separately, ElegantOTA's
+// /update via ElegantOTA.setAuth() (see app/app.cpp). GET routes (/config,
+// /status, /heap, static /www/) stay unauthenticated - read-only, theater LAN.
+// Returns true if the request may proceed; otherwise sends the 401 challenge.
+bool checkAuth(AsyncWebServerRequest *request, art::Config &config)
+{
+    if (!config.hardware.authEnabled)
+        return true;
+    if (request->authenticate(config.hardware.authUser.c_str(), config.hardware.authPass.c_str()))
+        return true;
+    request->requestAuthentication();
+    return false;
+}
+
 // Runtime WiFi/build/chip identity - never part of the persisted config
 // (§1.2.9 layering fix), populated fresh on every request. Shared by
 // GET /config (nested under "info", for back-compat) and GET /status (the
@@ -79,6 +94,9 @@ void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
                                                                            {
         LOG("PUT /config");
 
+        if (!checkAuth(request, config))
+            return;
+
         // B11: this lambda runs in the async_tcp task on ESP32, while loop()
         // (main task) concurrently reads config.dmx/config.wifi (device
         // handle(), button handler, StatusDisplay). Stage the JSON here and
@@ -101,14 +119,20 @@ void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
                {
         LOG("POST /reboot");
 
+        if (!checkAuth(request, config))
+            return;
+
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"reboot\":\"OK\"}");
         request->send(response);
         apiTicker.once_ms(200, restart); });
 
     // POST /reset-wifi
-    server->on("/reset-wifi", HTTP_POST, [connect](AsyncWebServerRequest *request)
+    server->on("/reset-wifi", HTTP_POST, [&, connect](AsyncWebServerRequest *request)
                {
         LOG("POST /reset-wifi");
+
+        if (!checkAuth(request, config))
+            return;
 
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"reset\":\"OK\"}");
         request->send(response);

@@ -110,6 +110,10 @@ void App::setup()
 
 #ifndef DISABLE_OTA
     ElegantOTA.begin(&server);
+    if (config.hardware.authEnabled)
+    {
+        ElegantOTA.setAuth(config.hardware.authUser.c_str(), config.hardware.authPass.c_str());
+    }
 #endif
 
     webApi::setup(&server, config, &connect);

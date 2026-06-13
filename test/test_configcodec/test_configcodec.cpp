@@ -114,6 +114,9 @@ void test_hardware_roundtrip(void)
     original.ledPin = 13;
     original.buttonPin = 4;
     original.longPressDelay = 3000;
+    original.authEnabled = true;
+    original.authUser = "admin";
+    original.authPass = "s3cr3t";
 
     JsonDocument doc;
     core::hardwareToJson(original, doc.to<JsonObject>());
@@ -125,6 +128,26 @@ void test_hardware_roundtrip(void)
     TEST_ASSERT_EQUAL(original.ledPin, parsed.ledPin);
     TEST_ASSERT_EQUAL(original.buttonPin, parsed.buttonPin);
     TEST_ASSERT_EQUAL(original.longPressDelay, parsed.longPressDelay);
+    TEST_ASSERT_EQUAL(original.authEnabled, parsed.authEnabled);
+    TEST_ASSERT_EQUAL_STRING(original.authUser.c_str(), parsed.authUser.c_str());
+    TEST_ASSERT_EQUAL_STRING(original.authPass.c_str(), parsed.authPass.c_str());
+}
+
+void test_hardware_auth_defaults_to_off(void)
+{
+    // R5 compat: an "hw" object that predates authEnabled/authUser/authPass
+    // (no such keys at all) must parse with auth disabled.
+    JsonDocument doc;
+    doc["freq"] = 2000;
+    doc["ledPin"] = 2;
+    doc["buttonPin"] = 0;
+    doc["longPressDelay"] = 5000;
+
+    HardwareConfig parsed = core::hardwareFromJson(doc.as<JsonObject>(), HardwareConfig{});
+
+    TEST_ASSERT_FALSE(parsed.authEnabled);
+    TEST_ASSERT_EQUAL_STRING("", parsed.authUser.c_str());
+    TEST_ASSERT_EQUAL_STRING("", parsed.authPass.c_str());
 }
 
 void test_hardware_partial_update_keeps_defaults(void)
@@ -250,6 +273,7 @@ int main(int argc, char **argv)
     RUN_TEST(test_dmxChannel_legacy_binary_type_string);
     RUN_TEST(test_dmxChannel_defaults_applied_when_missing);
     RUN_TEST(test_hardware_roundtrip);
+    RUN_TEST(test_hardware_auth_defaults_to_off);
     RUN_TEST(test_hardware_partial_update_keeps_defaults);
     RUN_TEST(test_wifiNet_roundtrip);
     RUN_TEST(test_wifiNet_dhcp_always_true_on_read);

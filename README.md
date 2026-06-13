@@ -164,7 +164,10 @@ Response example:
     "freq": 600, // PWM frequency
     "ledPin": 2, // GPIO pin cooected to indicator LED
     "buttonPin": 0, // GPIO pin connected to button
-    "longPressDelay": 5000 // Duration in ms to cause a 'factory reset'
+    "longPressDelay": 5000, // Duration in ms to cause a 'factory reset'
+    "authEnabled": false, // If true, require HTTP basic-auth for POST /config, /reboot, /reset-wifi and /update
+    "authUser": "", // Basic-auth username (used only if authEnabled)
+    "authPass": "" // Basic-auth password (used only if authEnabled)
   },
   "info": {
     "version": "2021.4",
@@ -255,6 +258,10 @@ with HTTP `202 Accepted`. Use `GET /config` afterward to confirm the new values 
 
 - After changes have been made, a reboot required to apply them
 - `dmx` is an array since one device may implement multiple functions. Elements are not named but index beased, therefore **all** `dmx` elements have to be present with any update to `dmx` collection!
+
+### HTTP basic-auth
+
+Set `hw.authEnabled: true` (with `hw.authUser`/`hw.authPass`) via `POST /config` (then `POST /reboot`) to require HTTP basic-auth for `POST /config`, `POST /reboot`, `POST /reset-wifi` and OTA `/update`. `GET /config`, `GET /status`, `GET /heap` and the static web UI (`/`) remain unauthenticated. Off by default - existing configs are unaffected.
 
 ### POST /reboot
 

@@ -31,6 +31,11 @@ struct HardwareConfig
     uint8_t ledPin;
     uint8_t buttonPin;
     uint16_t longPressDelay;
+    // Optional HTTP basic-auth for mutating REST routes and /update (OTA).
+    // Off by default - old configs without "hw.authEnabled" are unaffected.
+    bool authEnabled = false;
+    std::string authUser;
+    std::string authPass;
 };
 
 // Platform-free counterpart to art::WiFiNet (config.h), which uses Arduino

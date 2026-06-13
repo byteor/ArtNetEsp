@@ -63,6 +63,12 @@ inline HardwareConfig hardwareFromJson(JsonVariantConst obj, const HardwareConfi
         hw.buttonPin = obj["buttonPin"] | defaults.buttonPin;
     if (!obj["longPressDelay"].isNull())
         hw.longPressDelay = obj["longPressDelay"] | defaults.longPressDelay;
+    if (!obj["authEnabled"].isNull())
+        hw.authEnabled = obj["authEnabled"] | defaults.authEnabled;
+    if (!obj["authUser"].isNull())
+        hw.authUser = std::string(obj["authUser"] | "");
+    if (!obj["authPass"].isNull())
+        hw.authPass = std::string(obj["authPass"] | "");
     return hw;
 }
 
@@ -72,6 +78,9 @@ inline void hardwareToJson(const HardwareConfig &hw, JsonObject obj)
     obj["ledPin"] = hw.ledPin;
     obj["buttonPin"] = hw.buttonPin;
     obj["longPressDelay"] = hw.longPressDelay;
+    obj["authEnabled"] = hw.authEnabled;
+    obj["authUser"] = hw.authUser.c_str();
+    obj["authPass"] = hw.authPass.c_str();
 }
 
 // dhcp is always true on read (matches the pre-extraction configFromJson,
