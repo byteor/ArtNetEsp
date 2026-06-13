@@ -95,11 +95,22 @@ void PwmDimmer::tick()
     if (!logic.isEnabled())
         return;
     unsigned long currentMillis = millis();
-    if (lastChange != 0 && millis() - lastChange > DMX_SILENCE_TIMEOUT)
+    if (lastChange != 0 && currentMillis - lastChange > DMX_SILENCE_TIMEOUT)
     {
-        LOG(F("DMX Silence Timeout"));
-        set(channel, 0);
-        lastChange = millis();
+        if (!silenceLogged)
+        {
+            LOG(F("DMX Silence Timeout"));
+            silenceLogged = true;
+        }
+        // B20: reset lastChange (not silenceLogged) so this repeats every
+        // DMX_SILENCE_TIMEOUT without re-logging until a real frame arrives -
+        // mirrors Device::tick()'s frame() call.
+        frame();
+        if (!manualOverride && blackoutOnSilence)
+        {
+            logic.setValue(0);
+            update();
+        }
     }
     else if (logic.tick(currentMillis))
     {
@@ -125,6 +136,7 @@ void PwmDimmer::stop()
 
 void PwmDimmer::flip()
 {
+    manualOverride = true; // B20: don't let silence-blackout undo this until the next DMX frame
     logic.flip();
     if (logic.isEnabled())
     {

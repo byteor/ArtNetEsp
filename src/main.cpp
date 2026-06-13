@@ -188,6 +188,8 @@ void setup()
             LOG(static_cast<int>(config.dmx[i].type));
             break;
         }
+        if (dmx_devices[i])
+            dmx_devices[i]->setBlackout(config.dmx[i].blackout);
     }
 
     LOG("Init WiFi...");

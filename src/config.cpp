@@ -196,6 +196,7 @@ void Config::configFromJson(JsonVariant doc)
             deviceConfig.multiplier = channel["multiplier"] | 1;
             deviceConfig.pulse = channel["pulse"] | 10;
             deviceConfig.threshold = channel["threshold"] | 127;
+            deviceConfig.blackout = channel["blackout"] | true;
             dmx.push_back(deviceConfig);
             LOG("  channel: " + channel["channel"].as<String>());
             LOG("  type: " + channel["type"].as<String>() + " on pin " + channel["pin"].as<String>() + " active: " + channel["level"].as<String>());
@@ -262,6 +263,7 @@ void Config::configToJson(JsonDocument &doc)
         channels[i]["multiplier"] = channel.multiplier;
         channels[i]["pulse"] = channel.pulse;
         channels[i]["threshold"] = channel.threshold;
+        channels[i]["blackout"] = channel.blackout;
     }
 }
 } // namespace art

@@ -46,6 +46,7 @@ typedef struct
     uint16_t multiplier; // Strobe period multiplier
     uint8_t pin;         // Pin (Arduino numbering)
     uint8_t level;       // Active level: 0=LOW, 1=HIGH
+    bool blackout = true; // B20: blackout this device on DMX silence (Device::setBlackout)
 } DeviceConfig;
 
 typedef struct
