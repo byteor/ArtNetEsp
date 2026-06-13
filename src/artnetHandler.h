@@ -58,10 +58,10 @@ void ArtnetHandler::init(int universe, const String &shortName, const String &lo
                                                    // for them. core::DMX_CHANNELS (src/core/dmxTypes.h) is
                                                    // platform-free, includable even when FEATURE_DMX_PORT=0
                                                    // (AGENTS.md Gotcha #4).
-                                                   if (devices[k]->getNumberOfChannels() == core::DMX_CHANNELS)
+                                                   if (devices[k]->channelCount() == core::DMX_CHANNELS)
                                                        continue;
 
-                                                   for (int i = devices[k]->getChannel(); i < devices[k]->getChannel() + devices[k]->getNumberOfChannels(); i++)
+                                                   for (int i = devices[k]->getChannel(); i < devices[k]->getChannel() + devices[k]->channelCount(); i++)
                                                    {
                                                        if (i < 1)
                                                            continue;

@@ -75,7 +75,7 @@ void PwmDimmer::setPin(int number)
     }
 }
 
-void PwmDimmer::handle()
+void PwmDimmer::tick()
 {
     if (!logic.isEnabled())
         return;

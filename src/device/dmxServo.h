@@ -21,7 +21,7 @@ public:
     void flip() override;
     uint8_t get(uint16_t channel) override;
     void set(uint16_t channel, uint8_t data) override;
-    uint16_t getNumberOfChannels() override { return 1; }
+    uint16_t channelCount() override { return 1; }
 
     DmxServo(uint8_t universe, uint16_t channel, uint8_t pin);
 };

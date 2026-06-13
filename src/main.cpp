@@ -227,7 +227,7 @@ void loop()
     artnet.loop();
     for (int i = 0; i < config.dmx.size() && i < MAX_DMX_DEVICES; i++)
         if (dmx_devices[i])
-            dmx_devices[i]->handle();
+            dmx_devices[i]->tick();
 
 #ifndef DISABLE_OTA
     ElegantOTA.loop();

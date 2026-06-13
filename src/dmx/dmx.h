@@ -20,7 +20,7 @@
 
 // A DMX512 packet is the start code (slot 0) followed by the 512
 // channel slots (1-512) - 513 bytes on the wire (B5). DMX_CHANNELS
-// above is the channel count, used for getNumberOfChannels()/range
+// above is the channel count, used for channelCount()/range
 // checks; DMX_BUFFER_SIZE is the buffer/wire size.
 #define DMX_BUFFER_SIZE (DMX_CHANNELS + 1)
 

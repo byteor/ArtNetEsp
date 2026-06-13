@@ -23,9 +23,9 @@ protected:
 public:
     DmxRepeater(uint8_t universe);
     void start() override;
-    void handle() override;
+    void tick() override;
     void frame(const uint32_t univ, const uint8_t *data, const uint16_t size) override;
-    uint16_t getNumberOfChannels() override { return DMX_CHANNELS; }
+    uint16_t channelCount() override { return DMX_CHANNELS; }
 };
 
 DmxRepeater::DmxRepeater(uint8_t universe) : dmx(DmxPort::instance())
@@ -46,7 +46,7 @@ void DmxRepeater::frame(const uint32_t univ, const uint8_t *data, const uint16_t
     Device::frame();
 }
 
-void DmxRepeater::handle()
+void DmxRepeater::tick()
 {
     if (millis() - lastRefreshTime >= DMX_REFRESH_INTERVAL)
     {
