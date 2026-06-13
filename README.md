@@ -179,7 +179,8 @@ Response example:
       "type": "DIMMER", // Device type - DIMMER | RELAY | SERVO | REPEATER
       "pin": 5, // Output pin
       "level": "HIGH", // Output pin 'active' level - LOW | HIGH
-      "threshold": 127 // A level at such RELAY changes its state
+      "threshold": 127, // A level at such RELAY changes its state
+      "blackout": true // If true (default), set this device to 0 after 5s without an ArtNet frame
     }
   ]
 }
@@ -289,7 +290,7 @@ ESP8266 devices are unaffected - they've always used LittleFS.
 - [x] Repeater mode for ESP32
 - [ ] Respect Universe in Repeater mode
 - [x] Reconnect on WiFi disconnects
-- [ ] Make blackout on DMX timeout optional
+- [x] Make blackout on DMX timeout optional
 - [x] Rename Strobe class (it is meaningless)
 
 ## Build

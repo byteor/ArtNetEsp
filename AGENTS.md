@@ -1,6 +1,8 @@
 # AGENTS.md
 
-ArtNetEsp is an ESP8266/ESP32 Arduino firmware project (built with PlatformIO) that turns a cheap dev board into an Art-Net node — receiving DMX-over-WiFi from a lighting console (typically [QLC+](https://www.qlcplus.org/)) and driving relays, PWM dimmers, servos, or a real DMX512 line via an RS485 "repeater". It was built for community theater: cheap, wireless, no commercial lighting console required. Current version: 2026.1.2.
+ArtNetEsp is an ESP8266/ESP32 Arduino firmware project (built with PlatformIO) that turns a cheap dev board into an Art-Net node — receiving DMX-over-WiFi from a lighting console (typically [QLC+](https://www.qlcplus.org/)) and driving relays, PWM dimmers, servos, or a real DMX512 line via an RS485 "repeater". It was built for community theater: cheap, wireless, no commercial lighting console required. Current version: 2026.1.33.
+
+The `big-refactor` branch (see `REFACTORING_PLAN.md`) restructured most of `src/` without changing any externally-visible behavior (REST schema, FS paths, board pin assignments) — `src/app/`, `src/core/`, `src/net/`, and `src/platform/` are all new since that refactor, and `main.cpp` is now a 14-line shell. The sections below describe the post-refactor layout.
 
 For user-facing docs — device types, REST API, WiFi/captive portal behavior, OTA updates, version history, and the project TODO/backlog — see [README.md](README.md). This file is for anyone (human or AI) working on the firmware itself.
 
@@ -18,7 +20,11 @@ pio run                                   # build ALL 12 environments - good san
                                            # before committing a cross-cutting change
 ```
 
-There are no unit tests (`test/` is just the PlatformIO placeholder) and no CI. A successful `pio run` plus watching the serial monitor is the only verification available — see Gotcha #12 for which environments to build for a given change.
+```bash
+pio test -e native                        # run the platform-free native test suite (test/test_*)
+```
+
+`[env:native]` (`platformio.ini`) runs `test/test_*` (Unity, ArduinoJson, plain C++ - no Arduino headers) against `src/core/` and is also the `native-test` job in `.github/workflows/ci.yml`. There's still no on-device test suite and no hardware-in-the-loop CI — `pio run` (the 12-env firmware matrix) plus watching the serial monitor, and the `tools/verify.sh`/`tools/hil_smoke.py` bench harness (Phase 0.5, see `REFACTORING_PLAN.md`) for live HIL checks, are the only further verification. See Gotcha #12 for which environments to build for a given change.
 
 ## 2. Critical Gotchas (read this first)
 
@@ -34,7 +40,7 @@ There are no unit tests (`test/` is just the PlatformIO placeholder) and no CI. 
    - `src/dmx/dmx.h` and `src/dmx/dmx8266.cpp` — and therefore all of `src/dmx/` — are wrapped in `#if FEATURE_DMX_PORT`.
    - `device/repeater.h` is wrapped in `#if FEATURE_DMX_PORT`; `device/dmxServo.h` in `#if FEATURE_SERVO`; `device/dimmer.h`/`.cpp` (`PwmDimmer`) self-guard with `#if FEATURE_DIMMER`.
    - `src/hw/oledDisplay.h` (`StatusDisplay`) is wrapped in `#if FEATURE_OLED`, as is `src/boards/board.h`'s `<Wire.h>`/`<SPI.h>` include block.
-   - `main.cpp` mirrors this: each of the three conditional device includes (`device/dimmer.h`, `device/repeater.h`, `device/dmxServo.h`) and each non-`Relay` `case` in the device-instantiation `switch` (`Servo`/`Dimmer`/`Repeater`) gets its own `#if FEATURE_*`/`#endif` pair; `Relay` and `default:` are unguarded.
+   - `src/app/deviceFactory.cpp` mirrors this: it includes `device/relay.h` unconditionally and `device/dmxServo.h`/`device/dimmer.h`/`device/repeater.h` under their respective `#if FEATURE_SERVO`/`FEATURE_DIMMER`/`FEATURE_DMX_PORT` guards, and each non-`Relay` `case` in `makeDevice()`'s `switch (cfg.type)` (`Servo`/`Dimmer`/`Repeater`) gets its own `#if FEATURE_*`/`#endif` pair; `Relay` and `default: return nullptr` are unguarded.
    - `lib_ignore` on `sonoff_basic`/`sonoff_s31` still drops `Wire`, `SPI`, and `Servo` as belt-and-suspenders — new code that unconditionally includes these will fail to link on Sonoff boards even though `FEATURE_OLED=0`/`FEATURE_SERVO=0` already keep the referencing headers out of those builds.
 
    **Any new device type or feature that needs Servo/SPI/Wire/extra flash must be wrapped in the matching `#if FEATURE_*`** (add a new flag to `features.h` if none of the existing four fit).
@@ -53,38 +59,62 @@ There are no unit tests (`test/` is just the PlatformIO placeholder) and no CI. 
 
 11. **Multi-device configs are lightly tested.** README itself says running multiple DMX devices "wasn't properly tested other than 3 DIMMER channels on ESP8266". Be extra careful with assumptions about concurrent device behavior, especially an ESP32 repeater (core-1 task) running alongside other device types.
 
-12. **Verification = build the affected environments.** For anything touching `board.h`, `device/`, `dmx/`, or `main.cpp`, build at minimum one ESP8266 env (e.g. `d1_mini_oled`), one full-featured ESP32 env (e.g. `esp32-devkitc-v4`), and `sonoff_basic` (to catch `SONOFF_BASIC` exclusion breakage). For pin/board-specific changes, also build the specific environment(s) affected.
+12. **Verification = build the affected environments.** For anything touching `boards/`, `device/`, `dmx/`, or `app/`, build at minimum one ESP8266 env (e.g. `d1_mini_oled`), one full-featured ESP32 env (e.g. `esp32-devkitc-v4`), and `sonoff_basic` (to catch `FEATURE_*` exclusion breakage). For pin/board-specific changes, also build the specific environment(s) affected. For anything touching `core/`, run `pio test -e native` first — it's much faster than the firmware matrix and catches platform-free logic bugs in isolation.
 
 ## 3. Repository Layout
 
 ```
 src/
-├── main.cpp          # setup()/loop(), global instances, button handler, device instantiation switch
-├── artnetHandler.h   # ArtnetHandler - Art-Net UDP receive, dispatches frames to Device[] via lambda
-├── config.h/.cpp     # art::Config - JSON load/save (LittleFS/SPIFFS), DmxType enum,
-│                      #   DmxChannel/WiFiNet/HardwareConfig structs
+├── main.cpp          # 14 lines: App app; app.setup(); app.loop();
+├── config.h/.cpp     # art::Config - JSON load/save (LittleFS/SPIFFS), DeviceConfig/WiFiNet/
+│                      #   HardwareConfig structs; DmxType is an alias for core::DmxType
 ├── connect.h/.cpp    # Connect - WiFi + ESPAsyncWiFiManager captive portal (192.168.4.1),
-│                      #   reconnect check every 1s
+│                      #   non-blocking reconnect every 1s (Gotcha #8's StatusLed* is injected
+│                      #   via Connect::init, not an extern global)
 ├── api.h             # REST API: GET/POST /config, POST /reboot, POST /reset-wifi, GET /heap
+├── app/
+│   ├── app.h/.cpp    # App - owns every top-level instance (server, connect, config, artnet,
+│   │                  #   status, button, devices[]) and encodes the boot order - see §5
+│   ├── deviceFactory.h/.cpp  # app::makeDevice(DeviceConfig, universe) -> unique_ptr<Device>,
+│   │                  #   the FEATURE_*-guarded switch that used to live in main.cpp
+│   └── safeMode.h/.cpp  # safeMode(reason) - LED-blink-forever halt if the filesystem can't mount
+├── core/             # Platform-free C++ (no Arduino.h/String/millis) - natively unit-tested
+│   │                  #   under [env:native], see test/test_*
+│   ├── dmxTypes.h    # enum class DmxType, toWireString/fromWireString, DMX_CHANNELS/DMX_PACKET_SIZE
+│   └── dimmerLogic.h # DimmerLogic - PWM dimmer/strobe timing state machine (used by PwmDimmer)
+├── net/
+│   └── artnetService.h/.cpp  # ArtnetService - Art-Net UDP receive; single-path slice dispatch
+│                      #   to device->onDmx(universe, slice) - see §5
+├── platform/
+│   ├── filesystem.h  # ESP_FS - unified LittleFS (ESP8266) / LittleFS (ESP32, since R2) wrapper
+│   ├── pwm.h/.cpp    # Pwm::init/write - LEDC on ESP32, analogWrite on ESP8266
+│   └── servo.h       # <Servo.h> include wrapper (only relevant under FEATURE_SERVO)
 ├── boards/
 │   ├── board.h       # Dispatches on -D BOARD_<NAME> to the matching per-board header - see Gotcha #3
+│   ├── features.h    # Derives FEATURE_DMX_PORT/FEATURE_SERVO/FEATURE_DIMMER/FEATURE_OLED - Gotcha #4
 │   └── <env>.h       # One self-contained header per environment: pins, LED, button, OLED geometry
 ├── hw/
 │   ├── logger.h      # LOG() macro = Serial.println
 │   ├── statusLed.h   # StatusLed - Ticker-based blink patterns (connecting/portal/on/off)
-│   └── oledDisplay.h # StatusDisplay (only if OLED_SSD1306) - auto-cycling status pages,
-│                      #   64px and 32px SSD1306 variants
+│   └── oledDisplay.h # StatusDisplay (only if FEATURE_OLED) - auto-cycling status pages,
+│                      #   64px and 32px SSD1306 variants, driven from loop() via millis()
 ├── device/
-│   ├── device.h      # Abstract Device base - start/stop/flip/set/get/isEnabled/handle/
-│   │                  #   frame/getNumberOfChannels
+│   ├── device.h      # Abstract Device base v2 - start/stop/flip/set/get/isEnabled/tick/frame/
+│   │                  #   onDmx/firstChannel/channelCount/setBlackout - see §6
 │   ├── relay.h       # DmxRelay - binary on/off via threshold (header-only)
-│   ├── strobe.h/cpp  # Strobe - PWM dimmer + flash timing (name is misleading, see Conventions)
+│   ├── dimmer.h/cpp  # PwmDimmer - thin shell over core::DimmerLogic; 2 DMX channels
+│   │                  #   (level, strobe speed); #if FEATURE_DIMMER self-guarded
 │   ├── dmxServo.h    # DmxServo - DMX 0-255 -> servo microseconds (header-only)
-│   └── repeater.h    # DmxRepeater - Art-Net -> DMX512 gateway, 512ch (header-only)
+│   └── repeater.h    # DmxRepeater - Art-Net -> DMX512 gateway via DmxPort, 512ch (header-only)
 └── dmx/
-    ├── dmx.h         # DmxProxy declaration; entire file is #ifndef SONOFF_BASIC
+    ├── dmx.h         # DmxPort declaration; entire src/dmx/ tree is #if FEATURE_DMX_PORT
     ├── dmx32.cpp     # ESP32: core-1 FreeRTOS sender task (esp_dmx, mutex double-buffer)
     └── dmx8266.cpp   # ESP8266: simple ESPDMX wrapper
+
+test/
+├── test_sanity/      # [env:native] smoke test
+├── test_dmxtypes/    # native tests for src/core/dmxTypes.h
+└── test_dimmerlogic/ # native tests for src/core/dimmerLogic.h
 
 data/
 ├── config/default.json  # initial/fallback config, flashed via `pio run -t uploadfs`
@@ -92,7 +122,7 @@ data/
 
 include/Version.h     # AUTO-GENERATED - do not edit (Gotcha #1)
 assets/*.jpg          # board pinout reference images
-platformio.ini        # 12 build environments - see table below
+platformio.ini        # 12 firmware environments + [env:native] - see table below
 ```
 
 ## 4. Build Environments
@@ -126,88 +156,106 @@ platformio.ini        # 12 build environments - see table below
 
 ## 5. Architecture & Data Flow
 
-**`setup()`** (in `main.cpp`), roughly in order:
-1. Mount the filesystem — LittleFS on ESP8266, SPIFFS on ESP32 (`ESP_FS`)
+`main.cpp` is just:
+```cpp
+App app;
+void setup() { app.setup(); }
+void loop()  { app.loop(); }
+```
+
+`App` (`src/app/app.{h,cpp}`) owns every top-level instance by value or `std::unique_ptr` (`server`, `dnsServer`, `connect`, `config`, `artnet`, `status`, `buttonConfig`/`button`, `std::array<std::unique_ptr<Device>, MAX_DMX_DEVICES> devices` + a parallel raw `Device *deviceList[MAX_DMX_DEVICES]` for `ArtnetService::init`'s `Device**` API, and `#if FEATURE_OLED statusDisplay`).
+
+**`App::setup()`**, roughly in order:
+1. Mount the filesystem — LittleFS on both ESP8266 and ESP32 (`ESP_FS`, `src/platform/filesystem.h`); `safeMode()` (`app/safeMode.{h,cpp}`) halts (blinking `LED_PIN` forever) if this fails
 2. `config.load()` — reads `/config/config.json` (falling back to `/config/default.json`)
 3. Create `StatusLed`
-4. Init the button (AceButton) — short press flips DMX devices, long press (5s, configurable) resets WiFi
-5. If `OLED_SSD1306`, create `StatusDisplay`
-6. Instantiate `dmx_devices[MAX_DMX_DEVICES]` — a `Device*` array, populated via a `switch` on `config.dmx[i]->type` (`Binary` → `DmxRelay`, and under `#ifndef SONOFF_BASIC`: `Servo` → `DmxServo`, `Dimmable` → `Strobe`, `Repeater` → `DmxRepeater`)
-7. `connect.init()` / `connect.connect()` — WiFi connection + captive portal fallback
-8. `artnet.init()` — subscribes a lambda to the configured universe
+4. Init the button (AceButton) — `buttonConfig.setIEventHandler(this)` registers `App::handleEvent` (App implements `ace_button::IEventHandler`); short press flips DMX devices, long press (5s, configurable) resets WiFi
+5. If `FEATURE_OLED`, create `StatusDisplay`
+6. For each configured `config.dmx[i]`: `devices[i] = app::makeDevice(config.dmx[i], 1)` (the `FEATURE_*`-guarded factory, `src/app/deviceFactory.{h,cpp}`), then `setBlackout(config.dmx[i].blackout)` and **`devices[i]->start()`** — `deviceList[i] = devices[i].get()`
+7. `connect.init(&server, &dnsServer, status.get())` / `connect.connect(config.host)` — WiFi connection + captive portal fallback (note: `status` is passed in, not read via an `extern`)
+8. `artnet.init(config.universe, config.host, longName, deviceList, deviceCount)` — subscribes a lambda to the configured universe (this no longer calls `device->start()` — that happened in step 6)
 9. Start the web server (REST API + ElegantOTA unless `DISABLE_OTA`) — **`server.begin()` must come last, after WiFi is up** (Gotcha #8)
 
-**`loop()`** is short and non-blocking:
+**`App::loop()`** is short and non-blocking:
 ```cpp
-void loop() {
+void App::loop() {
+  config.applyPendingUpdate();      // apply any config staged by POST /config (B11)
   button.check();
   artnet.loop();                    // parses incoming Art-Net UDP
-  for (...) dmx_devices[i]->handle();
+  for (...) devices[i]->tick();
   ElegantOTA.loop();
-  connect.loop();                   // checks WiFi every 1s, reconnects if needed
+  connect.loop();                   // non-blocking WiFi reconnect check every 1s
+  statusDisplay->loop();            // #if FEATURE_OLED
 }
 ```
 
-**Art-Net dispatch**: the lambda registered in `artnetHandler.h` runs for every incoming frame on the subscribed universe. For each configured device, it calls `device->frame(universe, data, size)` and then `device->set(channel, value)` for each channel in that device's range (`getChannel()` .. `getChannel() + getNumberOfChannels()`).
+**Art-Net dispatch** (`src/net/artnetService.cpp`, `ArtnetService::init`'s `subscribeArtDmxUniverse` lambda): for each configured device, the incoming frame is sliced to that device's channel range — `start = device->firstChannel() - 1`, `len = min(device->channelCount(), size - start)` — and `device->onDmx(universe, data + start, len)` is called once with that slice (skipped if `start >= size` or `len == 0`). `Device::onDmx`'s default implementation (§6) does the change-detect `get()`/`set()` loop relative to `firstChannel()`; `DmxRepeater` overrides `onDmx` directly for a bulk `writeFrame`.
 
-**ESP32 core-1 DMX repeater task** (only spun up when a `Repeater` device is configured): `DmxProxy::init()` (`dmx32.cpp`) creates a FreeRTOS task pinned to core 1 that continuously transmits the 512-channel DMX buffer via `esp_dmx` every ~40ms. `DmxRepeater::frame()` writes incoming Art-Net data into that buffer through `DmxProxy::write()`, which is mutex-protected against the sender task. Core 0 keeps running everything else (WiFi, Art-Net receive, web server, main loop). See Gotcha #5 for the concurrency rules.
+**ESP32 core-1 DMX repeater task** (only spun up when a `Repeater` device is configured): `DmxPort::init()` (`dmx32.cpp`) creates a FreeRTOS task pinned to core 1 that continuously transmits the 512-channel DMX buffer via `esp_dmx` every ~40ms. `DmxRepeater::onDmx()` writes incoming Art-Net data into that buffer via `DmxPort::write()`, which is mutex-protected against the sender task. Core 0 keeps running everything else (WiFi, Art-Net receive, web server, main loop). See Gotcha #5 for the concurrency rules.
 
 ## 6. The Device Abstraction
 
-All DMX outputs implement `Device` (`src/device/device.h`):
+All DMX outputs implement `Device` (`src/device/device.h`, interface v2):
 
 ```cpp
 virtual void start();                 // allocate resources, init
 virtual void stop();                  // deallocate resources
-virtual void flip();                  // toggle state (button press)
-virtual void set(uint8_t channel, uint8_t data);
-virtual uint8_t get(uint8_t channel);
+virtual void flip();                  // toggle state (button press); sets manualOverride
+virtual void set(uint16_t channel, uint8_t data);
+virtual uint8_t get(uint16_t channel);
 virtual bool isEnabled();
-virtual void handle();                // called from loop(); default = blackout on silence
+virtual void tick();                  // called from loop(); default = blackout on silence
 virtual void frame();                 // marks "frame received" (resets silence timer)
 virtual void frame(uint32_t univ, const uint8_t *data, uint16_t size);
-virtual uint16_t getNumberOfChannels();
+virtual void onDmx(uint32_t univ, const uint8_t *data, uint16_t len);  // see §5 dispatch
+virtual uint16_t firstChannel();      // default: return channel
+virtual uint16_t channelCount() = 0;
+void setBlackout(bool enabled);       // sets blackoutOnSilence
 ```
 
-The default `handle()` blacks out the device (`set(channel, 0)`) if `frame()` hasn't been called in `DMX_SILENCE_TIMEOUT` (5000ms) — see Gotcha #10.
+The default `tick()` blacks out the device (`set(channel, 0)`) if `frame()` hasn't been called in `DMX_SILENCE_TIMEOUT` (5000ms) — unless `manualOverride` is set (by `flip()`, until the next real `frame()`) or `blackoutOnSilence` is `false` (set via `setBlackout()`, wired from the per-device `"blackout"` config flag, default `true`) — see Gotcha #10. The default `onDmx()` does a relative change-detect loop: for `i in [0, min(len, channelCount()))`, channel `firstChannel() + i` gets `set()` if `data[i] != get()`.
 
 **The four concrete types:**
 
 | Type (config) | Class | File | What it does |
 |---|---|---|---|
 | `BINARY` | `DmxRelay` | `device/relay.h` | One channel, on/off via a `threshold`, drives a pin to `level` (HIGH/LOW) |
-| `DIMMER` | `Strobe` | `device/strobe.h`/`.cpp` | PWM dimming on a pin, plus flash/strobe timing. **The class name is misleading** — it's primarily a dimmer; README's TODO flags renaming it |
+| `DIMMER` | `PwmDimmer` | `device/dimmer.h`/`.cpp` | Two DMX channels (`channel`, `channel+1`): PWM dimming on a pin via `core::DimmerLogic`, plus strobe-speed control on the second channel |
 | `SERVO` | `DmxServo` | `device/dmxServo.h` | Maps DMX 0–255 to servo pulse width (500–2500µs) via `getAngleValue()` |
-| `REPEATER` | `DmxRepeater` | `device/repeater.h` | Forwards the full 512-byte Art-Net frame to a physical DMX512 line via `DmxProxy`. Universe is currently ignored (README TODO) |
+| `REPEATER` | `DmxRepeater` | `device/repeater.h` | Overrides `onDmx` directly: bulk-writes the full 512-byte Art-Net frame to a physical DMX512 line via `DmxPort::writeFrame`. Universe is currently ignored (README TODO) |
+
+`"BINARY"`/`"RELAY"` (alias) → `Relay`, `"DIMMER"` → `Dimmer`, `"SERVO"` → `Servo`, `"REPEATER"` → `Repeater` — `core::fromWireString`/`toWireString` (`src/core/dmxTypes.h`) own this mapping; `Relay` always serializes back out as `"BINARY"` (compat contract).
 
 **Adding a new device type** (README's TODO lists "NeoPixel strip" and "single-channel Dimmer" as open items — this is a likely future task):
-1. Add an enum value to `art::DmxType` in `config.h`
-2. Add the string mapping in `dmxTypeToString()` / `dmxTypeFromString()`
-3. Implement a class extending `Device` (header-only or `.h`/`.cpp`, following the existing patterns)
-4. Wire it into the `switch` in `main.cpp::setup()`
-5. If it needs Servo/SPI/Wire/extra flash, wrap it in `#ifndef SONOFF_BASIC` (Gotcha #4)
+1. Add an enum value to `core::DmxType` in `src/core/dmxTypes.h`, plus its `toWireString`/`fromWireString` mapping (and a native test in `test/test_dmxtypes/`)
+2. Implement a class extending `Device` (header-only or `.h`/`.cpp`, following the existing patterns)
+3. Add a `case` to the `switch (cfg.type)` in `app::makeDevice` (`src/app/deviceFactory.cpp`), returning `std::make_unique<YourDevice>(...)`
+4. If it needs Servo/SPI/Wire/extra flash, wrap that `case` (and the corresponding `#include`) in the matching `#if FEATURE_*` (Gotcha #4)
 
 ## 7. Configuration System
 
 - `art::Config` (`config.h`/`.cpp`) loads/saves JSON via ArduinoJson, using a `StaticJsonDocument<CONFIG_BUFFER_SIZE>` where `CONFIG_BUFFER_SIZE` is **1024 bytes** (Gotcha #7).
-- `data/config/default.json` is the initial/fallback config (flashed via `pio run -t uploadfs`); the runtime config persists to `/config/config.json` on the device's filesystem.
-- The `dmx` and `wifi` collections are `LinkedList<DmxChannel*>` / `LinkedList<WiFiNet*>`.
+- `data/config/default.json` is the initial/fallback config (flashed via `pio run -t uploadfs`); the runtime config persists to `/config/config.json` on the device's filesystem (LittleFS on both ESP8266 and ESP32, since R2).
+- The `dmx` and `wifi` collections are `std::vector<DeviceConfig>` / `std::vector<WiFiNet>` by value.
+- Each `DeviceConfig` has an additive `bool blackout = true` field — wired to `Device::setBlackout()` (§6); old configs without the key default to `true` (unchanged behavior).
+- `POST /config` (B11): the async-context handler only `stageUpdate()`s the raw JSON and returns `202 {"status":"pending"}` immediately; `App::loop()`'s `config.applyPendingUpdate()` does the actual `update()`/`save()` on the main task on the next iteration. Use `GET /config` afterward to confirm.
 - REST surface (full spec in README): `GET/POST /config` (partial updates supported, but `dmx[]` is index-based so **all** elements must be sent together when updating that array; `_needReboot` flags pending changes), `POST /reboot`, `POST /reset-wifi`, `GET /heap`.
 
 ## 8. Conventions
 
 These describe the patterns already used in the codebase — useful for staying consistent, not hard rules:
 
-- **Naming**: classes are PascalCase (`DmxRelay`, `StatusDisplay`, `ArtnetHandler`, `DmxProxy`); functions and variables are camelCase; constants and macros are `UPPER_SNAKE_CASE`.
-- **Namespace**: config-related types (`Config`, `DmxType`, `DmxChannel`, `WiFiNet`, `HardwareConfig`) live in `art::`.
+- **Naming**: classes are PascalCase (`DmxRelay`, `PwmDimmer`, `StatusDisplay`, `ArtnetService`, `DmxPort`, `App`); functions and variables are camelCase; constants and macros are `UPPER_SNAKE_CASE`.
+- **Namespace**: config-related types (`Config`, `DeviceConfig`, `WiFiNet`, `HardwareConfig`) live in `art::`; `DmxType` is `core::DmxType`, aliased into `art::` for spelling compatibility. Platform-free types/constants live in `core::` (`src/core/`).
 - **Logging**: use the `LOG(...)` macro from `hw/logger.h` (= `Serial.println`) rather than raw `Serial.print`.
-- **File organization**: small device classes tend to be header-only (`relay.h`, `dmxServo.h`, `repeater.h`, `oledDisplay.h`, `statusLed.h`); larger modules get `.h`/`.cpp` pairs (`config`, `connect`, `strobe`, `dmx32`/`dmx8266`). This is an observed tendency, not enforced.
-- **Known rough edges** (don't "fix" these unprompted — they're known and tracked in README's TODO):
-  - `Strobe` is really a PWM dimmer; the name is considered a mistake.
+- **File organization**: small device classes tend to be header-only (`relay.h`, `dmxServo.h`, `repeater.h`, `oledDisplay.h`, `statusLed.h`); larger modules get `.h`/`.cpp` pairs (`config`, `connect`, `dimmer`, `dmx32`/`dmx8266`, `app`, `artnetService`). This is an observed tendency, not enforced.
+- **`core/` extractions ship with native tests in the same commit** (the Phase 5 "binding rule") — `src/core/` must stay Arduino-free (no `Arduino.h`/`String`/`millis()`; pass time as a parameter) so it's includable and testable under `[env:native]`.
+- **Known rough edges** (don't "fix" these unprompted — they're tracked in README's TODO):
   - `DmxRepeater` ignores the Art-Net `universe` parameter.
-  - The stroboscope/flash behavior in `Strobe` is flagged as broken/TBD.
+  - Multi-device configs are lightly tested beyond a single REPEATER (the bench) and 3×DIMMER on ESP8266 (Gotcha #11).
 
 ## 9. Further Reading
 
 - **[README.md](README.md)** — device type details (DIMMER/RELAY/SERVO/REPEATER configs), full REST API reference, WiFi/captive-portal behavior, OTA via `/update`, version history, and the **TODO list**, which doubles as the project backlog.
 - **`assets/*.jpg`** — pinout reference images for ESP32 DevKitC v4, Lolin D32, and the XIAO ESP32-S3 repeater wiring.
+- **`REFACTORING_PLAN.md`** — the `big-refactor` branch's working document: 24 catalogued pre-refactor bugs (B1-B24), the phase-by-phase plan (Phases 0-8), and a per-item "Done" log describing exactly what changed and how each was verified. Phases 0-5 (CI/hygiene, bug fixes, renames, platform layer, board layer, core restructure) are complete as of this revision — the layout and interfaces described above (§3, §5, §6) are Phase 5's end state. Phases 6-8 (config robustness, dependency refresh, broader test coverage) are not yet started.
