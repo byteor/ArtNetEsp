@@ -15,7 +15,7 @@
 #endif
 
 #include "Version.h"
-#include "api.h"
+#include "net/webApi.h"
 #include "app/deviceFactory.h"
 #include "app/safeMode.h"
 
@@ -112,7 +112,7 @@ void App::setup()
     ElegantOTA.begin(&server);
 #endif
 
-    setupApi(&server, config, &connect);
+    webApi::setup(&server, config, &connect);
     // WiFi must be connected (connect.connect() above) before server.begin() -
     // otherwise the AsyncWebServer/AsyncTCP stack ends up in a reboot loop.
     server.begin();

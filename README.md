@@ -29,6 +29,7 @@ The next step was to use this platform for experimental devices like NepPixel li
   - [Sonoff Basic](#sonoff-basic)
 - [REST API](#rest-api)
   - [GET /config](#get-config)
+  - [GET /status](#get-status)
   - [POST /config](#post-config)
   - [POST /reboot](#post-reboot)
   - [POST /reset-wifi](#post-reset-wifi)
@@ -183,6 +184,26 @@ Response example:
       "blackout": true // If true (default), set this device to 0 after 5s without an ArtNet frame
     }
   ]
+}
+```
+
+### GET /status
+
+A lightweight poll endpoint - just the runtime `info` fields (no `dmx[]`/`wifi[]` arrays), useful for a UI that polls periodically without re-fetching the whole config.
+
+Response example:
+
+```json
+{
+  "id": "d6b6b8",
+  "chip": "ESP32",
+  "version": "2026.1.35",
+  "built": "2026-06-13 14:05:21.993261",
+  "max_dmx_devices": 8,
+  "ssid": "BAM",
+  "rssi": -47,
+  "uptime": 123456,
+  "free_heap": 47820
 }
 ```
 

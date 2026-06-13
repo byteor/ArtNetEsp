@@ -33,6 +33,7 @@ HTTP_TIMEOUT = 5.0
 REQUIRED_TOP = ["_needReboot", "hw", "info", "host", "universe", "wifi", "dmx"]
 REQUIRED_HW = ["freq", "ledPin", "buttonPin", "longPressDelay"]
 REQUIRED_INFO = ["id", "chip", "version", "built", "max_dmx_devices", "ssid", "rssi"]
+REQUIRED_STATUS = REQUIRED_INFO + ["uptime", "free_heap"]
 REQUIRED_DMX_FIELDS = ["channel", "type", "pin", "level", "multiplier", "pulse", "threshold"]
 
 ECHO_PATTERNS = {
@@ -135,6 +136,26 @@ def check_config_schema(check, host):
         f"dmx={[d['type'] for d in cfg['dmx']]}",
     )
     return cfg
+
+
+def check_status(check, host):
+    try:
+        body = http_get(host, "/status")
+        status = json.loads(body)
+    except Exception as e:
+        check.fail("GET /status", str(e))
+        return None
+
+    missing = [k for k in REQUIRED_STATUS if k not in status]
+    if missing:
+        check.fail("GET /status schema", f"missing: {', '.join(missing)}")
+        return None
+
+    check.ok(
+        "GET /status schema",
+        f"v{status['version']} uptime={status['uptime']} heap={status['free_heap']}",
+    )
+    return status
 
 
 def check_config_roundtrip(check, host):
@@ -320,6 +341,7 @@ def main():
 
     check_heap(check, host)
     check_config_schema(check, host)
+    check_status(check, host)
     check_config_roundtrip(check, host)
 
     try:

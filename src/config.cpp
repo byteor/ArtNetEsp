@@ -225,13 +225,6 @@ void Config::configToJson(JsonDocument &doc)
     doc["configVersion"] = CONFIG_SCHEMA_VERSION;
     doc["_needReboot"] = _dirty;
     core::hardwareToJson(hardware, doc["hw"].to<JsonObject>());
-    doc["info"]["id"] = CHIP_ID;
-    doc["info"]["chip"] = CHIP_ARC;
-    doc["info"]["version"] = VERSION;
-    doc["info"]["built"] = BUILD_TIMESTAMP;
-    doc["info"]["max_dmx_devices"] = MAX_DMX_DEVICES;
-    doc["info"]["ssid"] = WiFi.SSID();
-    doc["info"]["rssi"] = WiFi.RSSI();
     doc["host"] = host;
     doc["universe"] = universe;
 

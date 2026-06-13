@@ -84,6 +84,15 @@ public:
         return String(core::toWireString(type));
     }
 
+    // Serializes the persisted config (configVersion/_needReboot/hw/host/
+    // universe/wifi/dmx) to doc. Does NOT include "info" - that's runtime
+    // WiFi/build/chip identity, not part of the persisted config; webApi's
+    // GET /config and GET /status add it separately (§1.2.9 layering fix).
+    void toJson(JsonDocument &doc)
+    {
+        configToJson(doc);
+    }
+
     // DMX
     std::vector<DeviceConfig> dmx;
     // WiFi
