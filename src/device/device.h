@@ -49,21 +49,21 @@ public:
         manualOverride = false;
     }
 
-    // Device interface v2 (Phase 5 item 5): default reproduces today's
-    // ArtnetHandler dispatch exactly - reset the silence timer (the old
-    // frame(univ,data,size) body), then run the per-channel set()/get()
-    // change-detect loop over [firstChannel() .. firstChannel()+channelCount()-1],
-    // with the same `i < 1` guard. Not yet called by ArtnetHandler - item 6
-    // wires up the single-path dispatcher.
-    virtual void onDmx(uint32_t univ, const uint8_t *data, uint16_t size)
+    // Device interface v2 (Phase 5 item 6): ArtnetService passes a SLICE of
+    // the incoming frame already offset to this device's firstChannel() -
+    // data[0] is channel firstChannel(), data[i] is channel firstChannel()+i.
+    // ArtnetService guarantees len>0 only when firstChannel() >= 1, so no
+    // underflow/`< 1` guard is needed here.
+    virtual void onDmx(uint32_t univ, const uint8_t *data, uint16_t len)
     {
-        frame(univ, data, size);
-        for (int i = firstChannel(); i < firstChannel() + channelCount(); i++)
+        frame(univ, data, len);
+        uint16_t fc = firstChannel();
+        uint16_t cc = channelCount();
+        for (uint16_t i = 0; i < len && i < cc; i++)
         {
-            if (i < 1)
-                continue;
-            if (data[i - 1] != get(i))
-                set(i, data[i - 1]);
+            uint16_t ch = fc + i;
+            if (data[i] != get(ch))
+                set(ch, data[i]);
         }
     }
 

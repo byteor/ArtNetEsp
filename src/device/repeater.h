@@ -33,7 +33,10 @@ DmxRepeater::DmxRepeater(uint8_t universe) : dmx(DmxPort::instance())
     Serial.printf("New Repeater\r\n");
     dmx.init();
     this->universe = universe;
-    channel = 0;
+    // firstChannel() must be >= 1 so ArtnetService's slice arithmetic
+    // (start = firstChannel() - 1) doesn't underflow; the repeater consumes
+    // the whole frame from channel 1 regardless (channelCount() == DMX_CHANNELS).
+    channel = 1;
 }
 
 void DmxRepeater::start()

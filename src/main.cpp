@@ -20,7 +20,7 @@
 #include "Version.h"
 #include "connect.h"
 #include "hw/statusLed.h"
-#include "artnetHandler.h"
+#include "net/artnetService.h"
 #include "api.h"
 #include "config.h"
 #include "device/device.h"
@@ -41,7 +41,7 @@ AsyncWebServer server(80);
 DNSServer dnsServer;
 Connect connect;
 art::Config config;
-ArtnetHandler artnet;
+ArtnetService artnet;
 Device *dmx_devices[MAX_DMX_DEVICES];
 StatusLed *status;
 
