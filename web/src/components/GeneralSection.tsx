@@ -1,15 +1,6 @@
-import { useState, useEffect } from "preact/hooks";
 import type { SectionProps } from "../types";
 
-export function GeneralSection({ cfg, save, busy }: SectionProps) {
-  const [host, setHost] = useState(cfg.host);
-  const [universe, setUniverse] = useState(cfg.universe);
-
-  useEffect(() => {
-    setHost(cfg.host);
-    setUniverse(cfg.universe);
-  }, [cfg.host, cfg.universe]);
-
+export function GeneralSection({ draft, patch, save, busy }: SectionProps) {
   return (
     <div class="section">
       <h2>General</h2>
@@ -18,9 +9,9 @@ export function GeneralSection({ cfg, save, busy }: SectionProps) {
         <div class="field full">
           <label>Hostname</label>
           <input
-            value={host}
+            value={draft.host}
             maxLength={31}
-            onInput={(e) => setHost(e.currentTarget.value)}
+            onInput={(e) => patch({ host: e.currentTarget.value })}
           />
           <span class="unit">Reachable as &lt;hostname&gt;.local</span>
         </div>
@@ -29,12 +20,16 @@ export function GeneralSection({ cfg, save, busy }: SectionProps) {
           <input
             type="number"
             min={0}
-            value={universe}
-            onInput={(e) => setUniverse(Number(e.currentTarget.value))}
+            value={draft.universe}
+            onInput={(e) => patch({ universe: Number(e.currentTarget.value) })}
           />
         </div>
       </div>
-      <button class="btn" disabled={busy} onClick={() => save({ host, universe })}>
+      <button
+        class="btn"
+        disabled={busy}
+        onClick={() => save({ host: draft.host, universe: draft.universe })}
+      >
         Save
       </button>
     </div>

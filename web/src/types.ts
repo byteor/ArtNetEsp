@@ -62,7 +62,10 @@ export type ConfigPatch = Partial<
 export type Save = (patch: ConfigPatch) => Promise<void>;
 
 export interface SectionProps {
-  cfg: FullConfig;
+  // The editable working copy lives in App (so unsaved edits survive tab
+  // switches); sections read from `draft` and mutate it via `patch`.
+  draft: FullConfig;
+  patch: (p: Partial<FullConfig>) => void;
   save: Save;
   busy: boolean;
 }

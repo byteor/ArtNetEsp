@@ -1,4 +1,3 @@
-import { useState, useEffect } from "preact/hooks";
 import type { DeviceConfig, SectionProps } from "../types";
 import { DeviceCard } from "./DeviceCard";
 
@@ -13,15 +12,15 @@ const DEFAULT_DEVICE: DeviceConfig = {
   blackout: true,
 };
 
-export function DevicesSection({ cfg, save, busy }: SectionProps) {
-  const [devices, setDevices] = useState<DeviceConfig[]>(cfg.dmx);
-  useEffect(() => setDevices(cfg.dmx), [cfg.dmx]);
+export function DevicesSection({ draft, patch, save, busy }: SectionProps) {
+  const devices = draft.dmx;
+  const max = draft.info?.max_dmx_devices ?? 4;
 
-  const max = cfg.info?.max_dmx_devices ?? 4;
+  const setDevices = (d: DeviceConfig[]) => patch({ dmx: d });
   const update = (i: number, d: DeviceConfig) =>
-    setDevices((arr) => arr.map((x, j) => (j === i ? d : x)));
-  const remove = (i: number) => setDevices((arr) => arr.filter((_, j) => j !== i));
-  const add = () => setDevices((arr) => [...arr, { ...DEFAULT_DEVICE }]);
+    setDevices(devices.map((x, j) => (j === i ? d : x)));
+  const remove = (i: number) => setDevices(devices.filter((_, j) => j !== i));
+  const add = () => setDevices([...devices, { ...DEFAULT_DEVICE }]);
 
   return (
     <div class="section">

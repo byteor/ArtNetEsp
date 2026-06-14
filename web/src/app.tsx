@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "preact/hooks";
-import type { FullConfig, ConfigPatch } from "./types";
+import type { FullConfig, ConfigPatch, Info } from "./types";
 import { getConfig, saveSection, reboot, resetWifi } from "./api";
 import { useToast } from "./components/Toast";
 import { Header, Footer } from "./components/Header";
@@ -14,14 +14,23 @@ const TABS = ["General", "Devices", "WiFi", "System"];
 
 export function App() {
   const notify = useToast();
-  const [cfg, setCfg] = useState<FullConfig | null>(null);
+  // `draft` is the editable working copy and the single source of truth for the
+  // form fields - it lives here (not in each section) so unsaved edits survive
+  // tab switches. `info`/`needReboot` are read-only runtime state, refreshed
+  // from the server on load and after each save.
+  const [draft, setDraft] = useState<FullConfig | null>(null);
+  const [info, setInfo] = useState<Info | undefined>(undefined);
+  const [needReboot, setNeedReboot] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("General");
 
   const load = useCallback(async () => {
     try {
-      setCfg(await getConfig());
+      const cfg = await getConfig();
+      setDraft(cfg);
+      setInfo(cfg.info);
+      setNeedReboot(cfg._needReboot);
       setLoadError(null);
     } catch (e) {
       setLoadError((e as Error).message);
@@ -32,12 +41,20 @@ export function App() {
     void load();
   }, [load]);
 
+  // Merge a partial edit into the working copy (does not touch the server).
+  const patch = useCallback((p: Partial<FullConfig>) => {
+    setDraft((d) => (d ? { ...d, ...p } : d));
+  }, []);
+
+  // Persist one section. Only refreshes meta (info/_needReboot) from the
+  // response - the draft keeps the user's edits (incl. other unsaved sections).
   const save = useCallback(
-    async (patch: ConfigPatch) => {
+    async (section: ConfigPatch) => {
       setBusy(true);
       try {
-        const fresh = await saveSection(patch);
-        setCfg(fresh);
+        const fresh = await saveSection(section);
+        setInfo(fresh.info);
+        setNeedReboot(fresh._needReboot);
         notify(fresh._needReboot ? "Saved — reboot required" : "Saved");
       } catch (e) {
         notify((e as Error).message, true);
@@ -80,7 +97,7 @@ export function App() {
     );
   }
 
-  if (!cfg) {
+  if (!draft) {
     return (
       <div class="wrap">
         <Header host="" />
@@ -89,11 +106,11 @@ export function App() {
     );
   }
 
-  const sectionProps = { cfg, save, busy };
+  const sectionProps = { draft, patch, save, busy };
 
   return (
     <div class="wrap">
-      {cfg._needReboot && (
+      {needReboot && (
         <div class="banner">
           <span>Changes need a reboot to take effect.</span>
           <button class="btn" onClick={() => void doReboot()}>
@@ -102,7 +119,7 @@ export function App() {
         </div>
       )}
 
-      <Header host={cfg.host} version={cfg.info?.version} />
+      <Header host={draft.host} version={info?.version} />
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
       <div class="body">
@@ -117,7 +134,7 @@ export function App() {
         )}
       </div>
 
-      <Footer info={cfg.info} />
+      <Footer info={info} />
     </div>
   );
 }

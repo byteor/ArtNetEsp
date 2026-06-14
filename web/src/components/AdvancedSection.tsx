@@ -1,12 +1,9 @@
-import { useState, useEffect } from "preact/hooks";
 import type { HardwareConfig, SectionProps } from "../types";
 
-export function AdvancedSection({ cfg, save, busy }: SectionProps) {
-  const [hw, setHw] = useState<HardwareConfig>(cfg.hw);
-  useEffect(() => setHw(cfg.hw), [cfg.hw]);
-
+export function AdvancedSection({ draft, patch, save, busy }: SectionProps) {
+  const hw = draft.hw;
   const set = <K extends keyof HardwareConfig>(k: K, v: HardwareConfig[K]) =>
-    setHw({ ...hw, [k]: v });
+    patch({ hw: { ...hw, [k]: v } });
 
   return (
     <details class="advanced">

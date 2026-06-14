@@ -1,15 +1,14 @@
-import { useState, useEffect } from "preact/hooks";
 import type { WifiNet, SectionProps } from "../types";
 
-export function WifiSection({ cfg, save, busy }: SectionProps) {
-  const [nets, setNets] = useState<WifiNet[]>(cfg.wifi);
-  useEffect(() => setNets(cfg.wifi), [cfg.wifi]);
+export function WifiSection({ draft, patch, save, busy }: SectionProps) {
+  const nets = draft.wifi;
 
+  const setNets = (n: WifiNet[]) => patch({ wifi: n });
   const update = (i: number, n: WifiNet) =>
-    setNets((arr) => arr.map((x, j) => (j === i ? n : x)));
-  const remove = (i: number) => setNets((arr) => arr.filter((_, j) => j !== i));
+    setNets(nets.map((x, j) => (j === i ? n : x)));
+  const remove = (i: number) => setNets(nets.filter((_, j) => j !== i));
   const add = () =>
-    setNets((arr) => [...arr, { ssid: "", pass: "", dhcp: true, order: arr.length + 1 }]);
+    setNets([...nets, { ssid: "", pass: "", dhcp: true, order: nets.length + 1 }]);
 
   return (
     <div class="section">
