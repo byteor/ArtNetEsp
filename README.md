@@ -395,7 +395,7 @@ The configuration web app has its own Node toolchain and is built separately - s
 
 ## Version History
 
-### 2026.1
+### 2026.2
 
 A large internal refactor (the `big-refactor` branch) plus a new configuration web app. Externally-visible behavior (REST schema, filesystem paths, board pins) is unchanged except where noted.
 

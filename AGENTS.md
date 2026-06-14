@@ -1,6 +1,6 @@
 # AGENTS.md
 
-ArtNetEsp is an ESP8266/ESP32 Arduino firmware project (built with PlatformIO) that turns a cheap dev board into an Art-Net node — receiving DMX-over-WiFi from a lighting console (typically [QLC+](https://www.qlcplus.org/)) and driving relays, PWM dimmers, servos, or a real DMX512 line via an RS485 "repeater". It was built for community theater: cheap, wireless, no commercial lighting console required. Current version: 2026.1.x (auto-bumped every build — Gotcha #1).
+ArtNetEsp is an ESP8266/ESP32 Arduino firmware project (built with PlatformIO) that turns a cheap dev board into an Art-Net node — receiving DMX-over-WiFi from a lighting console (typically [QLC+](https://www.qlcplus.org/)) and driving relays, PWM dimmers, servos, or a real DMX512 line via an RS485 "repeater". It was built for community theater: cheap, wireless, no commercial lighting console required. Current version: 2026.2.x (auto-bumped every build — Gotcha #1).
 
 The `big-refactor` branch (see `REFACTORING_PLAN.md`) restructured most of `src/` without changing any externally-visible behavior (REST schema, FS paths, board pin assignments) — `src/app/`, `src/core/`, `src/net/`, and `src/platform/` are all new since that refactor, and `main.cpp` is now a 14-line shell. The sections below describe the post-refactor layout.
 
