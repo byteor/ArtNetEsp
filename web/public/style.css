@@ -1,0 +1,594 @@
+/*
+ * Shared styling for the ArtNet Node web UI - used by both the captive-portal
+ * setup page (portal.html) and the home/control page (index.html).
+ *
+ * Keep this file human-readable: it's minified automatically when the
+ * filesystem image is built (see tools/minify_fs.py), so the on-device copy
+ * is small even though the source isn't.
+ */
+
+:root {
+  --blue: #1d4ed8;
+  --blue2: #2563eb;
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --bg: #eef1f6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+.wrap {
+  max-width: 440px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header card */
+.head {
+  background: linear-gradient(160deg, var(--blue2), var(--blue));
+  color: #fff;
+  padding: 28px 24px 26px;
+  text-align: center;
+  border-radius: 0 0 22px 22px;
+}
+
+.badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.head h3 {
+  margin: 6px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.95;
+  word-break: break-word;
+}
+
+.head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+/* Body */
+.body {
+  padding: 22px;
+  flex: 1;
+}
+
+.lead {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+.lead .ic {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e8efff;
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lead h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.lead small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Form controls */
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 7px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.ctrl {
+  position: relative;
+  flex: 1;
+}
+
+.ctrl .pre {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.ctrl .post {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+input,
+select {
+  width: 100%;
+  font-size: 15px;
+  padding: 13px 14px 13px 40px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--ink);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--blue2);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%236b7280' stroke-width='2'><path d='M2 5l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+}
+
+.icbtn {
+  flex: none;
+  width: 48px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icbtn:active {
+  background: #f3f4f6;
+}
+
+.chk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  margin: -6px 0 6px;
+}
+
+.chk input {
+  width: auto;
+  padding: 0;
+}
+
+/* Buttons / link-buttons (shared by both pages) */
+.btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  border: 0;
+  border-radius: 11px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 15px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.btn:first-child {
+  margin-top: 0;
+}
+
+.btn:active {
+  background: var(--blue2);
+}
+
+.btn.secondary {
+  background: #fff;
+  color: var(--blue);
+  border: 1px solid var(--line);
+}
+
+.btn.secondary:active {
+  background: #f3f4f6;
+}
+
+/* Section heading + REST table (home page) */
+.sec {
+  font-size: 15px;
+  margin: 26px 0 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+td code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.repo {
+  display: block;
+  text-align: center;
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--blue);
+  text-decoration: none;
+}
+
+/* Footer: device / IP / firmware */
+.foot {
+  display: flex;
+  border-top: 1px solid var(--line);
+  background: #f7f8fa;
+}
+
+.foot div {
+  flex: 1;
+  text-align: center;
+  padding: 14px 6px;
+}
+
+.foot .ic {
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.foot b {
+  display: block;
+  font-size: 13px;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.foot span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------ *
+ * Config SPA (index.html / web/src) - shares the tokens & primitives
+ * above. The captive portal does not use anything below this line.
+ * ------------------------------------------------------------------ */
+
+/* Tab nav */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 12px 0;
+  overflow-x: auto;
+  background: #f7f8fa;
+  border-bottom: 1px solid var(--line);
+}
+
+.tab {
+  flex: none;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-radius: 9px 9px 0 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab.active {
+  color: var(--blue);
+  background: #fff;
+  box-shadow: 0 -1px 0 var(--line) inset;
+}
+
+/* Sections / cards */
+.section {
+  margin-bottom: 22px;
+}
+
+.section h2 {
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+
+.section .hint {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.card-head b {
+  font-size: 14px;
+}
+
+/* Responsive field grid */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 380px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.field.full {
+  grid-column: 1 / -1;
+}
+
+.field input,
+.field select {
+  padding-left: 14px; /* no leading icon in the SPA forms */
+}
+
+.field .unit {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Button variants */
+.btn.sm {
+  width: auto;
+  display: inline-block;
+  padding: 9px 14px;
+  font-size: 14px;
+  margin-top: 0;
+}
+
+.btn.ghost {
+  background: #fff;
+  color: var(--blue);
+  border: 1px dashed var(--line);
+}
+
+.btn.danger {
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.btn.danger:active {
+  background: #fef2f2;
+}
+
+.iconbtn {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 13px;
+}
+
+.iconbtn.danger {
+  color: #dc2626;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.actions .btn {
+  width: auto;
+  flex: 1;
+  min-width: 140px;
+  margin-top: 0;
+}
+
+/* Reboot-required banner */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fef3c7;
+  color: #92400e;
+  border-bottom: 1px solid #f59e0b;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.banner .btn {
+  width: auto;
+  margin: 0 0 0 auto;
+  padding: 8px 14px;
+  font-size: 13px;
+  background: #92400e;
+}
+
+/* Advanced (collapsible) + warnings */
+.advanced > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  list-style: none;
+  padding: 6px 0;
+}
+
+.advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced > summary::before {
+  content: "\25B8  ";
+  color: var(--muted);
+}
+
+.advanced[open] > summary::before {
+  content: "\25BE  ";
+}
+
+.warn {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin: 10px 0 14px;
+}
+
+/* Confirmation modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+}
+
+.modal h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.modal p {
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.modal .actions .btn {
+  flex: 1;
+}
+
+/* Toast */
+.toasts {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.toast {
+  background: #16a34a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 11px 16px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  max-width: 90%;
+}
+
+.toast.error {
+  background: #dc2626;
+}
+
+.center {
+  text-align: center;
+  color: var(--muted);
+  padding: 40px 0;
+  font-size: 14px;
+}

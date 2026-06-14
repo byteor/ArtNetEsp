@@ -3,8 +3,10 @@
 .version_no_increment
 .hil/
 
-# Minified web-asset staging dir for the LittleFS image (tools/minify_fs.py)
-.fs_build/
+# Web UI build toolchain (web/); data/www is the committed node-built output
+web/node_modules/
+web/.vite/
+web/dist/
 
 # Python (tools/)
 __pycache__/

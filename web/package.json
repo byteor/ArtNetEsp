@@ -1,0 +1,24 @@
+{
+  "name": "artnetesp-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Preact config SPA for the ArtNetEsp firmware web UI (built into ../data/www).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/build-static.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "preact": "^10.25.4"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.1",
+    "@types/node": "^25.9.3",
+    "esbuild": "^0.24.2",
+    "html-minifier-terser": "^7.2.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}
