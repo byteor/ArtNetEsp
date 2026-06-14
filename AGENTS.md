@@ -1,6 +1,6 @@
 # AGENTS.md
 
-ArtNetEsp is an ESP8266/ESP32 Arduino firmware project (built with PlatformIO) that turns a cheap dev board into an Art-Net node — receiving DMX-over-WiFi from a lighting console (typically [QLC+](https://www.qlcplus.org/)) and driving relays, PWM dimmers, servos, or a real DMX512 line via an RS485 "repeater". It was built for community theater: cheap, wireless, no commercial lighting console required. Current version: 2026.1.33.
+ArtNetEsp is an ESP8266/ESP32 Arduino firmware project (built with PlatformIO) that turns a cheap dev board into an Art-Net node — receiving DMX-over-WiFi from a lighting console (typically [QLC+](https://www.qlcplus.org/)) and driving relays, PWM dimmers, servos, or a real DMX512 line via an RS485 "repeater". It was built for community theater: cheap, wireless, no commercial lighting console required. Current version: 2026.1.x (auto-bumped every build — Gotcha #1).
 
 The `big-refactor` branch (see `REFACTORING_PLAN.md`) restructured most of `src/` without changing any externally-visible behavior (REST schema, FS paths, board pin assignments) — `src/app/`, `src/core/`, `src/net/`, and `src/platform/` are all new since that refactor, and `main.cpp` is now a 14-line shell. The sections below describe the post-refactor layout.
 
@@ -13,7 +13,7 @@ git submodule update --init --recursive   # required once - pulls in platformio_
 
 pio run -e <env>                          # build (see environment table below for <env> values)
 pio run -e <env> -t upload                # flash firmware over USB
-pio run -e <env> -t uploadfs              # flash data/ (LittleFS/SPIFFS) - default config + web UI
+pio run -e <env> -t uploadfs              # flash data/ (LittleFS) - config + web UI, minified first (Gotcha #13)
 pio run -e <env> -t monitor               # serial monitor @ 115200
 
 pio run                                   # build ALL 12 environments - good sanity check
@@ -61,16 +61,20 @@ pio test -e native                        # run the platform-free native test su
 
 12. **Verification = build the affected environments.** For anything touching `boards/`, `device/`, `dmx/`, or `app/`, build at minimum one ESP8266 env (e.g. `d1_mini_oled`), one full-featured ESP32 env (e.g. `esp32-devkitc-v4`), and `sonoff_basic` (to catch `FEATURE_*` exclusion breakage). For pin/board-specific changes, also build the specific environment(s) affected. For anything touching `core/`, run `pio test -e native` first — it's much faster than the firmware matrix and catches platform-free logic bugs in isolation.
 
+13. **Web assets are minified into a throwaway dir at `uploadfs`/`buildfs` time — edit `data/`, never `.fs_build/`.** The files under `data/` (`www/index.html`, `www/portal.html`, `www/style.css`, `config/default.json`) are kept human-readable. `tools/minify_fs.py` — a `pre:` extra-script in `[common].extra_scripts` — runs **only** when `buildfs`/`uploadfs` is a command-line target (plain `pio run` skips it): it mirrors `data/` into the gitignored `.fs_build/` with HTML/CSS/JS/JSON minified, then `env.Replace(PROJECT_DATA_DIR=...)` points the LittleFS image builder at it. HTML goes through `minify-html` with **`minify_js=False`** (inline `onclick=` handlers call top-level functions a JS mangler would rename and break) and **`preserve_brace_template_syntax=True`** (so `portal.html`'s `{{HOST}}`/`{{VERSION}}`/`{{IP}}`/`{{NETWORKS}}` placeholders survive); CSS via `rcssmin`, JS via `rjsmin`, JSON via compact `json.dumps`. The minifiers auto-`pip install` into the PlatformIO penv on first use, with a copy-as-is fallback so a build never breaks. So: edit the readable sources; `.fs_build/` is generated output. This matters most for the captive portal, which reads `portal.html` whole into RAM on memory-tight ESP8266 boards. (Don't re-introduce a `.prettierignore` to hand-compact these — that approach was replaced by this script.)
+
 ## 3. Repository Layout
 
 ```
 src/
 ├── main.cpp          # 14 lines: App app; app.setup(); app.loop();
-├── config.h/.cpp     # art::Config - JSON load/save (LittleFS/SPIFFS), DeviceConfig/WiFiNet/
+├── config.h/.cpp     # art::Config - JSON load/save (LittleFS via ESP_FS), DeviceConfig/WiFiNet/
 │                      #   HardwareConfig structs; DmxType is an alias for core::DmxType
-├── connect.h/.cpp    # Connect - WiFi + ESPAsyncWiFiManager captive portal (192.168.4.1),
-│                      #   non-blocking reconnect every 1s (Gotcha #8's StatusLed* is injected
-│                      #   via Connect::init, not an extern global)
+├── connect.h/.cpp    # Connect - WiFi + in-house captive portal (192.168.4.1) serving
+│                      #   data/www/portal.html (placeholder-substituted in portalPage()) +
+│                      #   /style.css from LittleFS; non-blocking reconnect every 1s; reset()
+│                      #   writes /force_portal.flag so the next boot forces the portal (B29).
+│                      #   StatusLed* is injected via Connect::init, not an extern global
 ├── app/
 │   ├── app.h/.cpp    # App - owns every top-level instance (server, connect, config, artnet,
 │   │                  #   status, button, devices[]) and encodes the boot order - see §5
@@ -93,6 +97,8 @@ src/
 ├── platform/
 │   ├── filesystem.h  # ESP_FS - unified LittleFS (ESP8266) / LittleFS (ESP32, since R2) wrapper
 │   ├── pwm.h/.cpp    # Pwm::init/write - LEDC on ESP32, analogWrite on ESP8266
+│   ├── mdns.h        # platform::mdnsBegin/mdnsLoop - advertises <host>.local (_http._tcp:80);
+│   │                  #   started in App::setup() after WiFi connects (ESP8266 needs mdnsLoop())
 │   └── servo.h       # <Servo.h> include wrapper (only relevant under FEATURE_SERVO)
 ├── boards/
 │   ├── board.h       # Dispatches on -D BOARD_<NAME> to the matching per-board header - see Gotcha #3
@@ -121,10 +127,14 @@ test/
 ├── test_dmxtypes/    # native tests for src/core/dmxTypes.h
 └── test_dimmerlogic/ # native tests for src/core/dimmerLogic.h
 
-data/
-├── config/default.json  # initial/fallback config, flashed via `pio run -t uploadfs`
-└── www/                  # web UI (index.html / index.css)
+data/                    # readable source assets - flashed *minified* via `uploadfs` (Gotcha #13)
+├── config/default.json  # initial/fallback config
+└── www/                  # web UI: index.html (home page), portal.html (captive portal),
+                         #   style.css (one stylesheet shared by both)
 
+tools/                   # HIL harness (verify.sh / boot_check.py / hil_smoke.py) +
+                         #   minify_fs.py (build-time FS minifier - Gotcha #13)
+.fs_build/            # GENERATED minified mirror of data/ (gitignored) - never edit (Gotcha #13)
 include/Version.h     # AUTO-GENERATED - do not edit (Gotcha #1)
 assets/*.jpg          # board pinout reference images
 platformio.ini        # 12 firmware environments + [env:native] - see table below
@@ -177,9 +187,10 @@ void loop()  { app.loop(); }
 4. Init the button (AceButton) — `buttonConfig.setIEventHandler(this)` registers `App::handleEvent` (App implements `ace_button::IEventHandler`); short press flips DMX devices, long press (5s, configurable) resets WiFi
 5. If `FEATURE_OLED`, create `StatusDisplay`
 6. For each configured `config.dmx[i]`: `devices[i] = app::makeDevice(config.dmx[i], 1)` (the `FEATURE_*`-guarded factory, `src/app/deviceFactory.{h,cpp}`), then `setBlackout(config.dmx[i].blackout)` and **`devices[i]->start()`** — `deviceList[i] = devices[i].get()`
-7. `connect.init(&server, &dnsServer, status.get())` / `connect.connect(config.host)` — WiFi connection + captive portal fallback (note: `status` is passed in, not read via an `extern`)
-8. `artnet.init(config.universe, config.host, longName, deviceList, deviceCount)` — subscribes a lambda to the configured universe (this no longer calls `device->start()` — that happened in step 6)
-9. Start the web server (REST API + ElegantOTA unless `DISABLE_OTA`) — **`server.begin()` must come last, after WiFi is up** (Gotcha #8)
+7. `connect.init(&server, &dnsServer, status.get())` / `connect.connect(config.host)` — WiFi connection + in-house captive-portal fallback (note: `status` is passed in, not read via an `extern`). `connect.connect()` only *returns* on the STA-success path; the portal path ends in `ESP.restart()`, so anything after it runs only once WiFi is up.
+8. `if (config.host.length()) platform::mdnsBegin(config.host)` — advertise `<host>.local` (only reachable now that WiFi connected; the portal path never gets here)
+9. `artnet.init(config.universe, config.host, longName, deviceList, deviceCount)` — subscribes a lambda to the configured universe (this no longer calls `device->start()` — that happened in step 6)
+10. Start the web server (REST API + ElegantOTA unless `DISABLE_OTA`) — **`server.begin()` must come last, after WiFi is up** (Gotcha #8)
 
 **`App::loop()`** is short and non-blocking:
 ```cpp
@@ -190,6 +201,7 @@ void App::loop() {
   for (...) devices[i]->tick();
   ElegantOTA.loop();
   connect.loop();                   // non-blocking WiFi reconnect check every 1s
+  platform::mdnsLoop();             // MDNS.update() on ESP8266; no-op on ESP32
   statusDisplay->loop();            // #if FEATURE_OLED
 }
 ```
