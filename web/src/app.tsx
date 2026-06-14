@@ -146,7 +146,7 @@ export function App() {
         </div>
       )}
 
-      <Header host={draft.host} version={info?.version} />
+      <Header host={draft.host} />
       <StatusLine info={info} />
       <Tabs tabs={TABS} active={tab} dirty={dirty} onChange={setTab} />
 

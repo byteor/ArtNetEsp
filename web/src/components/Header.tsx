@@ -1,6 +1,6 @@
 import type { Info } from "../types";
 
-export function Header({ host, version }: { host: string; version?: string }) {
+export function Header({ host }: { host: string }) {
   return (
     <div class="head">
       <div class="badge">
@@ -12,9 +12,16 @@ export function Header({ host, version }: { host: string; version?: string }) {
           <circle cx="12" cy="12" r="7.5" fill="none" stroke="#fff" stroke-width="1.6" />
         </svg>
       </div>
-      <h1>ArtNet Node</h1>
-      <h3>{host || "—"}</h3>
-      <p>{version ? `Configuration · v${version}` : "Configuration"}</p>
+      <div class="head-text">
+        <h1>ArtNet Node</h1>
+        {host ? (
+          <a class="head-link" href={`http://${host}.local/`}>
+            {host}.local
+          </a>
+        ) : (
+          <span class="head-link muted">—</span>
+        )}
+      </div>
     </div>
   );
 }

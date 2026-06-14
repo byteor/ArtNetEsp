@@ -41,41 +41,50 @@ body {
 .head {
   background: linear-gradient(160deg, var(--blue2), var(--blue));
   color: #fff;
-  padding: 28px 24px 26px;
-  text-align: center;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
   border-radius: 0 0 22px 22px;
 }
 
 .badge {
-  width: 64px;
-  height: 64px;
+  width: 46px;
+  height: 46px;
+  flex: none;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.16);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 12px;
+}
+
+.head-text {
+  min-width: 0;
 }
 
 .head h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 700;
+  line-height: 1.2;
   word-break: break-word;
 }
 
-.head h3 {
-  margin: 6px 0 0;
-  font-size: 14px;
-  font-weight: 600;
-  opacity: 0.95;
-  word-break: break-word;
-}
-
-.head p {
-  margin: 4px 0 0;
+.head-link {
+  display: inline-block;
+  margin-top: 2px;
   font-size: 13px;
-  opacity: 0.85;
+  font-weight: 600;
+  color: #fff;
+  opacity: 0.9;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.head-link.muted {
+  text-decoration: none;
+  opacity: 0.7;
 }
 
 /* Body */
