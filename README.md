@@ -246,7 +246,7 @@ Response example:
 
 ### GET /status
 
-A lightweight poll endpoint - just the runtime `info` fields (no `dmx[]`/`wifi[]` arrays), useful for a UI that polls periodically without re-fetching the whole config.
+A lightweight poll endpoint - the runtime `info` fields (no `dmx[]`/`wifi[]` arrays) plus the `_needReboot` flag, useful for a UI that polls periodically without re-fetching the whole config. `_needReboot` clears to `false` after a reboot, so a polling client can drop its "reboot required" prompt automatically.
 
 Response example:
 
@@ -260,7 +260,8 @@ Response example:
     "ssid": "BAM",
     "rssi": -47,
     "uptime": 123456,
-    "free_heap": 47820
+    "free_heap": 47820,
+    "_needReboot": false
 }
 ```
 
