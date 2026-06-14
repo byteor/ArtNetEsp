@@ -24,7 +24,16 @@ only the first MAX_DMX_DEVICES will be saved and taken into account
 
 namespace art
 {
-#define CONFIG_BUFFER_SIZE 1024
+// Staging buffer for a raw POST /config body (see Config::_pendingJson /
+// stageUpdate). Sized per-platform to hold a full config including the max
+// device count (ESP32 8, ESP8266 4) - the web UI sends section-scoped updates,
+// but a full dmx[] save must still fit. Stays well under
+// AsyncCallbackJsonWebHandler's 16 KB content-length limit.
+#ifdef ESP32
+#define CONFIG_BUFFER_SIZE 4096
+#else
+#define CONFIG_BUFFER_SIZE 2048
+#endif
 
 // Schema version written by configToJson(); bumped whenever a future config
 // migration needs to distinguish old/new on-disk JSON shapes. configFromJson
