@@ -108,7 +108,13 @@ void Connect::connect(String hostName)
     status->set(StatusLed::Connecting);
     this->hostName = hostName;
 
-    if (tryStationConnect(STA_CONNECT_TIMEOUT_MS))
+    bool forcePortal = ESP_FS.exists(FORCE_PORTAL_PATH);
+    if (forcePortal)
+    {
+        ESP_FS.remove(FORCE_PORTAL_PATH);
+        LOG(F("WiFi reset requested - starting setup portal"));
+    }
+    else if (tryStationConnect(STA_CONNECT_TIMEOUT_MS))
     {
         LOG("Connected :)");
         LOG(WiFi.localIP());
@@ -116,8 +122,11 @@ void Connect::connect(String hostName)
         status->set(StatusLed::Connected);
         return;
     }
+    else
+    {
+        LOG(F("No saved WiFi connection - starting setup portal"));
+    }
 
-    LOG(F("No saved WiFi connection - starting setup portal"));
     startPortal();
 
     while (!credentialsReceived)
@@ -159,6 +168,18 @@ void Connect::connect(String hostName)
 void Connect::reset()
 {
     LOG(F("Resetting WiFi settings :)"));
+
+    // Belt and suspenders for B29: a LittleFS write+close is synchronous
+    // (unlike WiFi.disconnect(true, true)'s NVS erase, which may not
+    // complete before ESP.restart()), so this reliably forces the setup
+    // portal on the next boot regardless of whether the WiFi stack's saved
+    // credentials actually got erased.
+    File f = ESP_FS.open(FORCE_PORTAL_PATH, "w");
+    if (f)
+    {
+        f.close();
+    }
+
 #ifdef ESP32
     WiFi.disconnect(true, true);
 #else

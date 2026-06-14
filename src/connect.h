@@ -30,6 +30,13 @@ protected:
     // before rebooting (and re-opening the portal if they were wrong).
     static const unsigned long PORTAL_CONNECT_TIMEOUT_MS = 15000;
 
+    // Written by reset() and checked by connect() on the next boot - forces
+    // the setup portal even if the WiFi stack's NVS-saved credentials are
+    // still (or again) connectable. This sidesteps relying on
+    // WiFi.disconnect(true, true)'s NVS-erase completing before ESP.restart()
+    // (B29) - a filesystem write/close is synchronous, unlike that erase.
+    static constexpr const char *FORCE_PORTAL_PATH = "/force_portal.flag";
+
     unsigned long lastRefreshTime;
     String hostName;
     // Tracks WiFi connection state across loop() ticks so the
