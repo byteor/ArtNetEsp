@@ -55,6 +55,14 @@ void fillInfo(JsonObject info)
     info["rssi"] = WiFi.RSSI();
     info["uptime"] = millis();
     info["free_heap"] = ESP.getFreeHeap();
+    // Whether ElegantOTA's /update endpoint is compiled in (stripped on the
+    // sonoff envs via DISABLE_OTA, from boards/board.h). Lets the web UI hide
+    // its OTA link on boards that don't have it.
+#ifdef DISABLE_OTA
+    info["ota"] = false;
+#else
+    info["ota"] = true;
+#endif
 }
 } // namespace
 

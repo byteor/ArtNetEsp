@@ -15,6 +15,9 @@ export interface Info {
   free_heap: number;
   // GET /status also reports the pending-reboot flag (optional for older fw).
   _needReboot?: boolean;
+  // True when ElegantOTA's /update endpoint is compiled in (false on sonoff
+  // boards built with DISABLE_OTA). Optional for older fw that didn't report it.
+  ota?: boolean;
 }
 
 export interface DeviceConfig {

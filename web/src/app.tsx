@@ -162,7 +162,11 @@ export function App() {
               open={advancedOpen}
               onToggle={setAdvancedOpen}
             />
-            <Actions onReboot={() => void doReboot()} onReset={() => void doReset()} />
+            <Actions
+              onReboot={() => void doReboot()}
+              onReset={() => void doReset()}
+              ota={info?.ota}
+            />
           </>
         )}
       </div>
