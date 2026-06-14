@@ -3,6 +3,7 @@
 #include "boards/board.h"
 #include "platform/filesystem.h"
 #include "platform/mdns.h"
+#include "platform/netbios.h"
 #include "platform/pwm.h"
 
 #ifndef DISABLE_OTA
@@ -43,13 +44,9 @@ void App::setup()
     delay(100);
 
     config.load();
-    if (config.host.length())
-    {
-        // hostname(const String&) is the portable spelling: ESP8266's
-        // LwipIntf and ESP32's WiFiGenericClass (-> setHostname) both
-        // implement it with the same signature/return type.
-        WiFi.hostname(config.host);
-    }
+    // NB: the DHCP hostname is applied in Connect (after WiFi.mode(WIFI_STA),
+    // before WiFi.begin()) - setting it here, before WiFi is brought up, is
+    // unreliable on ESP32. See Connect::applyHostname().
     status = std::make_unique<StatusLed>(config.hardware.ledPin, LOW);
 
     // Buttons
@@ -98,6 +95,7 @@ void App::setup()
     if (config.host.length())
     {
         platform::mdnsBegin(config.host);
+        platform::netbiosBegin(config.host);
     }
 
     // ArtNet

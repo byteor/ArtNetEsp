@@ -56,6 +56,9 @@ protected:
     String newSsid;
     String newPass;
 
+    // Applies the configured DHCP hostname; call between WiFi.mode(WIFI_STA)
+    // and WiFi.begin() (see the definition for the ESP32 ordering caveat).
+    void applyHostname();
     // Tries WiFi.begin() with whatever credentials are already stored in
     // the WiFi stack's NVS, waiting up to timeoutMs.
     bool tryStationConnect(unsigned long timeoutMs);

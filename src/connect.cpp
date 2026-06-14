@@ -14,9 +14,24 @@ void Connect::init(AsyncWebServer *server, DNSServer *dns, StatusLed *status)
     this->status = status;
 }
 
+void Connect::applyHostname()
+{
+    // Set the DHCP hostname (option 12) - must be done AFTER WiFi.mode(WIFI_STA)
+    // and BEFORE WiFi.begin(). On ESP32, setting it any earlier (e.g. before the
+    // STA netif exists) is silently dropped, so the lease registers a default
+    // name and the router can't answer reverse-DNS lookups - which is why LAN
+    // scanners like Angry IP Scanner show no host name. hostname() is the
+    // portable spelling (ESP8266 LwipIntf + ESP32 WiFiGenericClass->setHostname).
+    if (hostName.length())
+    {
+        WiFi.hostname(hostName);
+    }
+}
+
 bool Connect::tryStationConnect(unsigned long timeoutMs)
 {
     WiFi.mode(WIFI_STA);
+    applyHostname();
     // No-arg begin() retries whatever credentials are already saved in the
     // WiFi stack's own NVS - the same store a previous portal submission
     // (or ESPAsyncWiFiManager, before this) would have written via
@@ -183,6 +198,7 @@ void Connect::connect(String hostName)
 
     LOG("Trying new network: " + newSsid);
     WiFi.mode(WIFI_STA);
+    applyHostname();
     WiFi.begin(newSsid.c_str(), newPass.c_str());
 
     unsigned long start = millis();
