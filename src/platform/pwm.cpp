@@ -19,28 +19,26 @@ void Pwm::init(uint16_t freq)
 
 void Pwm::write(uint8_t pin, uint8_t value)
 {
-    int8_t channel = -1;
+    bool attached = false;
     for (uint8_t i = 0; i < s_numChannels; i++)
     {
         if (s_pins[i] == pin)
         {
-            channel = i;
+            attached = true;
             break;
         }
     }
-    if (channel < 0)
+    if (!attached)
     {
         if (s_numChannels >= PWM_MAX_CHANNELS)
         {
             LOG(F("Pwm: no free LEDC channels"));
             return;
         }
-        channel = s_numChannels++;
-        s_pins[channel] = pin;
-        ledcSetup(channel, s_freq, PWM_RESOLUTION_BITS);
-        ledcAttachPin(pin, channel);
+        s_pins[s_numChannels++] = pin;
+        ledcAttach(pin, s_freq, PWM_RESOLUTION_BITS);
     }
-    ledcWrite(channel, value);
+    ledcWrite(pin, value);
 }
 
 #else
