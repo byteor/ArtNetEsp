@@ -13,7 +13,9 @@ export function GeneralSection({ draft, patch, save, busy, dirty }: SectionProps
             maxLength={31}
             onInput={(e) => patch({ host: e.currentTarget.value })}
           />
-          <span class="unit">Reachable as &lt;hostname&gt;.local</span>
+          <span class="unit">
+            {draft.host ? `Reachable as ${draft.host}.local` : "Set a hostname to reach the device by name"}
+          </span>
         </div>
         <div class="field">
           <label>Art-Net universe</label>
