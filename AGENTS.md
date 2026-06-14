@@ -13,7 +13,7 @@ git submodule update --init --recursive   # required once - pulls in platformio_
 
 pio run -e <env>                          # build (see environment table below for <env> values)
 pio run -e <env> -t upload                # flash firmware over USB
-pio run -e <env> -t uploadfs              # flash data/ (LittleFS) - config + web UI, minified first (Gotcha #13)
+pio run -e <env> -t uploadfs              # flash data/ (LittleFS) - config + web UI (web UI is node-built, Gotcha #13)
 pio run -e <env> -t monitor               # serial monitor @ 115200
 
 pio run                                   # build ALL 12 environments - good sanity check
@@ -22,6 +22,13 @@ pio run                                   # build ALL 12 environments - good san
 
 ```bash
 pio test -e native                        # run the platform-free native test suite (test/test_*)
+```
+
+```bash
+# Web UI (only when changing web/ - the built output in data/www/ is committed, Gotcha #13):
+cd web && npm install                      # once
+npm run build                              # -> data/www/{index.html,app.js,portal.html,style.css}; commit these
+DEVICE=http://<host>.local npm run dev     # live dev w/ HMR, REST proxied to a real device
 ```
 
 `[env:native]` (`platformio.ini`) runs `test/test_*` (Unity, ArduinoJson, plain C++ - no Arduino headers) against `src/core/` and is also the `native-test` job in `.github/workflows/ci.yml`. There's still no on-device test suite and no hardware-in-the-loop CI — `pio run` (the 12-env firmware matrix) plus watching the serial monitor, and the `tools/verify.sh`/`tools/hil_smoke.py` bench harness (Phase 0.5, see `REFACTORING_PLAN.md`) for live HIL checks, are the only further verification. See Gotcha #12 for which environments to build for a given change.
@@ -49,7 +56,7 @@ pio test -e native                        # run the platform-free native test su
 
 6. **`MAX_DMX_DEVICES` differs by platform** (8 on ESP32, 4 on ESP8266 — `config.h`, via `#ifdef ESP32`). The fixed-size `dmx_devices[MAX_DMX_DEVICES]` array in `main.cpp` and all the `for (... && i < MAX_DMX_DEVICES; ...)` loop bounds must stay consistent with this if it's ever changed.
 
-7. **`config.load()`/`save()`/`serialize()`/`applyPendingUpdate()` use an elastic ArduinoJson 7 `JsonDocument`** (heap-allocated, no fixed capacity) — `config.cpp`, since Phase 6 item 1's ArduinoJson 6→7 upgrade. There's no more `doc.overflowed()` (AJ7 doesn't have it); a malformed/huge `POST /config` payload now fails via `DeserializationError` from `deserializeJson()`. The one surviving fixed-size buffer is `_pendingJson[CONFIG_BUFFER_SIZE]` (still 1024 bytes, `config.h`) — B11's staged-update copy of a raw `POST /config` body; `stageUpdate()` rejects (`written < sizeof(_pendingJson)` fails) anything that doesn't fit, so a single `POST /config` payload is still capped at ~1024 bytes even though the in-memory `JsonDocument` itself can grow. Adding new config fields no longer risks silent truncation of the persisted config, but very large `dmx[]`/`wifi[]` arrays can still hit this `POST /config` payload ceiling.
+7. **`config.load()`/`save()`/`serialize()`/`applyPendingUpdate()` use an elastic ArduinoJson 7 `JsonDocument`** (heap-allocated, no fixed capacity) — `config.cpp`, since Phase 6 item 1's ArduinoJson 6→7 upgrade. There's no more `doc.overflowed()` (AJ7 doesn't have it); a malformed/huge `POST /config` payload now fails via `DeserializationError` from `deserializeJson()`. The one surviving fixed-size buffer is `_pendingJson[CONFIG_BUFFER_SIZE]` (`config.h`, **4096 bytes on ESP32 / 2048 on ESP8266** since the web-UI work — was 1024) — B11's staged-update copy of a raw `POST /config` body; `stageUpdate()` rejects (and returns `500 {"error":"update too large"}`) anything that doesn't fit, so a single `POST /config` payload is capped at that size even though the in-memory `JsonDocument` itself can grow. The buffer is sized to hold a full config including the max device count (ESP32 8 / ESP8266 4); the web UI further keeps payloads small by saving one section at a time. Bumping it costs that many bytes of static RAM and must stay under `AsyncCallbackJsonWebHandler`'s 16 KB content-length limit.
 
 8. **`server.begin()` must only be called after WiFi connects.** `main.cpp` has an explicit comment: `// Call ONLY AFTER WiFi gets connected !!!!! (or reboot loop)`. Preserve this ordering if you reorganize `setup()`.
 
@@ -61,7 +68,7 @@ pio test -e native                        # run the platform-free native test su
 
 12. **Verification = build the affected environments.** For anything touching `boards/`, `device/`, `dmx/`, or `app/`, build at minimum one ESP8266 env (e.g. `d1_mini_oled`), one full-featured ESP32 env (e.g. `esp32-devkitc-v4`), and `sonoff_basic` (to catch `FEATURE_*` exclusion breakage). For pin/board-specific changes, also build the specific environment(s) affected. For anything touching `core/`, run `pio test -e native` first — it's much faster than the firmware matrix and catches platform-free logic bugs in isolation.
 
-13. **Web assets are minified into a throwaway dir at `uploadfs`/`buildfs` time — edit `data/`, never `.fs_build/`.** The files under `data/` (`www/index.html`, `www/portal.html`, `www/style.css`, `config/default.json`) are kept human-readable. `tools/minify_fs.py` — a `pre:` extra-script in `[common].extra_scripts` — runs **only** when `buildfs`/`uploadfs` is a command-line target (plain `pio run` skips it): it mirrors `data/` into the gitignored `.fs_build/` with HTML/CSS/JS/JSON minified, then `env.Replace(PROJECT_DATA_DIR=...)` points the LittleFS image builder at it. HTML goes through `minify-html` with **`minify_js=False`** (inline `onclick=` handlers call top-level functions a JS mangler would rename and break) and **`preserve_brace_template_syntax=True`** (so `portal.html`'s `{{HOST}}`/`{{VERSION}}`/`{{IP}}`/`{{NETWORKS}}` placeholders survive); CSS via `rcssmin`, JS via `rjsmin`, JSON via compact `json.dumps`. The minifiers auto-`pip install` into the PlatformIO penv on first use, with a copy-as-is fallback so a build never breaks. So: edit the readable sources; `.fs_build/` is generated output. This matters most for the captive portal, which reads `portal.html` whole into RAM on memory-tight ESP8266 boards. (Don't re-introduce a `.prettierignore` to hand-compact these — that approach was replaced by this script.)
+13. **`data/www/` is a committed *node build output* — edit the sources under `web/`, then `npm run build`, then commit.** The web UI lives in `web/` (Vite + Preact + TS); `npm run build` (`cd web && npm install && npm run build`) emits the minified/obfuscated bundle into `data/www/`: `index.html` + `app.js` from Vite, and `style.css` + `portal.html` from `web/scripts/build-static.mjs` (esbuild for CSS, `html-minifier-terser` for the portal — `ignoreCustomFragments` preserves `portal.html`'s `{{HOST}}`/`{{VERSION}}`/`{{IP}}`/`{{NETWORKS}}` placeholders; its inline JS was refactored to `addEventListener` so it can be mangled). The four built files in `data/www/` are **committed** so `pio run -t uploadfs` / HIL / CI stay node-free — only UI development needs npm. There is **no** Python minify step (the old `tools/minify_fs.py` + `.fs_build/` are gone) and `data/www/` is `.prettierignore`d so the formatter can't de-minify it. The shared `style.css` + `portal.html` live in `web/public/` (Vite copies them verbatim, then `build-static.mjs` overwrites with minified versions); `connect.cpp` still reads `/www/portal.html` and serves `/www/style.css` directly, so those must remain real, un-gzipped files. Dev loop: `DEVICE=http://<host>.local npm run dev` (Vite proxies REST to a live device; `web/public/` served automatically). **Workflow gotcha:** after changing anything in `web/`, you must re-run `npm run build` and commit `data/www/` or the device serves stale UI.
 
 ## 3. Repository Layout
 
@@ -129,14 +136,23 @@ test/
 ├── test_dmxtypes/    # native tests for src/core/dmxTypes.h
 └── test_dimmerlogic/ # native tests for src/core/dimmerLogic.h
 
-data/                    # readable source assets - flashed *minified* via `uploadfs` (Gotcha #13)
-├── config/default.json  # initial/fallback config
-└── www/                  # web UI: index.html (home page), portal.html (captive portal),
-                         #   style.css (one stylesheet shared by both)
+web/                     # web-UI SOURCE (Vite + Preact + TS) - Gotcha #13. `npm run build`
+├── src/                 #   emits the minified bundle into data/www/ (committed)
+│   ├── app.tsx          # root component: loads GET /config, tab nav, reboot banner, toasts
+│   ├── api.ts           # typed REST wrappers (getConfig/saveSection/reboot/resetWifi)
+│   ├── types.ts         # TS mirror of the config schema
+│   └── components/      # Header, GeneralSection, DevicesSection, WifiSection,
+│                        #   AdvancedSection, Actions, ConfirmModal, Toast, Tabs
+├── public/              # portal.html + style.css (shared design; copied then minified)
+├── scripts/build-static.mjs  # minifies portal.html (placeholders kept) + style.css
+└── vite.config.ts       # outDir ../data/www, single app.js, REST proxy for `npm run dev`
 
-tools/                   # HIL harness (verify.sh / boot_check.py / hil_smoke.py) +
-                         #   minify_fs.py (build-time FS minifier - Gotcha #13)
-.fs_build/            # GENERATED minified mirror of data/ (gitignored) - never edit (Gotcha #13)
+data/                    # config/default.json (hand-authored) + www/ (node build OUTPUT)
+├── config/default.json  # initial/fallback config
+└── www/                  # COMMITTED build output of web/: index.html, app.js (SPA),
+                         #   portal.html, style.css (don't hand-edit - Gotcha #13)
+
+tools/                   # HIL harness only (verify.sh / boot_check.py / hil_smoke.py)
 include/Version.h     # AUTO-GENERATED - do not edit (Gotcha #1)
 assets/*.jpg          # board pinout reference images
 platformio.ini        # 12 firmware environments + [env:native] - see table below
