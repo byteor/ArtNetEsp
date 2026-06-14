@@ -99,6 +99,8 @@ src/
 │   ├── pwm.h/.cpp    # Pwm::init/write - LEDC on ESP32, analogWrite on ESP8266
 │   ├── mdns.h        # platform::mdnsBegin/mdnsLoop - advertises <host>.local (_http._tcp:80);
 │   │                  #   started in App::setup() after WiFi connects (ESP8266 needs mdnsLoop())
+│   ├── netbios.h     # platform::netbiosBegin - NetBIOS name responder (ESP8266NetBIOS/ESP32
+│   │                  #   NetBIOS, bundled); router-independent LAN name (mainly Windows)
 │   └── servo.h       # <Servo.h> include wrapper (only relevant under FEATURE_SERVO)
 ├── boards/
 │   ├── board.h       # Dispatches on -D BOARD_<NAME> to the matching per-board header - see Gotcha #3
@@ -188,7 +190,7 @@ void loop()  { app.loop(); }
 5. If `FEATURE_OLED`, create `StatusDisplay`
 6. For each configured `config.dmx[i]`: `devices[i] = app::makeDevice(config.dmx[i], 1)` (the `FEATURE_*`-guarded factory, `src/app/deviceFactory.{h,cpp}`), then `setBlackout(config.dmx[i].blackout)` and **`devices[i]->start()`** — `deviceList[i] = devices[i].get()`
 7. `connect.init(&server, &dnsServer, status.get())` / `connect.connect(config.host)` — WiFi connection + in-house captive-portal fallback (note: `status` is passed in, not read via an `extern`). `connect.connect()` only *returns* on the STA-success path; the portal path ends in `ESP.restart()`, so anything after it runs only once WiFi is up.
-8. `if (config.host.length()) platform::mdnsBegin(config.host)` — advertise `<host>.local` (only reachable now that WiFi connected; the portal path never gets here)
+8. `if (config.host.length()) platform::mdnsBegin(config.host)` + `platform::netbiosBegin(config.host)` — advertise `<host>.local` (mDNS) and the NetBIOS name (only reachable now that WiFi connected; the portal path never gets here). The DHCP hostname itself is set earlier, inside `Connect` between `WiFi.mode(WIFI_STA)` and `WiFi.begin()` (`Connect::applyHostname()` — ESP32 drops it if set before `WIFI_STA`, which left LAN scanners showing no name)
 9. `artnet.init(config.universe, config.host, longName, deviceList, deviceCount)` — subscribes a lambda to the configured universe (this no longer calls `device->start()` — that happened in step 6)
 10. Start the web server (REST API + ElegantOTA unless `DISABLE_OTA`) — **`server.begin()` must come last, after WiFi is up** (Gotcha #8)
 
