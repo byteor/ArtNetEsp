@@ -68,4 +68,6 @@ export interface SectionProps {
   patch: (p: Partial<FullConfig>) => void;
   save: Save;
   busy: boolean;
+  // True when this section's draft differs from the last-saved baseline.
+  dirty: boolean;
 }

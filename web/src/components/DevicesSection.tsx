@@ -12,7 +12,7 @@ const DEFAULT_DEVICE: DeviceConfig = {
   blackout: true,
 };
 
-export function DevicesSection({ draft, patch, save, busy }: SectionProps) {
+export function DevicesSection({ draft, patch, save, busy, dirty }: SectionProps) {
   const devices = draft.dmx;
   const max = draft.info?.max_dmx_devices ?? 4;
 
@@ -59,10 +59,10 @@ export function DevicesSection({ draft, patch, save, busy }: SectionProps) {
 
       <button
         class="btn"
-        disabled={busy || devices.length === 0}
+        disabled={busy || devices.length === 0 || !dirty}
         onClick={() => save({ dmx: devices })}
       >
-        Save devices
+        {dirty ? "Save devices" : "Saved"}
       </button>
     </div>
   );

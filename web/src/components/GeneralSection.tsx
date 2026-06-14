@@ -1,6 +1,6 @@
 import type { SectionProps } from "../types";
 
-export function GeneralSection({ draft, patch, save, busy }: SectionProps) {
+export function GeneralSection({ draft, patch, save, busy, dirty }: SectionProps) {
   return (
     <div class="section">
       <h2>General</h2>
@@ -27,10 +27,10 @@ export function GeneralSection({ draft, patch, save, busy }: SectionProps) {
       </div>
       <button
         class="btn"
-        disabled={busy}
+        disabled={busy || !dirty}
         onClick={() => save({ host: draft.host, universe: draft.universe })}
       >
-        Save
+        {dirty ? "Save" : "Saved"}
       </button>
     </div>
   );

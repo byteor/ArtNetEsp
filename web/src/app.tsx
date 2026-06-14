@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "preact/hooks";
 import type { FullConfig, ConfigPatch, Info } from "./types";
-import { getConfig, saveSection, reboot, resetWifi } from "./api";
+import { getConfig, getStatus, saveSection, reboot, resetWifi } from "./api";
 import { useToast } from "./components/Toast";
 import { Header, Footer } from "./components/Header";
+import { StatusLine } from "./components/StatusLine";
 import { Tabs } from "./components/Tabs";
 import { GeneralSection } from "./components/GeneralSection";
 import { DevicesSection } from "./components/DevicesSection";
@@ -11,24 +12,27 @@ import { AdvancedSection } from "./components/AdvancedSection";
 import { Actions } from "./components/Actions";
 
 const TABS = ["General", "Devices", "WiFi", "System"];
+const eq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function App() {
   const notify = useToast();
-  // `draft` is the editable working copy and the single source of truth for the
-  // form fields - it lives here (not in each section) so unsaved edits survive
-  // tab switches. `info`/`needReboot` are read-only runtime state, refreshed
-  // from the server on load and after each save.
+  // `draft` is the editable working copy (the source of truth for the form,
+  // survives tab switches). `saved` is the last-persisted baseline, used to
+  // flag unsaved changes. `info`/`needReboot` are read-only runtime state.
   const [draft, setDraft] = useState<FullConfig | null>(null);
+  const [saved, setSaved] = useState<FullConfig | null>(null);
   const [info, setInfo] = useState<Info | undefined>(undefined);
   const [needReboot, setNeedReboot] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("General");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const cfg = await getConfig();
       setDraft(cfg);
+      setSaved(cfg);
       setInfo(cfg.info);
       setNeedReboot(cfg._needReboot);
       setLoadError(null);
@@ -41,18 +45,30 @@ export function App() {
     void load();
   }, [load]);
 
-  // Merge a partial edit into the working copy (does not touch the server).
+  // Light background refresh of runtime info (heap/uptime/rssi). Never touches
+  // draft/saved, so it can't clobber edits; failures (e.g. mid-reboot) are
+  // ignored.
+  useEffect(() => {
+    const id = setInterval(() => {
+      getStatus()
+        .then(setInfo)
+        .catch(() => {});
+    }, 5000);
+    return () => clearInterval(id);
+  }, []);
+
   const patch = useCallback((p: Partial<FullConfig>) => {
     setDraft((d) => (d ? { ...d, ...p } : d));
   }, []);
 
-  // Persist one section. Only refreshes meta (info/_needReboot) from the
-  // response - the draft keeps the user's edits (incl. other unsaved sections).
+  // Persist one section, then mark it clean (saved <- the sent values) and
+  // refresh meta. Other sections' unsaved edits are untouched.
   const save = useCallback(
     async (section: ConfigPatch) => {
       setBusy(true);
       try {
         const fresh = await saveSection(section);
+        setSaved((s) => (s ? { ...s, ...section } : s));
         setInfo(fresh.info);
         setNeedReboot(fresh._needReboot);
         notify(fresh._needReboot ? "Saved — reboot required" : "Saved");
@@ -97,7 +113,7 @@ export function App() {
     );
   }
 
-  if (!draft) {
+  if (!draft || !saved) {
     return (
       <div class="wrap">
         <Header host="" />
@@ -106,7 +122,13 @@ export function App() {
     );
   }
 
-  const sectionProps = { draft, patch, save, busy };
+  const dirty: Record<string, boolean> = {
+    General: draft.host !== saved.host || draft.universe !== saved.universe,
+    Devices: !eq(draft.dmx, saved.dmx),
+    WiFi: !eq(draft.wifi, saved.wifi),
+    System: !eq(draft.hw, saved.hw),
+  };
+  const base = { draft, patch, save, busy };
 
   return (
     <div class="wrap">
@@ -120,15 +142,21 @@ export function App() {
       )}
 
       <Header host={draft.host} version={info?.version} />
-      <Tabs tabs={TABS} active={tab} onChange={setTab} />
+      <StatusLine info={info} />
+      <Tabs tabs={TABS} active={tab} dirty={dirty} onChange={setTab} />
 
       <div class="body">
-        {tab === "General" && <GeneralSection {...sectionProps} />}
-        {tab === "Devices" && <DevicesSection {...sectionProps} />}
-        {tab === "WiFi" && <WifiSection {...sectionProps} />}
+        {tab === "General" && <GeneralSection {...base} dirty={dirty.General} />}
+        {tab === "Devices" && <DevicesSection {...base} dirty={dirty.Devices} />}
+        {tab === "WiFi" && <WifiSection {...base} dirty={dirty.WiFi} />}
         {tab === "System" && (
           <>
-            <AdvancedSection {...sectionProps} />
+            <AdvancedSection
+              {...base}
+              dirty={dirty.System}
+              open={advancedOpen}
+              onToggle={setAdvancedOpen}
+            />
             <Actions onReboot={() => void doReboot()} onReset={() => void doReset()} />
           </>
         )}

@@ -1,6 +1,6 @@
 import type { WifiNet, SectionProps } from "../types";
 
-export function WifiSection({ draft, patch, save, busy }: SectionProps) {
+export function WifiSection({ draft, patch, save, busy, dirty }: SectionProps) {
   const nets = draft.wifi;
 
   const setNets = (n: WifiNet[]) => patch({ wifi: n });
@@ -55,10 +55,10 @@ export function WifiSection({ draft, patch, save, busy }: SectionProps) {
 
       <button
         class="btn"
-        disabled={busy || nets.length === 0}
+        disabled={busy || nets.length === 0 || !dirty}
         onClick={() => save({ wifi: nets })}
       >
-        Save networks
+        {dirty ? "Save networks" : "Saved"}
       </button>
     </div>
   );

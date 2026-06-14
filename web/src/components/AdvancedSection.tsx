@@ -1,12 +1,21 @@
 import type { HardwareConfig, SectionProps } from "../types";
 
-export function AdvancedSection({ draft, patch, save, busy }: SectionProps) {
+interface Props extends SectionProps {
+  open: boolean;
+  onToggle: (open: boolean) => void;
+}
+
+export function AdvancedSection({ draft, patch, save, busy, dirty, open, onToggle }: Props) {
   const hw = draft.hw;
   const set = <K extends keyof HardwareConfig>(k: K, v: HardwareConfig[K]) =>
     patch({ hw: { ...hw, [k]: v } });
 
   return (
-    <details class="advanced">
+    <details
+      class="advanced"
+      open={open}
+      onToggle={(e) => onToggle(e.currentTarget.open)}
+    >
       <summary>Advanced hardware &amp; security</summary>
 
       <div class="warn">
@@ -92,8 +101,8 @@ export function AdvancedSection({ draft, patch, save, busy }: SectionProps) {
         </>
       )}
 
-      <button class="btn" disabled={busy} onClick={() => save({ hw })}>
-        Save advanced
+      <button class="btn" disabled={busy || !dirty} onClick={() => save({ hw })}>
+        {dirty ? "Save advanced" : "Saved"}
       </button>
     </details>
   );
