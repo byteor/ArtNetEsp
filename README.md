@@ -16,24 +16,27 @@ The next step was to use this platform for experimental devices like NepPixel li
 ## Table of Contents
 
 - [Device Types](#device-types)
-  - [DIMMER](#dimmer)
-  - [RELAY](#relay)
-  - [SERVO](#servo)
-  - [REPEATER](#repeater)
+    - [DIMMER](#dimmer)
+    - [RELAY](#relay)
+    - [SERVO](#servo)
+    - [REPEATER](#repeater)
 - [Controls](#controls)
-  - [Indicator LED](#indicator-led)
-  - [Button](#button)
-  - [OLED Screen](#oled-screen)
+    - [Indicator LED](#indicator-led)
+    - [Button](#button)
+    - [OLED Screen](#oled-screen)
 - [WiFi connection and Captive Portal](#wifi-connection-and-captive-portal)
+- [Web UI](#web-ui)
+    - [Architecture](#architecture)
+    - [Building and uploading](#building-and-uploading)
 - [Variations](#variations)
-  - [Sonoff Basic](#sonoff-basic)
+    - [Sonoff Basic](#sonoff-basic)
 - [REST API](#rest-api)
-  - [GET /config](#get-config)
-  - [GET /status](#get-status)
-  - [POST /config](#post-config)
-  - [POST /reboot](#post-reboot)
-  - [POST /reset-wifi](#post-reset-wifi)
-  - [GET /heap](#get-heap)
+    - [GET /config](#get-config)
+    - [GET /status](#get-status)
+    - [POST /config](#post-config)
+    - [POST /reboot](#post-reboot)
+    - [POST /reset-wifi](#post-reset-wifi)
+    - [GET /heap](#get-heap)
 - [OTA](#ota)
 - [Upgrading](#upgrading)
 - [TODO List](#todo)
@@ -142,7 +145,50 @@ is accessible via default IP address: [192.168.4.1](192.168.4.1)
 
 If a known network comes back to life while the Captive Portal is active, the device will be automatically connected to it.
 
-WiFi connection is constantly being checked every second. If connection is lost *after* startup, the device keeps running - DMX devices, Art-Net, the web UI/API, etc. are unaffected - and a non-blocking reconnect to the last-known network is attempted every second in the background. The Captive Portal is **not** re-opened for a runtime disconnect; only a fresh boot without a working network falls back to the Captive Portal as described above.
+WiFi connection is constantly being checked every second. If connection is lost _after_ startup, the device keeps running - DMX devices, Art-Net, the web UI/API, etc. are unaffected - and a non-blocking reconnect to the last-known network is attempted every second in the background. The Captive Portal is **not** re-opened for a runtime disconnect; only a fresh boot without a working network falls back to the Captive Portal as described above.
+
+## Web UI
+
+Once the device is on your network, its home page (`http://<device-ip>/` or `http://<hostname>.local/`) is a configuration app - a [Preact](https://preactjs.com/) single-page application that drives the [REST API](#rest-api). It lets you:
+
+- see the current firmware version and device info;
+- set the hostname and Art-Net universe;
+- add / edit / remove DMX devices;
+- manage saved WiFi networks;
+- change advanced hardware settings and enable HTTP auth (tucked behind an **Advanced** section, since a wrong pin can lock you out);
+- **Reboot** the device or **Reset WiFi**, each with a confirmation.
+
+Changes are saved one section at a time; when a change needs a restart, a "reboot required" banner appears. The app shares the same look as the [Captive Portal](#wifi-connection-and-captive-portal).
+
+### Architecture
+
+- **Source** lives in [`web/`](web/) - a Vite + Preact + TypeScript project: components under `web/src/`, and the shared stylesheet (`style.css`) plus the captive-portal page (`portal.html`) under `web/public/`.
+- **`npm run build`** minifies everything into `data/www/` (`index.html`, `app.js`, `portal.html`, `style.css`). That output is **committed** to the repo, so building/flashing the firmware never requires Node - only changing the UI does.
+- On the device the app is served straight from the LittleFS filesystem (`/www/`) by the same async web server that serves the REST API, so every call is same-origin (no CORS).
+- There is no separate minification step in the firmware build any more - Node/Vite does it all.
+
+### Building and uploading
+
+You only need Node/npm when you change the UI.
+
+```bash
+cd web
+npm install                              # once
+
+# Live development against a real device (hot reload; REST + assets proxied):
+DEVICE=http://<hostname>.local npm run dev
+
+# Produce the minified bundle into ../data/www (commit the result):
+npm run build
+```
+
+Then flash the filesystem image to the device from the repo root:
+
+```bash
+pio run -e <env> -t uploadfs             # writes data/ (web UI + default config) to LittleFS
+```
+
+> After editing anything under `web/`, re-run `npm run build` and commit `data/www/` before flashing - otherwise the device keeps serving the previously built UI.
 
 ## Variations
 
@@ -159,42 +205,42 @@ Response example:
 
 ```json
 {
-  "configVersion": 1, // Schema version of the persisted config (informational; no migrations yet)
-  "_needReboot": false, //reboot needed flag indicating config changes were not applied yet
-  "hw": {
-    "freq": 600, // PWM frequency
-    "ledPin": 2, // GPIO pin cooected to indicator LED
-    "buttonPin": 0, // GPIO pin connected to button
-    "longPressDelay": 5000, // Duration in ms to cause a 'factory reset'
-    "authEnabled": false, // If true, require HTTP basic-auth for POST /config, /reboot, /reset-wifi and /update
-    "authUser": "", // Basic-auth username (used only if authEnabled)
-    "authPass": "" // Basic-auth password (used only if authEnabled)
-  },
-  "info": {
-    // Runtime WiFi/build/chip identity - same fields as GET /status, nested here for back-compat
-    "id": "d6b6b8",
-    "chip": "ESP32",
-    "version": "2021.4",
-    "built": "2026-06-13 14:05:21.993261",
-    "max_dmx_devices": 8,
-    "ssid": "BAM",
-    "rssi": -47,
-    "uptime": 123456,
-    "free_heap": 47820
-  },
-  "id": "d6b6b8", // Chip ID
-  "host": "GREEN-d6d8", // Host name (used in ArtNet discovery)
-  "dmx": [
-    // An array of virtual DMX devices (up to 4 on ESP8266 / 8 on ESP32)
-    {
-      "channel": 8, // DMX channel
-      "type": "DIMMER", // Device type - DIMMER | RELAY | SERVO | REPEATER
-      "pin": 5, // Output pin
-      "level": "HIGH", // Output pin 'active' level - LOW | HIGH
-      "threshold": 127, // A level at such RELAY changes its state
-      "blackout": true // If true (default), set this device to 0 after 5s without an ArtNet frame
-    }
-  ]
+    "configVersion": 1, // Schema version of the persisted config (informational; no migrations yet)
+    "_needReboot": false, //reboot needed flag indicating config changes were not applied yet
+    "hw": {
+        "freq": 600, // PWM frequency
+        "ledPin": 2, // GPIO pin cooected to indicator LED
+        "buttonPin": 0, // GPIO pin connected to button
+        "longPressDelay": 5000, // Duration in ms to cause a 'factory reset'
+        "authEnabled": false, // If true, require HTTP basic-auth for POST /config, /reboot, /reset-wifi and /update
+        "authUser": "", // Basic-auth username (used only if authEnabled)
+        "authPass": "" // Basic-auth password (used only if authEnabled)
+    },
+    "info": {
+        // Runtime WiFi/build/chip identity - same fields as GET /status, nested here for back-compat
+        "id": "d6b6b8",
+        "chip": "ESP32",
+        "version": "2021.4",
+        "built": "2026-06-13 14:05:21.993261",
+        "max_dmx_devices": 8,
+        "ssid": "BAM",
+        "rssi": -47,
+        "uptime": 123456,
+        "free_heap": 47820
+    },
+    "id": "d6b6b8", // Chip ID
+    "host": "GREEN-d6d8", // Host name (used in ArtNet discovery)
+    "dmx": [
+        // An array of virtual DMX devices (up to 4 on ESP8266 / 8 on ESP32)
+        {
+            "channel": 8, // DMX channel
+            "type": "DIMMER", // Device type - DIMMER | RELAY | SERVO | REPEATER
+            "pin": 5, // Output pin
+            "level": "HIGH", // Output pin 'active' level - LOW | HIGH
+            "threshold": 127, // A level at such RELAY changes its state
+            "blackout": true // If true (default), set this device to 0 after 5s without an ArtNet frame
+        }
+    ]
 }
 ```
 
@@ -206,15 +252,15 @@ Response example:
 
 ```json
 {
-  "id": "d6b6b8",
-  "chip": "ESP32",
-  "version": "2026.1.35",
-  "built": "2026-06-13 14:05:21.993261",
-  "max_dmx_devices": 8,
-  "ssid": "BAM",
-  "rssi": -47,
-  "uptime": 123456,
-  "free_heap": 47820
+    "id": "d6b6b8",
+    "chip": "ESP32",
+    "version": "2026.1.35",
+    "built": "2026-06-13 14:05:21.993261",
+    "max_dmx_devices": 8,
+    "ssid": "BAM",
+    "rssi": -47,
+    "uptime": 123456,
+    "free_heap": 47820
 }
 ```
 
@@ -224,21 +270,21 @@ Payload example (see response example for details):
 
 ```json
 {
-  "hw": {
-    "freq": 600,
-    "ledPin": 2,
-    "buttonPin": 0,
-    "longPressDelay": 5000
-  },
-  "host": "BLACK",
-  "dmx": [
-    {
-      "channel": 9,
-      "type": "DIMMER",
-      "pin": 14,
-      "level": "LOW"
-    }
-  ]
+    "hw": {
+        "freq": 600,
+        "ledPin": 2,
+        "buttonPin": 0,
+        "longPressDelay": 5000
+    },
+    "host": "BLACK",
+    "dmx": [
+        {
+            "channel": 9,
+            "type": "DIMMER",
+            "pin": 14,
+            "level": "LOW"
+        }
+    ]
 }
 ```
 
@@ -246,11 +292,11 @@ it is not required to send the whole payload, it can be partial, missing element
 
 ```json
 {
-  "dmx": [
-    {
-      "channel": 9
-    }
-  ]
+    "dmx": [
+        {
+            "channel": 9
+        }
+    ]
 }
 ```
 
@@ -300,6 +346,7 @@ ESP32 builds now use **LittleFS** instead of SPIFFS - matching ESP8266, which ha
 What's lost is everything that lived in `/config/config.json`: hostname, universe, PWM frequency, and any configured DMX devices (e.g. a REPEATER) all revert to firmware defaults (empty device list, default hostname).
 
 To recover:
+
 1. Reflash **both** the firmware and the filesystem image - `pio run -t upload` and `pio run -t uploadfs` (or the equivalent `firmware.bin`/`littlefs.bin` OTA uploads). This restores `default.json` and the web UI.
 2. Re-apply your DMX/device configuration via [`POST /config`](#post-config), then [`POST /reboot`](#post-reboot).
 
@@ -309,9 +356,9 @@ ESP8266 devices are unaffected - they've always used LittleFS.
 
 ## TODO:
 
-- [ ] Root HTML - reset button
-- [ ] Root HTML - templates showing the host name and version
-- [ ] Root HTML - CSS
+- [x] Root HTML - reset button
+- [x] Root HTML - templates showing the host name and version
+- [x] Root HTML - CSS
 - [ ] BUG: Reboot doesn't always work correctly on Sonoff Basic
 - [ ] Document all known implementations
 - [x] DMX: support multiple universes (one per physical device)
@@ -339,12 +386,23 @@ Run the following before the first build to download the script:
 git submodule update --init --recursive
 ```
 
+The configuration web app has its own Node toolchain and is built separately - see [Web UI → Building and uploading](#building-and-uploading). Its built output is committed under `data/www/`, so a normal firmware build/flash does not need Node.
+
 ## Version History
 
 ### 2026.1
 
-- Repeater on ESP32 actually works! DMX sender runs on Core 1
-  - Repeater tested on ESP32, ESP32-S3
+A large internal refactor (the `big-refactor` branch) plus a new configuration web app. Externally-visible behavior (REST schema, filesystem paths, board pins) is unchanged except where noted.
+
+- **Configuration [Web UI](#web-ui)** - the home page is now a Preact single-page app: shows the firmware version and configures everything (hostname, universe, DMX devices, WiFi, advanced hardware/auth) over REST, with Reboot and Reset-WiFi.
+- **Redesigned, mobile-friendly captive portal**, served as a static asset and sharing the web app's styling.
+- **In-house captive portal** (replaced the third-party WiFi manager); `POST /reset-wifi` now reliably forces the setup portal on next boot.
+- **mDNS + NetBIOS** name advertising (`<hostname>.local`) and a corrected DHCP hostname.
+- **ESP32 filesystem moved from SPIFFS to LittleFS** - see [Upgrading](#esp32-filesystem-switched-from-spiffs-to-littlefs-v2026128).
+- **Optional HTTP basic-auth** for config / reboot / reset-wifi / OTA.
+- **Per-device "blackout on DMX signal loss"** option (DMX-timeout blackout is now configurable).
+- Repeater on ESP32 actually works (DMX sender on Core 1); tested on ESP32, ESP32-S3.
+- Source restructured into `app/`/`core/`/`net/`/`platform/` layers with a host-side unit-test suite; web assets built with a Vite/Preact toolchain (see [AGENTS.md](AGENTS.md)).
 
 ### 2025.1
 

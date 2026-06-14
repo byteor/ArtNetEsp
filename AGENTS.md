@@ -4,7 +4,7 @@ ArtNetEsp is an ESP8266/ESP32 Arduino firmware project (built with PlatformIO) t
 
 The `big-refactor` branch (see `REFACTORING_PLAN.md`) restructured most of `src/` without changing any externally-visible behavior (REST schema, FS paths, board pin assignments) — `src/app/`, `src/core/`, `src/net/`, and `src/platform/` are all new since that refactor, and `main.cpp` is now a 14-line shell. The sections below describe the post-refactor layout.
 
-For user-facing docs — device types, REST API, WiFi/captive portal behavior, OTA updates, version history, and the project TODO/backlog — see [README.md](README.md). This file is for anyone (human or AI) working on the firmware itself.
+For user-facing docs — device types, REST API, WiFi/captive portal behavior, the configuration web UI, OTA updates, version history, and the project TODO/backlog — see [README.md](README.md). This file is for anyone (human or AI) working on the firmware itself.
 
 ## 1. Build & Flash Quick Reference
 
@@ -266,6 +266,7 @@ The default `tick()` blacks out the device (`set(channel, 0)`) if `frame()` hasn
 2. Implement a class extending `Device` (header-only or `.h`/`.cpp`, following the existing patterns)
 3. Add a `case` to the `switch (cfg.type)` in `app::makeDevice` (`src/app/deviceFactory.cpp`), returning `std::make_unique<YourDevice>(...)`
 4. If it needs Servo/SPI/Wire/extra flash, wrap that `case` (and the corresponding `#include`) in the matching `#if FEATURE_*` (Gotcha #4)
+5. Surface it in the config web UI: add the wire string to the `DmxType` union in `web/src/types.ts` and to the `TYPES` array (and any type-specific fields) in `web/src/components/DeviceCard.tsx`, then `npm run build` + commit `data/www/` (Gotcha #13)
 
 ## 7. Configuration System
 
@@ -294,6 +295,6 @@ These describe the patterns already used in the codebase — useful for staying 
 
 ## 9. Further Reading
 
-- **[README.md](README.md)** — device type details (DIMMER/RELAY/SERVO/REPEATER configs), full REST API reference, WiFi/captive-portal behavior, OTA via `/update`, version history, and the **TODO list**, which doubles as the project backlog.
+- **[README.md](README.md)** — device type details (DIMMER/RELAY/SERVO/REPEATER configs), full REST API reference, WiFi/captive-portal behavior, the **Web UI** (config SPA architecture + build/upload), OTA via `/update`, version history, and the **TODO list**, which doubles as the project backlog.
 - **`assets/*.jpg`** — pinout reference images for ESP32 DevKitC v4, Lolin D32, and the XIAO ESP32-S3 repeater wiring.
 - **`REFACTORING_PLAN.md`** — the `big-refactor` branch's working document: 24 catalogued pre-refactor bugs (B1-B24), the phase-by-phase plan (Phases 0-8), and a per-item "Done" log describing exactly what changed and how each was verified. Phases 0-5 (CI/hygiene, bug fixes, renames, platform layer, board layer, core restructure) are complete as of this revision — the layout and interfaces described above (§3, §5, §6) are Phase 5's end state. Phases 6-8 (config robustness, dependency refresh, broader test coverage) are not yet started.
