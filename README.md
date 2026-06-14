@@ -228,7 +228,8 @@ Response example:
         "ssid": "BAM",
         "rssi": -47,
         "uptime": 123456,
-        "free_heap": 47820
+        "free_heap": 47820,
+        "ota": true // Whether the OTA /update endpoint is compiled in (false on sonoff builds)
     },
     "id": "d6b6b8", // Chip ID
     "host": "GREEN-d6d8", // Host name (used in ArtNet discovery)
@@ -263,6 +264,7 @@ Response example:
     "rssi": -47,
     "uptime": 123456,
     "free_heap": 47820,
+    "ota": true,
     "_needReboot": false
 }
 ```
@@ -334,7 +336,7 @@ Returns the heap size
 
 ## OTA
 
-OTA is supported via [http://<DEVICE_IP>/update](http://<DEVICE_IP>/update) URL
+OTA is supported via the [http://<DEVICE_IP>/update](http://<DEVICE_IP>/update) URL, also reachable from the **Open firmware updater** link in the web UI's **System** tab. That link is shown only when OTA is compiled in (it's stripped on the `sonoff_basic`/`sonoff_s31` builds via `DISABLE_OTA`); the UI hides it based on the `info.ota` flag from `GET /status`.
 
 ---
 
