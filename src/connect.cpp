@@ -1,5 +1,7 @@
 #include "connect.h"
 
+#include "Version.h"
+
 namespace
 {
 const byte DNS_PORT = 53;
@@ -31,32 +33,51 @@ bool Connect::tryStationConnect(unsigned long timeoutMs)
 
 String Connect::portalPage()
 {
-    String html = F("<!DOCTYPE html><html><head><title>");
-    html += hostName;
-    html += F(" - WiFi Setup</title></head><body>");
-    html += "<h1>" + hostName + " - WiFi Setup</h1>";
-    html += F("<p>Pick (or type) the WiFi network this device should join, "
-              "enter its password, and submit. The device will reboot and "
-              "try to connect - if it fails, this setup page reappears.</p>");
-    html += F("<form method=\"POST\" action=\"/\">");
-    html += F("<label>Network (SSID):</label><br>");
-    html += F("<input name=\"ssid\" list=\"ssids\" required><br>");
-    html += F("<datalist id=\"ssids\">");
-
-    // Blocking scan - acceptable here, nothing else is running while the
-    // portal is up (connect() blocks on credentialsReceived).
+    // Build the <option> list from a blocking scan - acceptable here, nothing
+    // else is running while the portal is up (connect() blocks on
+    // credentialsReceived).
+    String options;
     int found = WiFi.scanNetworks();
     for (int i = 0; i < found; i++)
     {
-        html += "<option value=\"" + WiFi.SSID(i) + "\">";
+        String ssid = WiFi.SSID(i);
+        // Minimal escaping so an SSID with quotes/angle-brackets/ampersands
+        // can't break out of the <option> it's dropped into.
+        ssid.replace("&", "&amp;");
+        ssid.replace("\"", "&quot;");
+        ssid.replace("<", "&lt;");
+        options += "<option value=\"" + ssid + "\">" + ssid + "</option>";
     }
     WiFi.scanDelete();
 
-    html += F("</datalist><br>");
-    html += F("<label>Password:</label><br>");
-    html += F("<input name=\"pass\" type=\"password\"><br><br>");
-    html += F("<input type=\"submit\" value=\"Connect\">");
-    html += F("</form></body></html>");
+    // Serve the styled page from LittleFS (data/www/portal.html), filling in
+    // the device name, version, AP IP, and scanned networks.
+    File f = ESP_FS.open(PORTAL_PAGE_PATH, "r");
+    if (!f)
+    {
+        // Fallback: firmware flashed without `pio run -t uploadfs`, so the
+        // static page isn't on the filesystem. Serve a minimal inline page
+        // so WiFi setup still works.
+        LOG(F("portal.html missing - serving minimal fallback page"));
+        String html = F("<!DOCTYPE html><html><head><meta name=\"viewport\" "
+                        "content=\"width=device-width,initial-scale=1\"><title>");
+        html += hostName;
+        html += F(" - WiFi Setup</title></head><body><h1>");
+        html += hostName;
+        html += F(" - WiFi Setup</h1><form method=\"POST\" action=\"/\">"
+                  "<input name=\"ssid\" placeholder=\"Network (SSID)\" required><br><br>"
+                  "<input name=\"pass\" type=\"password\" placeholder=\"Password\"><br><br>"
+                  "<input type=\"submit\" value=\"Connect\"></form></body></html>");
+        return html;
+    }
+
+    String html = f.readString();
+    f.close();
+
+    html.replace("{{HOST}}", hostName);
+    html.replace("{{VERSION}}", VERSION);
+    html.replace("{{IP}}", WiFi.softAPIP().toString());
+    html.replace("{{NETWORKS}}", options);
     return html;
 }
 
@@ -87,10 +108,24 @@ void Connect::startPortal()
             return;
         }
         newSsid = request->getParam("ssid", true)->value();
+        // The portal page's <select> offers an "Other network..." option
+        // (value "__other__") that reveals a free-text SSID field; honor it.
+        if (newSsid == "__other__")
+        {
+            newSsid = request->hasParam("ssid_manual", true) ? request->getParam("ssid_manual", true)->value() : "";
+        }
         newPass = request->hasParam("pass", true) ? request->getParam("pass", true)->value() : "";
-        request->send(200, "text/html", F("<!DOCTYPE html><html><body><h1>Connecting...</h1>"
-                                           "<p>Rebooting - rejoin this device's WiFi to retry "
-                                           "the setup page if it doesn't come back.</p></body></html>"));
+        request->send(200, "text/html",
+                      F("<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+                        "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+                        "<title>Connecting...</title><style>"
+                        "body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;"
+                        "background:#eef1f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1f2937}"
+                        "div{max-width:340px;text-align:center;background:#fff;padding:32px 26px;border-radius:16px;margin:16px}"
+                        "h1{margin:0 0 10px;font-size:20px;color:#1d4ed8}p{margin:0;font-size:14px;color:#6b7280;line-height:1.5}"
+                        "</style></head><body><div><h1>Connecting...</h1>"
+                        "<p>The device is rebooting and joining your network. If it doesn't come back, "
+                        "rejoin this device's WiFi to retry the setup page.</p></div></body></html>"));
         credentialsReceived = true; });
 
     // Captive-portal detection: send every other request to the setup page.

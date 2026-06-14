@@ -37,6 +37,12 @@ protected:
     // (B29) - a filesystem write/close is synchronous, unlike that erase.
     static constexpr const char *FORCE_PORTAL_PATH = "/force_portal.flag";
 
+    // Styled captive-portal page, flashed to LittleFS via `pio run -t uploadfs`
+    // (data/www/portal.html). portalPage() reads it and substitutes the
+    // {{HOST}}/{{VERSION}}/{{IP}}/{{NETWORKS}} placeholders; if it's missing
+    // (firmware flashed without uploadfs), a minimal inline page is served.
+    static constexpr const char *PORTAL_PAGE_PATH = "/www/portal.html";
+
     unsigned long lastRefreshTime;
     String hostName;
     // Tracks WiFi connection state across loop() ticks so the
