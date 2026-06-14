@@ -13,6 +13,8 @@ export interface Info {
   rssi: number;
   uptime: number;
   free_heap: number;
+  // GET /status also reports the pending-reboot flag (optional for older fw).
+  _needReboot?: boolean;
 }
 
 export interface DeviceConfig {

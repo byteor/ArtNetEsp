@@ -102,6 +102,12 @@ public:
         configToJson(doc);
     }
 
+    // Whether a config change has been applied that needs a reboot to take
+    // effect (the `_needReboot` flag exposed by GET /config and GET /status).
+    // Reset to false on boot (constructor) - not persisted - so it clears after
+    // a reboot, letting the web UI drop its "reboot required" banner.
+    bool needsReboot() const { return _dirty; }
+
     // DMX
     std::vector<DeviceConfig> dmx;
     // WiFi

@@ -77,13 +77,16 @@ void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
                     request->send(response); });
 
-    // GET /status: a lightweight poll endpoint with just the runtime "info"
-    // fields (no dmx[]/wifi[] arrays).
-    server->on("/status", HTTP_GET, [](AsyncWebServerRequest *request)
+    // GET /status: a lightweight poll endpoint with the runtime "info" fields
+    // (no dmx[]/wifi[] arrays) plus the _needReboot flag, so the web UI's
+    // periodic poll can clear its "reboot required" banner once the device has
+    // actually rebooted (_dirty resets to false on boot).
+    server->on("/status", HTTP_GET, [&config](AsyncWebServerRequest *request)
                {
                     LOG("GET /status");
                     JsonDocument doc;
                     fillInfo(doc.to<JsonObject>());
+                    doc["_needReboot"] = config.needsReboot();
                     String json;
                     serializeJson(doc, json);
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);

@@ -51,7 +51,12 @@ export function App() {
   useEffect(() => {
     const id = setInterval(() => {
       getStatus()
-        .then(setInfo)
+        .then((s) => {
+          setInfo(s);
+          // Keep the reboot banner in sync - in particular, clear it once the
+          // device has actually rebooted (_needReboot back to false).
+          if (typeof s._needReboot === "boolean") setNeedReboot(s._needReboot);
+        })
         .catch(() => {});
     }, 5000);
     return () => clearInterval(id);
