@@ -188,7 +188,9 @@ Then flash the filesystem image to the device from the repo root:
 pio run -e <env> -t uploadfs             # writes data/ (web UI + default config) to LittleFS
 ```
 
-> After editing anything under `web/`, re-run `npm run build` and commit `data/www/` before flashing - otherwise the device keeps serving the previously built UI.
+`uploadfs` (and `buildfs`) automatically run `npm run build` for you first when Node/npm are installed (a `tools/build_web.py` PlatformIO hook; the first run also does `npm install`), so the flashed image is always fresh. Without the toolchain it prints a warning and flashes the committed `data/www/` as-is.
+
+> Even with the auto-rebuild hook, re-run `npm run build` and **commit** `data/www/` after editing anything under `web/` - that committed output is what CI and Node-free machines (and OTA `littlefs.bin` uploads) actually serve.
 
 ## Variations
 
