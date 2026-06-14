@@ -100,6 +100,13 @@ void Connect::startPortal()
     server->on("/", HTTP_GET, [this](AsyncWebServerRequest *request)
                { request->send(200, "text/html", portalPage()); });
 
+    // portalPage() links /style.css (the same stylesheet the home page uses);
+    // serve it straight from LittleFS. Without this route the onNotFound
+    // captive-portal redirect below would bounce it back to "/" and the page
+    // would render unstyled.
+    server->on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request)
+               { request->send(ESP_FS, "/www/style.css", "text/css"); });
+
     server->on("/", HTTP_POST, [this](AsyncWebServerRequest *request)
                {
         if (!request->hasParam("ssid", true))

@@ -1,4 +1,0 @@
-# Captive-portal page is served from LittleFS on memory-constrained ESP8266
-# boards (read whole-file into RAM during the portal), so it's kept minified
-# on purpose - don't let the formatter expand it.
-data/www/portal.html

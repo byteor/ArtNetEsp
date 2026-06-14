@@ -1,51 +1,97 @@
 <!DOCTYPE html>
-<head>
-  <link rel="stylesheet" href="index.css" />
-  <title>Art Net Node</title>
-  <script>
-    function reboot() {
-      fetch("/reboot", {
-        method: "POST",
-      }).then((res) => {
-        alert("Rebooting...");
-      });
-    }
-  </script>
-  <html>
-    <body>
-      <h1>Art Net Node</h1>
-      <a href="/config">View Configuration</a>
-      <br /><br />
-      <a href="/update">Update firmware</a>
-      <br /><br />
-      <button onclick="reboot()">Reboot</button>
-      <h2>REST API:</h2>
-      <table border="1">
-        <tr>
-          <td>GET</td>
-          <td>/config</td>
-          <td>Get configuration</td>
-        </tr>
-        <tr>
-          <td>POST</td>
-          <td>/config</td>
-          <td>Update configuration</td>
-        </tr>
-        <tr>
-          <td>POST</td>
-          <td>/reboot</td>
-          <td>Reboot</td>
-        </tr>
-        <tr>
-          <td>POST</td>
-          <td>/reset-wifi</td>
-          <td>Reset WiFi settings and reboot</td>
-        </tr>
-      </table>
-      <hr />
-      <a href="https://github.com/byteor/ArtNetEsp"
-        >https://github.com/byteor/ArtNetEsp</a
-      >
-    </body>
-  </html>
-</head>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>ArtNet Node</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="head">
+        <div class="badge">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="#fff">
+            <circle cx="12" cy="6.5" r="1.6" />
+            <circle cx="7.5" cy="12.5" r="1.6" />
+            <circle cx="16.5" cy="12.5" r="1.6" />
+            <circle cx="12" cy="17.5" r="1.6" />
+            <circle cx="12" cy="12" r="7.5" fill="none" stroke="#fff" stroke-width="1.6" />
+          </svg>
+        </div>
+        <h1>ArtNet Node</h1>
+        <p>Control Panel</p>
+      </div>
+
+      <div class="body">
+        <a class="btn" href="/config">View Configuration</a>
+        <a class="btn" href="/update">Update Firmware</a>
+        <button class="btn secondary" onclick="reboot()">Reboot</button>
+
+        <h2 class="sec">REST API</h2>
+        <table>
+          <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+          <tr><td>GET</td><td><code>/config</code></td><td>Get configuration</td></tr>
+          <tr><td>POST</td><td><code>/config</code></td><td>Update configuration</td></tr>
+          <tr><td>GET</td><td><code>/status</code></td><td>Runtime status</td></tr>
+          <tr><td>GET</td><td><code>/heap</code></td><td>Free heap</td></tr>
+          <tr><td>POST</td><td><code>/reboot</code></td><td>Reboot</td></tr>
+          <tr><td>POST</td><td><code>/reset-wifi</code></td><td>Reset WiFi &amp; reboot</td></tr>
+        </table>
+
+        <a class="repo" href="https://github.com/byteor/ArtNetEsp">github.com/byteor/ArtNetEsp</a>
+      </div>
+
+      <div class="foot">
+        <div>
+          <div class="ic">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="7" y="3" width="10" height="18" rx="2" />
+              <path d="M11 18h2" />
+            </svg>
+          </div>
+          <b id="f-host">&mdash;</b><span>Device</span>
+        </div>
+        <div>
+          <div class="ic">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z" />
+            </svg>
+          </div>
+          <b id="f-ssid">&mdash;</b><span>Network</span>
+        </div>
+        <div>
+          <div class="ic">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="7" y="7" width="10" height="10" rx="1.5" />
+              <path d="M10 3v3M14 3v3M10 18v3M14 18v3M3 10h3M3 14h3M18 10h3M18 14h3" />
+            </svg>
+          </div>
+          <b id="f-version">&mdash;</b><span>Firmware</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function reboot() {
+        if (!confirm("Reboot the device?")) return;
+        fetch("/reboot", { method: "POST" }).then(function () {
+          alert("Rebooting...");
+        });
+      }
+      fetch("/status")
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (s) {
+          document.getElementById("f-ssid").textContent = s.ssid || "AP mode";
+          document.getElementById("f-version").textContent = s.version;
+          document.getElementById("f-host").textContent = s.id;
+        })
+        .catch(function () {});
+    </script>
+  </body>
+</html>

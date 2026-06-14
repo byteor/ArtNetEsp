@@ -1,0 +1,316 @@
+/*
+ * Shared styling for the ArtNet Node web UI - used by both the captive-portal
+ * setup page (portal.html) and the home/control page (index.html).
+ *
+ * Keep this file human-readable: it's minified automatically when the
+ * filesystem image is built (see tools/minify_fs.py), so the on-device copy
+ * is small even though the source isn't.
+ */
+
+:root {
+  --blue: #1d4ed8;
+  --blue2: #2563eb;
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --bg: #eef1f6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+.wrap {
+  max-width: 440px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header card */
+.head {
+  background: linear-gradient(160deg, var(--blue2), var(--blue));
+  color: #fff;
+  padding: 28px 24px 26px;
+  text-align: center;
+  border-radius: 0 0 22px 22px;
+}
+
+.badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.head h3 {
+  margin: 6px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.95;
+  word-break: break-word;
+}
+
+.head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+/* Body */
+.body {
+  padding: 22px;
+  flex: 1;
+}
+
+.lead {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+.lead .ic {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e8efff;
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lead h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.lead small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Form controls */
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 7px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.ctrl {
+  position: relative;
+  flex: 1;
+}
+
+.ctrl .pre {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.ctrl .post {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+input,
+select {
+  width: 100%;
+  font-size: 15px;
+  padding: 13px 14px 13px 40px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--ink);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--blue2);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%236b7280' stroke-width='2'><path d='M2 5l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+}
+
+.icbtn {
+  flex: none;
+  width: 48px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icbtn:active {
+  background: #f3f4f6;
+}
+
+.chk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  margin: -6px 0 6px;
+}
+
+.chk input {
+  width: auto;
+  padding: 0;
+}
+
+/* Buttons / link-buttons (shared by both pages) */
+.btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  border: 0;
+  border-radius: 11px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 15px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.btn:first-child {
+  margin-top: 0;
+}
+
+.btn:active {
+  background: var(--blue2);
+}
+
+.btn.secondary {
+  background: #fff;
+  color: var(--blue);
+  border: 1px solid var(--line);
+}
+
+.btn.secondary:active {
+  background: #f3f4f6;
+}
+
+/* Section heading + REST table (home page) */
+.sec {
+  font-size: 15px;
+  margin: 26px 0 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+td code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.repo {
+  display: block;
+  text-align: center;
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--blue);
+  text-decoration: none;
+}
+
+/* Footer: device / IP / firmware */
+.foot {
+  display: flex;
+  border-top: 1px solid var(--line);
+  background: #f7f8fa;
+}
+
+.foot div {
+  flex: 1;
+  text-align: center;
+  padding: 14px 6px;
+}
+
+.foot .ic {
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.foot b {
+  display: block;
+  font-size: 13px;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.foot span {
+  font-size: 11px;
+  color: var(--muted);
+}
