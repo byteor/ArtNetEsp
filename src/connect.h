@@ -4,7 +4,13 @@
 #include "platform/filesystem.h"
 
 #include <ESPAsyncWebServer.h>
-#include <ESPAsyncWiFiManager.h> //https://github.com/tzapu/WiFiManager
+#include <DNSServer.h>
+
+#ifdef ESP32
+#include <WiFi.h>
+#else
+#include <ESP8266WiFi.h>
+#endif
 
 #include "hw/logger.h"
 #include "hw/statusLed.h"
@@ -12,10 +18,18 @@
 class Connect
 {
 protected:
-    AsyncWiFiManager *wifiManager;
+    AsyncWebServer *server;
+    DNSServer *dns;
     StatusLed *status;
 
     static const unsigned long REFRESH_INTERVAL = 1000; // ms
+    // Cold-boot: how long to wait for WiFi.begin() (NVS-saved credentials)
+    // before giving up and opening the setup portal.
+    static const unsigned long STA_CONNECT_TIMEOUT_MS = 10000;
+    // Portal: how long to wait for newly-submitted credentials to connect
+    // before rebooting (and re-opening the portal if they were wrong).
+    static const unsigned long PORTAL_CONNECT_TIMEOUT_MS = 15000;
+
     unsigned long lastRefreshTime;
     String hostName;
     // Tracks WiFi connection state across loop() ticks so the
@@ -23,8 +37,23 @@ protected:
     // second (B12).
     bool wifiConnected = true;
 
+    // Set by the portal's POST handler once the user submits credentials;
+    // connect() blocks on this while servicing DNS requests.
+    volatile bool credentialsReceived = false;
+    String newSsid;
+    String newPass;
+
+    // Tries WiFi.begin() with whatever credentials are already stored in
+    // the WiFi stack's NVS, waiting up to timeoutMs.
+    bool tryStationConnect(unsigned long timeoutMs);
+    // Brings up an open AP + DNS wildcard redirect + a minimal setup page
+    // on `server`, and registers the handlers that set credentialsReceived.
+    void startPortal();
+    String portalPage();
+
 public:
-    // status outlives this Connect (owned by App) - Connect only observes it.
+    // server/dns/status outlive this Connect (owned by App) - Connect only
+    // observes/uses them.
     void init(AsyncWebServer *server, DNSServer *dns, StatusLed *status);
     void connect(String hostName);
     void loop();
