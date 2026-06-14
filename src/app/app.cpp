@@ -2,6 +2,7 @@
 
 #include "boards/board.h"
 #include "platform/filesystem.h"
+#include "platform/mdns.h"
 #include "platform/pwm.h"
 
 #ifndef DISABLE_OTA
@@ -94,7 +95,10 @@ void App::setup()
     connect.init(&server, &dnsServer, status.get());
     connect.connect(config.host);
 
-    // TODO: Start mDNS
+    if (config.host.length())
+    {
+        platform::mdnsBegin(config.host);
+    }
 
     // ArtNet
     String longName = config.host;
@@ -139,6 +143,7 @@ void App::loop()
     ElegantOTA.loop();
 #endif
     connect.loop();
+    platform::mdnsLoop();
 #if FEATURE_OLED
     statusDisplay->loop();
 #endif
