@@ -65,6 +65,19 @@ export function AdvancedSection({ draft, patch, save, busy, dirty, open, onToggl
         </div>
       </div>
 
+      <label class="chk" style="margin:12px 0 2px">
+        <input
+          type="checkbox"
+          checked={hw.wifiPowerSave}
+          onChange={(e) => set("wifiPowerSave", e.currentTarget.checked)}
+        />{" "}
+        WiFi power saving (higher latency)
+      </label>
+      <span class="hint">
+        Leave off for the lowest Art-Net latency and the tightest sync across
+        devices. Turn on only to reduce power draw (e.g. battery setups).
+      </span>
+
       <label class="chk" style="margin:12px 0">
         <input
           type="checkbox"

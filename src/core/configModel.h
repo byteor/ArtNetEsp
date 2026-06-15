@@ -31,6 +31,11 @@ struct HardwareConfig
     uint8_t ledPin;
     uint8_t buttonPin;
     uint16_t longPressDelay;
+    // WiFi modem-sleep policy. false (default) keeps the radio always on for
+    // the lowest Art-Net receive latency/jitter and tightest multi-device sync
+    // on WiFi; true re-enables modem sleep to save power. Old configs without
+    // "hw.wifiPowerSave" default to false (radio always on).
+    bool wifiPowerSave = false;
     // Optional HTTP basic-auth for mutating REST routes and /update (OTA).
     // Off by default - old configs without "hw.authEnabled" are unaffected.
     bool authEnabled = false;

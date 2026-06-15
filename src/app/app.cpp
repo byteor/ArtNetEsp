@@ -90,7 +90,7 @@ void App::setup()
 
     LOG("Init WiFi...");
     connect.init(&server, &dnsServer, status.get());
-    connect.connect(config.host);
+    connect.connect(config.host, config.hardware.wifiPowerSave);
 
     if (config.host.length())
     {

@@ -28,6 +28,21 @@ void Connect::applyHostname()
     }
 }
 
+void Connect::applyPowerSave()
+{
+    // Default (wifiPowerSave == false) disables modem sleep so the radio stays
+    // awake between AP beacons - this cuts Art-Net receive latency/jitter from
+    // up to a DTIM interval (~100ms+) down to a few ms, which is the dominant
+    // factor in keeping multiple WiFi nodes in sync. Costs ~20-40mA extra.
+#ifdef ESP32
+    WiFi.setSleep(wifiPowerSave); // false => WIFI_PS_NONE (radio always on)
+#else
+    WiFi.setSleepMode(wifiPowerSave ? WIFI_MODEM_SLEEP : WIFI_NONE_SLEEP);
+#endif
+    LOG(wifiPowerSave ? F("WiFi power save ON (modem sleep)")
+                      : F("WiFi power save OFF (radio always on, low latency)"));
+}
+
 bool Connect::tryStationConnect(unsigned long timeoutMs)
 {
     WiFi.mode(WIFI_STA);
@@ -37,6 +52,7 @@ bool Connect::tryStationConnect(unsigned long timeoutMs)
     // (or ESPAsyncWiFiManager, before this) would have written via
     // WiFi.begin(ssid, pass)'s default WiFi.persistent(true).
     WiFi.begin();
+    applyPowerSave();
 
     unsigned long start = millis();
     while (WiFi.status() != WL_CONNECTED && millis() - start < timeoutMs)
@@ -160,10 +176,11 @@ void Connect::startPortal()
     server->begin();
 }
 
-void Connect::connect(String hostName)
+void Connect::connect(String hostName, bool wifiPowerSave)
 {
     status->set(StatusLed::Connecting);
     this->hostName = hostName;
+    this->wifiPowerSave = wifiPowerSave;
 
     bool forcePortal = ESP_FS.exists(FORCE_PORTAL_PATH);
     if (forcePortal)
@@ -271,6 +288,9 @@ void Connect::loop()
             wifiConnected = true;
             LOG(F("WiFi reconnected"));
             LOG(WiFi.localIP());
+            // Re-assert the modem-sleep policy: a reconnect can reset it back
+            // to the stack default.
+            applyPowerSave();
             status->set(StatusLed::Connected);
         }
     }

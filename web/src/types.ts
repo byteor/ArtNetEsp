@@ -43,6 +43,9 @@ export interface HardwareConfig {
   ledPin: number;
   buttonPin: number;
   longPressDelay: number;
+  // false (default) = WiFi radio always on, for lowest Art-Net latency and
+  // tightest multi-device sync; true = re-enable modem sleep to save power.
+  wifiPowerSave: boolean;
   authEnabled: boolean;
   authUser: string;
   authPass: string;

@@ -114,6 +114,7 @@ void test_hardware_roundtrip(void)
     original.ledPin = 13;
     original.buttonPin = 4;
     original.longPressDelay = 3000;
+    original.wifiPowerSave = true;
     original.authEnabled = true;
     original.authUser = "admin";
     original.authPass = "s3cr3t";
@@ -128,6 +129,7 @@ void test_hardware_roundtrip(void)
     TEST_ASSERT_EQUAL(original.ledPin, parsed.ledPin);
     TEST_ASSERT_EQUAL(original.buttonPin, parsed.buttonPin);
     TEST_ASSERT_EQUAL(original.longPressDelay, parsed.longPressDelay);
+    TEST_ASSERT_EQUAL(original.wifiPowerSave, parsed.wifiPowerSave);
     TEST_ASSERT_EQUAL(original.authEnabled, parsed.authEnabled);
     TEST_ASSERT_EQUAL_STRING(original.authUser.c_str(), parsed.authUser.c_str());
     TEST_ASSERT_EQUAL_STRING(original.authPass.c_str(), parsed.authPass.c_str());
@@ -148,6 +150,9 @@ void test_hardware_auth_defaults_to_off(void)
     TEST_ASSERT_FALSE(parsed.authEnabled);
     TEST_ASSERT_EQUAL_STRING("", parsed.authUser.c_str());
     TEST_ASSERT_EQUAL_STRING("", parsed.authPass.c_str());
+    // An "hw" object that predates wifiPowerSave must default to false
+    // (radio always on / power save disabled).
+    TEST_ASSERT_FALSE(parsed.wifiPowerSave);
 }
 
 void test_hardware_partial_update_keeps_defaults(void)

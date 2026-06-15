@@ -45,6 +45,10 @@ protected:
 
     unsigned long lastRefreshTime;
     String hostName;
+    // WiFi modem-sleep policy (config hw.wifiPowerSave). false = radio always
+    // on (lowest Art-Net latency/jitter, best multi-device sync); applied on
+    // every (re)connect via applyPowerSave().
+    bool wifiPowerSave = false;
     // Tracks WiFi connection state across loop() ticks so the
     // lost/reconnected transitions are logged once, not every
     // second (B12).
@@ -59,6 +63,8 @@ protected:
     // Applies the configured DHCP hostname; call between WiFi.mode(WIFI_STA)
     // and WiFi.begin() (see the definition for the ESP32 ordering caveat).
     void applyHostname();
+    // Applies the WiFi modem-sleep policy (wifiPowerSave) to the radio.
+    void applyPowerSave();
     // Tries WiFi.begin() with whatever credentials are already stored in
     // the WiFi stack's NVS, waiting up to timeoutMs.
     bool tryStationConnect(unsigned long timeoutMs);
@@ -71,7 +77,7 @@ public:
     // server/dns/status outlive this Connect (owned by App) - Connect only
     // observes/uses them.
     void init(AsyncWebServer *server, DNSServer *dns, StatusLed *status);
-    void connect(String hostName);
+    void connect(String hostName, bool wifiPowerSave);
     void loop();
     void reset();
 };

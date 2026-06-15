@@ -63,6 +63,8 @@ inline HardwareConfig hardwareFromJson(JsonVariantConst obj, const HardwareConfi
         hw.buttonPin = obj["buttonPin"] | defaults.buttonPin;
     if (!obj["longPressDelay"].isNull())
         hw.longPressDelay = obj["longPressDelay"] | defaults.longPressDelay;
+    if (!obj["wifiPowerSave"].isNull())
+        hw.wifiPowerSave = obj["wifiPowerSave"] | defaults.wifiPowerSave;
     if (!obj["authEnabled"].isNull())
         hw.authEnabled = obj["authEnabled"] | defaults.authEnabled;
     if (!obj["authUser"].isNull())
@@ -78,6 +80,7 @@ inline void hardwareToJson(const HardwareConfig &hw, JsonObject obj)
     obj["ledPin"] = hw.ledPin;
     obj["buttonPin"] = hw.buttonPin;
     obj["longPressDelay"] = hw.longPressDelay;
+    obj["wifiPowerSave"] = hw.wifiPowerSave;
     obj["authEnabled"] = hw.authEnabled;
     obj["authUser"] = hw.authUser.c_str();
     obj["authPass"] = hw.authPass.c_str();
