@@ -214,6 +214,7 @@ Response example:
         "ledPin": 2, // GPIO pin cooected to indicator LED
         "buttonPin": 0, // GPIO pin connected to button
         "longPressDelay": 5000, // Duration in ms to cause a 'factory reset'
+        "wifiPowerSave": false, // false (default) keeps the WiFi radio always on for lowest Art-Net latency / tightest multi-device sync; true re-enables modem sleep to save power
         "authEnabled": false, // If true, require HTTP basic-auth for POST /config, /reboot, /reset-wifi and /update
         "authUser": "", // Basic-auth username (used only if authEnabled)
         "authPass": "" // Basic-auth password (used only if authEnabled)
