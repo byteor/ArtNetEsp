@@ -160,6 +160,8 @@ Once the device is on your network, its home page (`http://<device-ip>/` or `htt
 
 Changes are saved one section at a time; when a change needs a restart, a "reboot required" banner appears. The app shares the same look as the [Captive Portal](#wifi-connection-and-captive-portal).
 
+> **Canonical UX contract:** the SPA's information architecture, per-section fields, and behavior are specified (and versioned) in [`docs/API_UX_DESIGN.md`](docs/API_UX_DESIGN.md) — follow it when reconstructing the UI so the UX stays identical.
+
 ### Architecture
 
 - **Source** lives in [`web/`](web/) - a Vite + Preact + TypeScript project: components under `web/src/`, and the shared stylesheet (`style.css`) plus the captive-portal page (`portal.html`) under `web/public/`.
@@ -200,6 +202,8 @@ pio run -e <env> -t uploadfs             # writes data/ (web UI + default config
 - [x] Only RELAY device type is supported
 
 ## REST API
+
+> **Canonical contract:** [`docs/API_UX_DESIGN.md`](docs/API_UX_DESIGN.md) is the authoritative, versioned spec of the REST API for client authors (and is authoritative on any conflict with the prose below). The reference here is a human-friendly walkthrough.
 
 ### GET /config
 
