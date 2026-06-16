@@ -41,14 +41,6 @@ namespace art
 // but doesn't act on it yet - this just establishes the migration hook.
 #define CONFIG_SCHEMA_VERSION 1
 
-typedef struct
-{
-    String ssid; // SSID
-    String pass;
-    bool dhcp;
-    uint8_t order; // Order number
-} WiFiNet;
-
 // core::DmxType is the canonical enum (src/core/dmxTypes.h, platform-free);
 // this alias preserves the art::DmxType spelling used throughout this codebase.
 using DmxType = core::DmxType;
@@ -64,11 +56,11 @@ class Config
     bool _dirty; // A flag that indicates that the module needs a reboot due to a changed config
 
     // B11: POST /config (on ESP32, the async_tcp task) stages the raw JSON
-    // here instead of touching config.dmx/config.wifi directly - those
-    // vectors are read every loop() iteration (device handle(), the
-    // button handler, StatusDisplay). applyPendingUpdate() is called from
-    // loop(), so the actual update()/cleanupDmx()/cleanupWiFi()/save() runs
-    // single-threaded, on the same task as the readers.
+    // here instead of touching config.dmx directly - that vector is read
+    // every loop() iteration (device handle(), the button handler,
+    // StatusDisplay). applyPendingUpdate() is called from loop(), so the
+    // actual update()/cleanupDmx()/save() runs single-threaded, on the same
+    // task as the readers.
     char _pendingJson[CONFIG_BUFFER_SIZE];
     volatile bool _hasPending = false;
 #ifdef ESP32
@@ -84,7 +76,6 @@ protected:
     void configFromJson(JsonVariant doc);
     void configToJson(JsonDocument &doc);
     void cleanup();
-    void cleanupWiFi();
     void cleanupDmx();
 
 public:
@@ -94,7 +85,7 @@ public:
     }
 
     // Serializes the persisted config (configVersion/_needReboot/hw/host/
-    // universe/wifi/dmx) to doc. Does NOT include "info" - that's runtime
+    // universe/dmx) to doc. Does NOT include "info" - that's runtime
     // WiFi/build/chip identity, not part of the persisted config; webApi's
     // GET /config and GET /status add it separately (§1.2.9 layering fix).
     void toJson(JsonDocument &doc)
@@ -110,8 +101,6 @@ public:
 
     // DMX
     std::vector<DeviceConfig> dmx;
-    // WiFi
-    std::vector<WiFiNet> wifi;
     String host;
     unsigned int universe = 0;
     HardwareConfig hardware;

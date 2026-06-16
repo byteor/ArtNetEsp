@@ -86,24 +86,4 @@ inline void hardwareToJson(const HardwareConfig &hw, JsonObject obj)
     obj["authPass"] = hw.authPass.c_str();
 }
 
-// dhcp is always true on read (matches the pre-extraction configFromJson,
-// which never reads a "dhcp" key from JSON).
-inline WifiNet wifiNetFromJson(JsonVariantConst obj)
-{
-    WifiNet net;
-    net.ssid = std::string(obj["ssid"] | "");
-    net.pass = std::string(obj["pass"] | "");
-    net.dhcp = true;
-    net.order = obj["order"] | 1;
-    return net;
-}
-
-inline void wifiNetToJson(const WifiNet &net, JsonObject obj)
-{
-    obj["ssid"] = net.ssid.c_str();
-    obj["pass"] = net.pass.c_str();
-    obj["dhcp"] = net.dhcp;
-    obj["order"] = net.order;
-}
-
 } // namespace core

@@ -9,7 +9,6 @@
 using core::DeviceConfig;
 using core::DmxType;
 using core::HardwareConfig;
-using core::WifiNet;
 
 // HIGH/LOW as used by Arduino - not available in the native env.
 constexpr uint8_t HIGH_STATE = 1;
@@ -175,46 +174,10 @@ void test_hardware_partial_update_keeps_defaults(void)
     TEST_ASSERT_EQUAL(defaults.longPressDelay, parsed.longPressDelay);
 }
 
-void test_wifiNet_roundtrip(void)
-{
-    WifiNet original;
-    original.ssid = "MyNetwork";
-    original.pass = "s3cr3t";
-    original.dhcp = true;
-    original.order = 2;
-
-    JsonDocument doc;
-    core::wifiNetToJson(original, doc.to<JsonObject>());
-
-    WifiNet parsed = core::wifiNetFromJson(doc.as<JsonObject>());
-
-    TEST_ASSERT_EQUAL_STRING(original.ssid.c_str(), parsed.ssid.c_str());
-    TEST_ASSERT_EQUAL_STRING(original.pass.c_str(), parsed.pass.c_str());
-    TEST_ASSERT_EQUAL(original.dhcp, parsed.dhcp);
-    TEST_ASSERT_EQUAL(original.order, parsed.order);
-}
-
-void test_wifiNet_dhcp_always_true_on_read(void)
-{
-    JsonDocument doc;
-    doc["ssid"] = "Net";
-    doc["pass"] = "pw";
-    doc["order"] = 1;
-    // No "dhcp" key present at all.
-
-    WifiNet parsed = core::wifiNetFromJson(doc.as<JsonObject>());
-
-    TEST_ASSERT_TRUE(parsed.dhcp);
-}
-
-// A full-Config-shaped JSON doc (wifi[] + dmx[] + hw), pushed through the
-// codec functions for every entry, save -> load -> deep-equal.
+// A full-Config-shaped JSON doc (dmx[] + hw), pushed through the codec
+// functions for every entry, save -> load -> deep-equal.
 void test_full_config_shaped_doc_roundtrip(void)
 {
-    std::vector<WifiNet> wifiOriginal = {
-        {"Home", "homepass", true, 1},
-        {"Backup", "backuppass", true, 2},
-    };
     std::vector<DeviceConfig> dmxOriginal = {
         sampleDeviceConfig(),
         defaultDeviceConfig(),
@@ -227,9 +190,6 @@ void test_full_config_shaped_doc_roundtrip(void)
 
     // Serialize, as configToJson would.
     JsonDocument doc;
-    JsonArray wifiArr = doc["wifi"].to<JsonArray>();
-    for (const auto &net : wifiOriginal)
-        core::wifiNetToJson(net, wifiArr.add<JsonObject>());
     JsonArray dmxArr = doc["dmx"].to<JsonArray>();
     for (const auto &ch : dmxOriginal)
         core::dmxChannelToJson(ch, dmxArr.add<JsonObject>());
@@ -243,23 +203,11 @@ void test_full_config_shaped_doc_roundtrip(void)
     TEST_ASSERT_FALSE(err);
 
     // Deserialize, as configFromJson would.
-    std::vector<WifiNet> wifiParsed;
-    for (JsonObject net : loaded["wifi"].as<JsonArray>())
-        wifiParsed.push_back(core::wifiNetFromJson(net));
     std::vector<DeviceConfig> dmxParsed;
     DeviceConfig defaults = defaultDeviceConfig();
     for (JsonObject ch : loaded["dmx"].as<JsonArray>())
         dmxParsed.push_back(core::dmxChannelFromJson(ch, defaults));
     HardwareConfig hwParsed = core::hardwareFromJson(loaded["hw"], HardwareConfig{});
-
-    TEST_ASSERT_EQUAL(wifiOriginal.size(), wifiParsed.size());
-    for (size_t i = 0; i < wifiOriginal.size(); i++)
-    {
-        TEST_ASSERT_EQUAL_STRING(wifiOriginal[i].ssid.c_str(), wifiParsed[i].ssid.c_str());
-        TEST_ASSERT_EQUAL_STRING(wifiOriginal[i].pass.c_str(), wifiParsed[i].pass.c_str());
-        TEST_ASSERT_EQUAL(wifiOriginal[i].dhcp, wifiParsed[i].dhcp);
-        TEST_ASSERT_EQUAL(wifiOriginal[i].order, wifiParsed[i].order);
-    }
 
     TEST_ASSERT_EQUAL(dmxOriginal.size(), dmxParsed.size());
     for (size_t i = 0; i < dmxOriginal.size(); i++)
@@ -280,8 +228,6 @@ int main(int argc, char **argv)
     RUN_TEST(test_hardware_roundtrip);
     RUN_TEST(test_hardware_auth_defaults_to_off);
     RUN_TEST(test_hardware_partial_update_keeps_defaults);
-    RUN_TEST(test_wifiNet_roundtrip);
-    RUN_TEST(test_wifiNet_dhcp_always_true_on_read);
     RUN_TEST(test_full_config_shaped_doc_roundtrip);
     return UNITY_END();
 }

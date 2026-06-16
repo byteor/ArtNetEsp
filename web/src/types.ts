@@ -31,13 +31,6 @@ export interface DeviceConfig {
   blackout: boolean;
 }
 
-export interface WifiNet {
-  ssid: string;
-  pass: string;
-  dhcp?: boolean;
-  order?: number;
-}
-
 export interface HardwareConfig {
   freq: number;
   ledPin: number;
@@ -57,14 +50,13 @@ export interface FullConfig {
   hw: HardwareConfig;
   host: string;
   universe: number;
-  wifi: WifiNet[];
   dmx: DeviceConfig[];
   info: Info;
 }
 
 // A section-scoped POST /config body (the firmware merges partial updates).
 export type ConfigPatch = Partial<
-  Pick<FullConfig, "host" | "universe" | "wifi" | "dmx" | "hw">
+  Pick<FullConfig, "host" | "universe" | "dmx" | "hw">
 >;
 
 export type Save = (patch: ConfigPatch) => Promise<void>;

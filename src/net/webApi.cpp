@@ -109,11 +109,10 @@ void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
             return;
 
         // B11: this lambda runs in the async_tcp task on ESP32, while loop()
-        // (main task) concurrently reads config.dmx/config.wifi (device
-        // handle(), button handler, StatusDisplay). Stage the JSON here and
-        // let loop() call applyPendingUpdate(), so update()/cleanupDmx()/
-        // cleanupWiFi()/save() run single-threaded on the same task as those
-        // readers.
+        // (main task) concurrently reads config.dmx (device handle(), button
+        // handler, StatusDisplay). Stage the JSON here and let loop() call
+        // applyPendingUpdate(), so update()/cleanupDmx()/save() run
+        // single-threaded on the same task as those readers.
         AsyncWebServerResponse *response;
         if (config.stageUpdate(json))
         {

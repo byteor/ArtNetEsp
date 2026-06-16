@@ -138,11 +138,6 @@ void Config::serialize(String &to)
     serializeJsonPretty(doc, to);
 }
 
-void Config::cleanupWiFi()
-{
-    wifi.clear();
-}
-
 void Config::cleanupDmx()
 {
     dmx.clear();
@@ -152,7 +147,6 @@ void Config::cleanup()
 {
     host = DEFAULT_HOST_NAME;
     hardware.pwmFreq = DEFAULT_PWM_FREQ;
-    cleanupWiFi();
     cleanupDmx();
 }
 
@@ -169,24 +163,6 @@ void Config::configFromJson(JsonVariant doc)
     {
         universe = doc["universe"].as<unsigned int>();
         LOG("Universe: " + String(universe));
-    }
-
-    JsonArray nets = doc["wifi"].as<JsonArray>();
-    if (nets.size() > 0)
-    {
-        LOG("WiFi:");
-        cleanupWiFi();
-        for (JsonObject net : nets)
-        {
-            core::WifiNet coreNet = core::wifiNetFromJson(net);
-            WiFiNet wifiNet;
-            wifiNet.ssid = String(coreNet.ssid.c_str());
-            wifiNet.pass = String(coreNet.pass.c_str());
-            wifiNet.dhcp = coreNet.dhcp;
-            wifiNet.order = coreNet.order;
-            wifi.push_back(wifiNet);
-            LOG("  " + wifiNet.ssid);
-        }
     }
 
     JsonArray channels = doc["dmx"].as<JsonArray>();
@@ -228,17 +204,6 @@ void Config::configToJson(JsonDocument &doc)
     doc["host"] = host;
     doc["universe"] = universe;
 
-    JsonArray wifiNets = doc.createNestedArray("wifi");
-    for (size_t i = 0; i < wifi.size(); i++)
-    {
-        const WiFiNet &net = wifi[i];
-        core::WifiNet coreNet;
-        coreNet.ssid = net.ssid.c_str();
-        coreNet.pass = net.pass.c_str();
-        coreNet.dhcp = net.dhcp;
-        coreNet.order = net.order;
-        core::wifiNetToJson(coreNet, wifiNets.createNestedObject());
-    }
     JsonArray channels = doc.createNestedArray("dmx");
     for (size_t i = 0; i < dmx.size() && i < MAX_DMX_DEVICES; i++)
     {

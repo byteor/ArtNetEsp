@@ -1,9 +1,9 @@
 #pragma once
 
 // Platform-free (no Arduino.h) - safe to include from native tests and from
-// any translation unit. Mirrors the wire shapes art::DeviceConfig/HardwareConfig/
-// WiFiNet (config.h) serialize to/from - see core/configCodec.h for the
-// ArduinoJson conversions.
+// any translation unit. Mirrors the wire shapes art::DeviceConfig/HardwareConfig
+// (config.h) serialize to/from - see core/configCodec.h for the ArduinoJson
+// conversions.
 
 #include <cstdint>
 #include <string>
@@ -41,16 +41,6 @@ struct HardwareConfig
     bool authEnabled = false;
     std::string authUser;
     std::string authPass;
-};
-
-// Platform-free counterpart to art::WiFiNet (config.h), which uses Arduino
-// String - configCodec/config.cpp convert between the two at the boundary.
-struct WifiNet
-{
-    std::string ssid;
-    std::string pass;
-    bool dhcp;
-    uint8_t order;
 };
 
 } // namespace core

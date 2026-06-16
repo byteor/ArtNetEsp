@@ -7,11 +7,10 @@ import { StatusLine } from "./components/StatusLine";
 import { Tabs } from "./components/Tabs";
 import { GeneralSection } from "./components/GeneralSection";
 import { DevicesSection } from "./components/DevicesSection";
-import { WifiSection } from "./components/WifiSection";
 import { AdvancedSection } from "./components/AdvancedSection";
 import { Actions } from "./components/Actions";
 
-const TABS = ["General", "Devices", "WiFi", "System"];
+const TABS = ["General", "Devices", "System"];
 const eq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function App() {
@@ -130,7 +129,6 @@ export function App() {
   const dirty: Record<string, boolean> = {
     General: draft.host !== saved.host || draft.universe !== saved.universe,
     Devices: !eq(draft.dmx, saved.dmx),
-    WiFi: !eq(draft.wifi, saved.wifi),
     System: !eq(draft.hw, saved.hw),
   };
   const base = { draft, patch, save, busy };
@@ -153,7 +151,6 @@ export function App() {
       <div class="body">
         {tab === "General" && <GeneralSection {...base} dirty={dirty.General} />}
         {tab === "Devices" && <DevicesSection {...base} dirty={dirty.Devices} />}
-        {tab === "WiFi" && <WifiSection {...base} dirty={dirty.WiFi} />}
         {tab === "System" && (
           <>
             <AdvancedSection

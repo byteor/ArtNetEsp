@@ -129,7 +129,7 @@ void App::setup()
 void App::loop()
 {
     // B11: apply any config staged by POST /config here, on the main task,
-    // before touching config.dmx/config.wifi below.
+    // before touching config.dmx below.
     config.applyPendingUpdate();
     button.check();
     artnet.loop();
