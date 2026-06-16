@@ -154,7 +154,6 @@ Once the device is on your network, its home page (`http://<device-ip>/` or `htt
 - see the current firmware version and device info;
 - set the hostname and Art-Net universe;
 - add / edit / remove DMX devices;
-- manage saved WiFi networks;
 - change advanced hardware settings and enable HTTP auth (tucked behind an **Advanced** section, since a wrong pin can lock you out);
 - **Reboot** the device or **Reset WiFi**, each with a confirmation.
 
@@ -254,7 +253,7 @@ Response example:
 
 ### GET /status
 
-A lightweight poll endpoint - the runtime `info` fields (no `dmx[]`/`wifi[]` arrays) plus the `_needReboot` flag, useful for a UI that polls periodically without re-fetching the whole config. `_needReboot` clears to `false` after a reboot, so a polling client can drop its "reboot required" prompt automatically.
+A lightweight poll endpoint - the runtime `info` fields (no `dmx[]` array) plus the `_needReboot` flag, useful for a UI that polls periodically without re-fetching the whole config. `_needReboot` clears to `false` after a reboot, so a polling client can drop its "reboot required" prompt automatically.
 
 Response example:
 
@@ -404,7 +403,7 @@ The configuration web app has its own Node toolchain and is built separately - s
 
 A large internal refactor (the `big-refactor` branch) plus a new configuration web app. Externally-visible behavior (REST schema, filesystem paths, board pins) is unchanged except where noted.
 
-- **Configuration [Web UI](#web-ui)** - the home page is now a Preact single-page app: shows the firmware version and configures everything (hostname, universe, DMX devices, WiFi, advanced hardware/auth) over REST, with Reboot and Reset-WiFi.
+- **Configuration [Web UI](#web-ui)** - the home page is now a Preact single-page app: shows the firmware version and configures everything (hostname, universe, DMX devices, advanced hardware/auth) over REST, with Reboot and Reset-WiFi.
 - **Redesigned, mobile-friendly captive portal**, served as a static asset and sharing the web app's styling.
 - **In-house captive portal** (replaced the third-party WiFi manager); `POST /reset-wifi` now reliably forces the setup portal on next boot.
 - **mDNS + NetBIOS** name advertising (`<hostname>.local`) and a corrected DHCP hostname.

@@ -55,8 +55,9 @@ these rules — each already has precedent in the codebase:
   like `hw.authEnabled`, `hw.wifiPowerSave`, `dmx[].blackout` all default such
   that pre-existing configs are unaffected.
 - **Keep accepting legacy values.** Precedent: device type accepts both `BINARY`
-  and `RELAY` on input (`src/core/dmxTypes.h`); `wifi[].dhcp` always reads back
-  `true`. Never reject input that an older client legitimately sent.
+  and `RELAY` on input, and any unrecognized type maps to `DISABLED` rather than
+  erroring (`src/core/dmxTypes.h`). Never reject input that an older client
+  legitimately sent.
 - **Responses only grow.** Add fields to responses; never drop or repurpose one.
   Clients must ignore unknown fields.
 - **Breaking change of last resort:** if unavoidable, bump this contract's
@@ -110,9 +111,9 @@ the challenge; an API client should send an `Authorization: Basic …` header.
 
 | Method | Path | Auth | Success | Notes |
 |---|---|---|---|---|
-| GET | `/config` | no | `200` JSON | Full config envelope (§6) **plus** nested `info` (§6.6). |
+| GET | `/config` | no | `200` JSON | Full config envelope (§6) **plus** nested `info` (§6.5). |
 | POST | `/config` | yes | **`202`** `{"status":"pending"}` | **Async-staged** — see §5.4. `500 {"error":"update too large"}` if body too big; `401` if auth. |
-| GET | `/status` | no | `200` JSON | The `info` fields (§6.6) **plus** `_needReboot`. Lightweight poll. |
+| GET | `/status` | no | `200` JSON | The `info` fields (§6.5) **plus** `_needReboot`. Lightweight poll. |
 | POST | `/reboot` | yes | `200` `{"reboot":"OK"}` | Device restarts ~200 ms after replying. |
 | POST | `/reset-wifi` | yes | `200` `{"reset":"OK"}` | Clears saved WiFi and reboots into the captive portal. |
 | GET | `/heap` | no | `200` `text/plain` | Free-heap bytes as a decimal string. |
@@ -126,13 +127,13 @@ the challenge; an API client should send an `Authorization: Basic …` header.
   mean "applied" — the client must **re-`GET /config`** after a short delay
   (~500 ms) to confirm the persisted result and read the new `_needReboot`.
 - **Partial / section-scoped.** The body may contain any subset of top-level keys
-  (`host`, `universe`, `hw`, `wifi`, `dmx`). Omitted keys are untouched. `hw` is
-  merged per-field. The SPA always saves **one section at a time** to keep
-  payloads small.
-- **`dmx[]` and `wifi[]` are whole-array, index-based.** If present and
-  non-empty, the entire array **replaces** the stored one. To change one entry,
-  send the **whole** array. An **empty array is ignored** (no-op) — you cannot
-  delete the last entry this way; instead set a device's `type` to `DISABLED`.
+  (`host`, `universe`, `hw`, `dmx`). Omitted keys are untouched. `hw` is merged
+  per-field. The SPA always saves **one section at a time** to keep payloads
+  small.
+- **`dmx[]` is whole-array, index-based.** If present and non-empty, the entire
+  array **replaces** the stored one. To change one entry, send the **whole**
+  array. An **empty array is ignored** (no-op) — you cannot delete the last entry
+  this way; instead set a device's `type` to `DISABLED`.
 - **Size limits.** The staged body must be `< CONFIG_BUFFER_SIZE` (**4096** bytes
   on ESP32, **2048** on ESP8266) or the server replies
   `500 {"error":"update too large"}`. The JSON handler also enforces a **16 KB**
@@ -161,9 +162,8 @@ The `GET /config` body and the `POST /config` body share one envelope. `info` is
 | `host` | string | r/w | board default | Device name (mDNS/NetBIOS, `<host>.local`). Practical max **31** chars (UI-enforced). |
 | `universe` | int | r/w | `0` | Art-Net universe the node listens on. `≥ 0`. |
 | `hw` | object | r/w | see §6.2 | Hardware/advanced settings. |
-| `wifi` | array | r/w | `[]` | Saved networks (§6.3). Whole-array, index-based. |
-| `dmx` | array | r/w | `[]` | DMX output devices (§6.4). Whole-array, index-based, capped at `info.max_dmx_devices`. |
-| `info` | object | **out** | — | Runtime identity/health (§6.6). Present in `GET /config` (nested) and as the `GET /status` body. |
+| `dmx` | array | r/w | `[]` | DMX output devices (§6.3). Whole-array, index-based, capped at `info.max_dmx_devices`. |
+| `info` | object | **out** | — | Runtime identity/health (§6.5). Present in `GET /config` (nested) and as the `GET /status` body. |
 
 ### 6.2 `hw` object
 
@@ -181,24 +181,12 @@ The `GET /config` body and the `POST /config` body share one envelope. `info` is
 Pin/freq defaults are **board-specific** (set in `Config::Config()` from board
 macros), not fixed constants.
 
-### 6.3 `wifi[]` entry
-
-| Key | Type | Default | Notes |
-|---|---|---|---|
-| `ssid` | string | `""` | Network name. |
-| `pass` | string | `""` | Pre-shared key. |
-| `dhcp` | bool | `true` | **Always reads back `true`** (static IP not modeled). |
-| `order` | int | `1` | Preference/ordering hint. |
-
-> The saved `wifi[]` list is config only; the **active** connection is chosen via
-> the captive portal (triggered by `POST /reset-wifi`), not by editing this list.
-
-### 6.4 `dmx[]` entry
+### 6.3 `dmx[]` entry
 
 | Key | Type | Default | Used by types | Notes |
 |---|---|---|---|---|
 | `channel` | int | `0` | all | Start DMX channel. UI range **1–512**. |
-| `type` | enum string | `DISABLED` | — | See §6.5. |
+| `type` | enum string | `DISABLED` | — | See §6.4. |
 | `pin` | int | board | BINARY, DIMMER, SERVO | Output GPIO. |
 | `level` | `"HIGH"`/`"LOW"` | `"LOW"` | BINARY, DIMMER | Active level. Any value other than (case-insensitive) `"high"` reads as `LOW`. |
 | `threshold` | int | `127` | BINARY | On/off threshold, `0–255`. |
@@ -209,7 +197,7 @@ macros), not fixed constants.
 Fields not used by a given `type` are still stored/round-tripped; the UI simply
 hides them.
 
-### 6.5 `DmxType` (device type) wire strings
+### 6.4 `DmxType` (device type) wire strings
 
 | Wire string | Meaning | Notes |
 |---|---|---|
@@ -219,7 +207,7 @@ hides them.
 | `REPEATER` | Art-Net→DMX512 gateway (full universe) | |
 | `DISABLED` | No output | Unrecognized values map here. |
 
-### 6.6 `info` object (output-only)
+### 6.5 `info` object (output-only)
 
 Populated fresh per request. Nested under `info` in `GET /config`; the **body** of
 `GET /status` (which also adds `_needReboot`).
@@ -252,7 +240,7 @@ identical UX with any framework.
    **`<host>.local` as a hyperlink** to `http://<host>.local/` (a muted "—" when
    `host` is empty). No version or "Configuration" text here.
 3. **Status line**: `Up <uptime> · <KB> free[ · <rssi> dBm]` (rssi omitted if 0).
-4. **Tabs**: `General` · `Devices` · `WiFi` · `System`. A tab shows a small **dot**
+4. **Tabs**: `General` · `Devices` · `System`. A tab shows a small **dot**
    when that section has unsaved edits.
 5. **Active section body** (per §7.3).
 6. **Footer**: three tiles — `info.id`/chip, `info.ssid`/"Network",
@@ -272,7 +260,7 @@ identical UX with any framework.
   keys, then re-`GET`s `/config`, updates `saved` + `info` + `needReboot`, and
   shows a toast. A `busy` flag disables controls during a save.
 - **Save button label/state:** reads **"Save"** when dirty, **"Saved"** when
-  clean; disabled when `busy` or not dirty (Devices/WiFi also disabled when the
+  clean; disabled when `busy` or not dirty (Devices is also disabled when the
   list is empty).
 - **Save toast:** *"Saved"*, or *"Saved — reboot required"* when the result has
   `_needReboot`. Errors show the error text (e.g. *"Unauthorized — HTTP auth is
@@ -308,13 +296,6 @@ identical UX with any framework.
   | Strobe pulse (≥0) | `pulse` | DIMMER |
   | Strobe multiplier (≥1) | `multiplier` | DIMMER |
   | "Blackout on DMX signal loss" (checkbox) | `blackout` | all except DISABLED |
-
-**WiFi** → saves `{wifi: [all cards]}`
-
-- Hint that the active connection is set via the captive portal (Reset WiFi).
-- Cards with **SSID** (text) and **Password** (password) → `ssid` / `pass`.
-- **+ Add network** (new entry `{ssid:"", pass:"", dhcp:true, order:n+1}`); each
-  card has **Remove**.
 
 **System** → three groups:
 
@@ -364,8 +345,8 @@ identical UX with any framework.
 1. `GET /config` once for the full state (incl. `info.max_dmx_devices`,
    `info.ota`).
 2. To change settings, `POST /config` with **only the section(s)** you changed;
-   for `dmx`/`wifi`, send the **whole array**. Expect **`202`**; then re-`GET
-   /config` (~500 ms later) to confirm and read `_needReboot`.
+   for `dmx`, send the **whole array**. Expect **`202`**; then re-`GET /config`
+   (~500 ms later) to confirm and read `_needReboot`.
 3. Poll `GET /status` for health and to detect when a reboot has completed
    (`_needReboot` flips back to `false`).
 4. `POST /reboot` / `POST /reset-wifi` for lifecycle; both reply, then act.
@@ -381,5 +362,7 @@ identical UX with any framework.
 Initial contract. Documents the REST API and configuration SPA as of firmware
 **2026.2.x**: endpoints `GET/POST /config`, `GET /status`, `POST /reboot`,
 `POST /reset-wifi`, `GET /heap`, `/update`; the config envelope incl.
-`hw.wifiPowerSave` and `info.ota`; `DmxType` wire strings; and the four-tab SPA
-(General/Devices/WiFi/System) with its save semantics and reboot-banner polling.
+`hw.wifiPowerSave` and `info.ota`; `DmxType` wire strings; and the three-tab SPA
+(General/Devices/System) with its save semantics and reboot-banner polling. The
+config envelope carries no saved-WiFi-networks list — WiFi is configured only via
+the captive portal + `POST /reset-wifi` (out of scope, see §1).

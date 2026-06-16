@@ -76,7 +76,7 @@ DEVICE=http://<host>.local npm run dev     # live dev w/ HMR, REST proxied to a 
 ```
 src/
 ├── main.cpp          # 14 lines: App app; app.setup(); app.loop();
-├── config.h/.cpp     # art::Config - JSON load/save (LittleFS via ESP_FS), DeviceConfig/WiFiNet/
+├── config.h/.cpp     # art::Config - JSON load/save (LittleFS via ESP_FS), DeviceConfig/
 │                      #   HardwareConfig structs; DmxType is an alias for core::DmxType
 ├── connect.h/.cpp    # Connect - WiFi + in-house captive portal (192.168.4.1) serving
 │                      #   data/www/portal.html (placeholder-substituted in portalPage()) +
@@ -93,9 +93,9 @@ src/
 │   │                  #   under [env:native], see test/test_*
 │   ├── dmxTypes.h    # enum class DmxType, toWireString/fromWireString, DMX_CHANNELS/DMX_PACKET_SIZE
 │   ├── dimmerLogic.h # DimmerLogic - PWM dimmer/strobe timing state machine (used by PwmDimmer)
-│   ├── configModel.h # DeviceConfig/HardwareConfig/WifiNet PODs (aliased as art:: in config.h) - header-only
+│   ├── configModel.h # DeviceConfig/HardwareConfig PODs (aliased as art:: in config.h) - header-only
 │   └── configCodec.h # inline ArduinoJson <-> configModel.h conversions (dmxChannelToJson/FromJson,
-│                      #   hardwareToJson/FromJson, wifiNetToJson/FromJson) - header-only (Phase 5
+│                      #   hardwareToJson/FromJson) - header-only (Phase 5
 │                      #   binding rule: [env:native] doesn't compile src/*.cpp, so no configCodec.cpp)
 ├── net/
 │   ├── artnetService.h/.cpp  # ArtnetService - Art-Net UDP receive; single-path slice dispatch
@@ -272,10 +272,10 @@ The default `tick()` blacks out the device (`set(channel, 0)`) if `frame()` hasn
 
 ## 7. Configuration System
 
-- `art::Config` (`config.h`/`.cpp`) loads/saves JSON via ArduinoJson 7's elastic `JsonDocument` (Gotcha #7) — `configFromJson`/`configToJson` (the persisted-config envelope: `configVersion`/`_needReboot`/`hw`/`host`/`universe`/`wifi`/`dmx`, deliberately *not* `info`) delegate per-section conversions to `core::configCodec` (`src/core/configCodec.h`, header-only, natively tested under `test/test_configcodec/`): `dmxChannelToJson`/`dmxChannelFromJson`, `hardwareToJson`/`hardwareFromJson`, `wifiNetToJson`/`wifiNetFromJson`. The PODs they convert (`DeviceConfig`, `HardwareConfig`, `WifiNet`) live in `core::configModel` and are aliased into `art::` (`config.h`) for spelling compatibility.
+- `art::Config` (`config.h`/`.cpp`) loads/saves JSON via ArduinoJson 7's elastic `JsonDocument` (Gotcha #7) — `configFromJson`/`configToJson` (the persisted-config envelope: `configVersion`/`_needReboot`/`hw`/`host`/`universe`/`dmx`, deliberately *not* `info`) delegate per-section conversions to `core::configCodec` (`src/core/configCodec.h`, header-only, natively tested under `test/test_configcodec/`): `dmxChannelToJson`/`dmxChannelFromJson`, `hardwareToJson`/`hardwareFromJson`. The PODs they convert (`DeviceConfig`, `HardwareConfig`) live in `core::configModel` and are aliased into `art::` (`config.h`) for spelling compatibility. (There is no saved-WiFi-networks list in the config — WiFi is set only via the captive portal + `POST /reset-wifi`.)
 - `configVersion` (`CONFIG_SCHEMA_VERSION`, currently `1`, `config.h`): `configToJson()` always writes the current constant; `configFromJson()` reads `"configVersion"` defaulting to `1` for configs that predate the field. No migration logic exists yet — this just establishes the hook for one.
 - `data/config/default.json` is the initial/fallback config (flashed via `pio run -t uploadfs`); the runtime config persists to `/config/config.json` on the device's filesystem (LittleFS on both ESP8266 and ESP32, since R2).
-- The `dmx` and `wifi` collections are `std::vector<DeviceConfig>` / `std::vector<WiFiNet>` by value.
+- The `dmx` collection is a `std::vector<DeviceConfig>` by value.
 - Each `DeviceConfig` has an additive `bool blackout = true` field — wired to `Device::setBlackout()` (§6); old configs without the key default to `true` (unchanged behavior).
 - `HardwareConfig` (`hw`) has additive `bool authEnabled = false`, `std::string authUser`, `std::string authPass` fields (R5 compat: configs without these keys parse with auth disabled) — see "HTTP basic-auth" below.
 - `HardwareConfig` (`hw`) also has an additive `bool wifiPowerSave = false` field: `false` (default, incl. configs predating the key) disables WiFi modem-sleep so the radio stays awake, cutting Art-Net receive latency/jitter (the dominant factor in keeping multiple WiFi nodes in sync) at ~20-40mA extra; `true` re-enables modem sleep. `Connect::applyPowerSave()` (`connect.cpp`) applies it on every (re)connect via `WiFi.setSleep()` (ESP32) / `WiFi.setSleepMode()` (ESP8266); `App::setup()` passes it as the 2nd arg of `connect.connect(host, wifiPowerSave)`. Takes effect on reboot (the UI's reboot banner covers it).
@@ -289,7 +289,7 @@ The default `tick()` blacks out the device (`set(channel, 0)`) if `frame()` hasn
 These describe the patterns already used in the codebase — useful for staying consistent, not hard rules:
 
 - **Naming**: classes are PascalCase (`DmxRelay`, `PwmDimmer`, `StatusDisplay`, `ArtnetService`, `DmxPort`, `App`); functions and variables are camelCase; constants and macros are `UPPER_SNAKE_CASE`.
-- **Namespace**: config-related types (`Config`, `DeviceConfig`, `WiFiNet`, `HardwareConfig`) live in `art::`; `DmxType` is `core::DmxType`, aliased into `art::` for spelling compatibility. Platform-free types/constants live in `core::` (`src/core/`).
+- **Namespace**: config-related types (`Config`, `DeviceConfig`, `HardwareConfig`) live in `art::`; `DmxType` is `core::DmxType`, aliased into `art::` for spelling compatibility. Platform-free types/constants live in `core::` (`src/core/`).
 - **Logging**: use the `LOG(...)` macro from `hw/logger.h` (= `Serial.println`) rather than raw `Serial.print`.
 - **File organization**: small device classes tend to be header-only (`relay.h`, `dmxServo.h`, `repeater.h`, `oledDisplay.h`, `statusLed.h`); larger modules get `.h`/`.cpp` pairs (`config`, `connect`, `dimmer`, `dmx32`/`dmx8266`, `app`, `artnetService`). This is an observed tendency, not enforced.
 - **`core/` extractions ship with native tests in the same commit** (the Phase 5 "binding rule") — `src/core/` must stay Arduino-free (no `Arduino.h`/`String`/`millis()`; pass time as a parameter) so it's includable and testable under `[env:native]`.
