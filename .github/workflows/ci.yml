@@ -12,19 +12,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Representative subset of the 12 platformio.ini environments (one
+        # ESP8266 with OLED, one full-featured ESP32, one FEATURE_*-stripped
+        # Sonoff, one ESP32-S3) - enough to catch cross-cutting breakage per
+        # AGENTS.md Gotcha #12. Build the full matrix locally with `pio run`
+        # before committing a change that touches boards/, device/, dmx/, or app/.
         env:
           - d1_mini_oled
-          - d1_mini
-          - nodemcuv2
-          - heltec_wifi_kit_8
           - sonoff_basic
-          - sonoff_s31
-          - lolin32
           - esp32-devkitc-v4
-          - lolin_s2_mini
-          - esp32-s3-devkitc-1
           - seeed_xiao_esp32s3
-          - seeed_xiao_esp32s3_oled
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,13 +44,7 @@ jobs:
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 
-      # lolin_s2_mini fails to build out of the box: mathieucarbou/ESPAsyncWebServer
-      # has a const-correctness bug (ESPAsyncWebServer.h:1691) that is incompatible
-      # with this codebase's const Device methods. This is pre-existing (B26 in
-      # REFACTORING_PLAN.md), independent of any Phase 0 changes, and deferred
-      # pending ESP32-S2 bench hardware. Run it for visibility but don't fail CI.
       - name: Build (${{ matrix.env }})
-        continue-on-error: ${{ matrix.env == 'lolin_s2_mini' }}
         run: pio run -e ${{ matrix.env }}
         # Note: extra_scripts (platformio_version_increment) bump `version` and
         # include/Version.h on every build. CI never commits these changes -
