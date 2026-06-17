@@ -1,5 +1,7 @@
 #include <unity.h>
 
+#include <vector>
+
 #include <ArduinoJson.h>
 
 #include "core/configCodec.h"
