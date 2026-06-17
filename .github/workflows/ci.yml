@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: build (${{ matrix.env }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Representative subset of the 12 platformio.ini environments (one
+        # ESP8266 with OLED, one full-featured ESP32, one FEATURE_*-stripped
+        # Sonoff, one ESP32-S3) - enough to catch cross-cutting breakage per
+        # AGENTS.md Gotcha #12. Build the full matrix locally with `pio run`
+        # before committing a change that touches boards/, device/, dmx/, or app/.
+        env:
+          - d1_mini_oled
+          - sonoff_basic
+          - esp32-devkitc-v4
+          - seeed_xiao_esp32s3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Cache PlatformIO platforms/packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio
+          key: platformio-${{ matrix.env }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            platformio-${{ matrix.env }}-
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Build (${{ matrix.env }})
+        run: pio run -e ${{ matrix.env }}
+        # Note: extra_scripts (platformio_version_increment) bump `version` and
+        # include/Version.h on every build. CI never commits these changes -
+        # the runner's checkout is discarded after the job finishes.
+
+  native-test:
+    name: native unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Cache PlatformIO platforms/packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio
+          key: platformio-native-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            platformio-native-
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Run native tests
+        run: pio test -e native
+
+  lint:
+    name: cppcheck (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+
+      # Advisory only: embedded/Arduino headers aren't on cppcheck's include path,
+      # so missingInclude noise is suppressed. Findings don't fail the build yet -
+      # this is a starting point for Phase 1+ cleanup, not a gate.
+      - name: cppcheck src/
+        continue-on-error: true
+        run: |
+          cppcheck --enable=warning,style,performance,portability \
+            --std=c++17 --inline-suppr --force \
+            --suppress=missingInclude --suppress=unusedFunction \
+            -I src src

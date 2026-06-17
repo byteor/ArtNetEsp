@@ -1,3 +1,18 @@
 .pio/
 .vscode/
 .version_no_increment
+.hil/
+
+# Web UI build toolchain (web/); data/www is the committed node-built output
+web/node_modules/
+web/.vite/
+web/dist/
+
+# Python (tools/)
+__pycache__/
+*.pyc
+
+# Local Claude Code settings (user-specific permissions)
+.claude/
+
+node_modules/

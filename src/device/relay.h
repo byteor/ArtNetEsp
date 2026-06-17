@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "device.h"
+#include "../hw/logger.h"
 
 class DmxRelay : public Device
 {
@@ -15,17 +16,17 @@ protected:
     uint8_t data;
 
 public:
-    void start();
-    void flip();
-    uint8_t get(uint8_t channel);
-    void set(uint8_t channel, uint8_t data);
-    uint16_t getNumberOfChannels() { return 1; }
-    bool isEnabled();
+    void start() override;
+    void flip() override;
+    uint8_t get(uint16_t channel) override;
+    void set(uint16_t channel, uint8_t data) override;
+    uint16_t channelCount() override { return 1; }
+    bool isEnabled() override;
 
-    DmxRelay(uint8_t universe, uint8_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold);
+    DmxRelay(uint8_t universe, uint16_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold);
 };
 
-DmxRelay::DmxRelay(uint8_t universe, uint8_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold)
+DmxRelay::DmxRelay(uint8_t universe, uint16_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold)
 {
     this->universe = universe;
     this->channel = channel;
@@ -42,19 +43,18 @@ DmxRelay::DmxRelay(uint8_t universe, uint8_t channel, uint8_t pin, uint8_t activ
     Serial.println(universe);
 }
 
-uint8_t DmxRelay::get(uint8_t channel)
+uint8_t DmxRelay::get(uint16_t channel)
 {
     return data;
 }
 
-void DmxRelay::set(uint8_t dmxChannel, uint8_t data)
+void DmxRelay::set(uint16_t dmxChannel, uint8_t data)
 {
     if (dmxChannel == channel)
     {
         this->data = data;
         value = data > threshold ? active_value : inactive_value;
-        Serial.print("Relay: ");
-        Serial.println(value);
+        LOG_DEBUG("Relay: " + String(value));
         digitalWrite(pin, value);
     }
 }
@@ -68,6 +68,7 @@ void DmxRelay::start()
 void DmxRelay::flip()
 {
     value = !value;
+    manualOverride = true; // B20: don't let silence-blackout undo this until the next DMX frame
     Serial.print("Relay: FLIP: ");
     Serial.println(value & 0x01);
     digitalWrite(pin, value);
@@ -75,7 +76,7 @@ void DmxRelay::flip()
 
 bool DmxRelay::isEnabled()
 {
-    return value;
+    return value == active_value;
 }
 
 #endif // RELAY_H

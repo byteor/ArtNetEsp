@@ -1,0 +1,3 @@
+# Generated web build output (node-minified by `web/` -> npm run build).
+# Do not reformat - edit the sources under web/ instead.
+data/www/

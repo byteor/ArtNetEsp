@@ -1,0 +1,122 @@
+import type { HardwareConfig, SectionProps } from "../types";
+
+interface Props extends SectionProps {
+  open: boolean;
+  onToggle: (open: boolean) => void;
+}
+
+export function AdvancedSection({ draft, patch, save, busy, dirty, open, onToggle }: Props) {
+  const hw = draft.hw;
+  const set = <K extends keyof HardwareConfig>(k: K, v: HardwareConfig[K]) =>
+    patch({ hw: { ...hw, [k]: v } });
+
+  return (
+    <details
+      class="advanced"
+      open={open}
+      onToggle={(e) => onToggle(e.currentTarget.open)}
+    >
+      <summary>Advanced hardware &amp; security</summary>
+
+      <div class="warn">
+        Changing pin assignments, PWM frequency, or the button can stop the device
+        working or lock you out. Only change these if you know your board's wiring.
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label>PWM frequency</label>
+          <input
+            type="number"
+            min={100}
+            value={hw.freq}
+            onInput={(e) => set("freq", Number(e.currentTarget.value))}
+          />
+          <span class="unit">Hz</span>
+        </div>
+        <div class="field">
+          <label>Button long-press</label>
+          <input
+            type="number"
+            min={500}
+            step={500}
+            value={hw.longPressDelay}
+            onInput={(e) => set("longPressDelay", Number(e.currentTarget.value))}
+          />
+          <span class="unit">ms (resets WiFi)</span>
+        </div>
+        <div class="field">
+          <label>Status LED pin</label>
+          <input
+            type="number"
+            min={0}
+            value={hw.ledPin}
+            onInput={(e) => set("ledPin", Number(e.currentTarget.value))}
+          />
+        </div>
+        <div class="field">
+          <label>Button pin</label>
+          <input
+            type="number"
+            min={0}
+            value={hw.buttonPin}
+            onInput={(e) => set("buttonPin", Number(e.currentTarget.value))}
+          />
+        </div>
+      </div>
+
+      <label class="chk" style="margin:12px 0 2px">
+        <input
+          type="checkbox"
+          checked={hw.wifiPowerSave}
+          onChange={(e) => set("wifiPowerSave", e.currentTarget.checked)}
+        />{" "}
+        WiFi power saving (higher latency)
+      </label>
+      <span class="hint">
+        Leave off for the lowest Art-Net latency and the tightest sync across
+        devices. Turn on only to reduce power draw (e.g. battery setups).
+      </span>
+
+      <label class="chk" style="margin:12px 0">
+        <input
+          type="checkbox"
+          checked={hw.authEnabled}
+          onChange={(e) => set("authEnabled", e.currentTarget.checked)}
+        />{" "}
+        Require HTTP authentication for changes
+      </label>
+
+      {hw.authEnabled && (
+        <>
+          <div class="warn">
+            After enabling auth and saving, the browser will ask for these credentials
+            on the next change/reboot/reset.
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label>Username</label>
+              <input
+                value={hw.authUser}
+                onInput={(e) => set("authUser", e.currentTarget.value)}
+              />
+            </div>
+            <div class="field">
+              <label>Password</label>
+              <input
+                type="password"
+                autocomplete="off"
+                value={hw.authPass}
+                onInput={(e) => set("authPass", e.currentTarget.value)}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      <button class="btn" disabled={busy || !dirty} onClick={() => save({ hw })}>
+        {dirty ? "Save advanced" : "Saved"}
+      </button>
+    </details>
+  );
+}
