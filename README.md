@@ -1,20 +1,30 @@
 # ESP8266/ESP32 ArtNet Node
 
-This project has evolved from a need to control a simple lights setup for community theater.
-There are a few but very important concerns:
+This firmware turns an inexpensive ESP8266/ESP32 board into an Art-Net node: it receives DMX-over-WiFi from a lighting console and drives relays, PWM dimmers, servos, or a real DMX512 line. It grew out of the need to run a simple lighting setup for community theater, shaped by three concerns:
 
-- **Low price**. Any investment is sensitive for a volunteer organization without a sponsorship. Even cheap chinese lights are mostly out of the budget since you cannot create a good setup using just a couple.
-- **No lightning console**. Follows the price logic, meaning it has to be free. We use QLC+
-- **Wireless**. That is very important when you do not have your own stage.
+- **Low price.** Every purchase matters for a volunteer organization with no sponsorship. Even cheap Chinese fixtures are mostly out of budget, since you can't build a usable setup from just a couple of them.
+- **No lighting console.** Same budget logic: the control software has to be free, so we use [QLC+](https://www.qlcplus.org/).
+- **Wireless.** Essential when you don't have a stage of your own.
 
-The initial inspiration was taken [from here](https://www.instructables.com/ESP8266-Artnet-to-DMX/).
+The initial inspiration came [from this project](https://www.instructables.com/ESP8266-Artnet-to-DMX/).
 
-The first and the most simple setup was using remote relays like Sonoff basic and smart plugs using ArtnNet over Wifi.
-The next step was building our own dimmable LED lights but that appeared to be not very economically efficient compared to buying chinese from Amazon. Such lights (as well as professional ones) have DMX512 interface, so the third step was to implement an ArtNet-DMX bridge.
-The next step was to use this platform for experimental devices like NepPixel light strips and servos, which opens the whole new world of possibilities for a DIY stage designer.
+### [ArtNet to DMX Gateway](/docs/XiaoEsp32S3_Repeater.md)
+
+<details>
+<summary>How the project evolved</summary>
+
+The first and simplest setup used remote relays — Sonoff Basic switches and smart plugs — driven by Art-Net over WiFi. The next step was building our own dimmable LED lights, but that turned out to be less economical than buying Chinese fixtures off Amazon. Those (like the professional ones) speak DMX512, so the third step was an ArtNet-to-DMX bridge. After that, the platform grew to handle experimental devices like NeoPixel strips and servos — opening up a whole new world of possibilities for a DIY stage designer.
+The last step was built-in configuration UI and [ArtNetEsp Toolbox](https://github.com/byteor/ArtNetEsp-Toolbox) mobile app.
+
+</details>
+
+## ArtNetESP Toolbox
+
+A companion cross-platform mobile application - [ArtNetEsp Toolbox](https://github.com/byteor/ArtNetEsp-Toolbox) is available to control your fleet of ArtNetEsp nodes and also has some useful ArtNet tools so, check it out!
 
 ## Table of Contents
 
+- [Getting Started](#getting-started)
 - [Device Types](#device-types)
     - [DIMMER](#dimmer)
     - [RELAY](#relay)
@@ -28,8 +38,6 @@ The next step was to use this platform for experimental devices like NepPixel li
 - [Web UI](#web-ui)
     - [Architecture](#architecture)
     - [Building and uploading](#building-and-uploading)
-- [Variations](#variations)
-    - [Sonoff Basic](#sonoff-basic)
 - [REST API](#rest-api)
     - [GET /config](#get-config)
     - [GET /status](#get-status)
@@ -40,8 +48,54 @@ The next step was to use this platform for experimental devices like NepPixel li
 - [OTA](#ota)
 - [Upgrading](#upgrading)
 - [TODO List](#todo)
-- [Build](#build)
+- [Versioning](#versioning)
 - [Version History](#version-history)
+- [Supported Boards](#boards)
+    - [ESP8266](#esp8266)
+    - [ESP32](#esp32)
+
+## Getting Started
+
+### What you'll need
+
+- An ESP8266 or ESP32 board from the [supported list](#implementations) (a `seeed_xiao_esp32s3` is a good pick for a DMX gateway).
+- A USB cable and [PlatformIO](https://platformio.org/) (the `pio` CLI, or the VS Code extension). VS Code extension is much easier for starts.
+  No need to install Arduino IDE or board definitions - PlatformIO handles all that automatically.
+- `git` and `python` - the build auto-increments the version via a git submodule.
+- For a DMX512 gateway only: an RS485 transceiver wired to the board's DMX pins (see the [REPEATER](#repeater) section).
+
+### 1. Get the code
+
+```bash
+git clone https://github.com/byteor/ArtNetEsp.git
+cd ArtNetEsp
+git submodule update --init --recursive   # required - pulls in the version-increment script
+```
+
+### 2. Flash the firmware and filesystem
+
+Pick the `<env>` that matches your board from the [implementations list](#implementations) (e.g. `seeed_xiao_esp32s3`, `d1_mini`, `esp32-devkitc-v4`), connect the board over USB, then:
+
+```bash
+pio run -e <env> -t upload     # flash the firmware
+pio run -e <env> -t uploadfs   # flash the filesystem (web UI + default config) to LittleFS
+```
+
+Both steps are needed on a fresh board: `upload` writes the firmware, `uploadfs` writes the [Web UI](#web-ui) and default config. To watch the boot log, add `-t monitor` (115200 baud).
+
+### 3. Connect it to WiFi
+
+On first boot the device has no network, so it opens a [Captive Portal](#wifi-connection-and-captive-portal):
+
+1. Connect your phone or laptop to the `ArtNet-...` WiFi network it broadcasts.
+2. The portal opens automatically (or browse to [192.168.4.1](http://192.168.4.1)); pick your network and enter the password.
+3. The device reboots and joins your WiFi.
+
+### 4. Configure and use it
+
+Once it's on your network, open its [Web UI](#web-ui) at `http://<hostname>.local/` to set the hostname, Art-Net universe, and [DMX devices](#device-types). Point your lighting console ([QLC+](https://www.qlcplus.org/)) at the device's universe and you're live.
+
+To update later without USB, use [OTA](#ota).
 
 ## Device Types
 
@@ -385,7 +439,7 @@ ESP8266 devices are unaffected - they've always used LittleFS.
 - [x] Make blackout on DMX timeout optional
 - [x] Rename Strobe class (it is meaningless)
 
-## Build
+## Versioning
 
 Since **2025.1** [Platformio version increment script](https://github.com/sblantipodi/platformio_version_increment) is used to auto increment build versions.
 It requires `python` to be installed.
@@ -456,12 +510,48 @@ A large internal refactor (the `big-refactor` branch) plus a new configuration w
 
 ---
 
-## Implementations
+## Boards
 
-### XIAO Repeater
+### ESP8266
 
-![XIAOS3 Repeater](assets/Xiao-Repeater.jpg)
+#### Sonoff Basic
 
+Works as a **relay** only, no OTA, no USB, you need a USB-to-Serial adapter to flash it.
 `[env:seeed_xiao_esp32s3]`
-or
-`[env:seeed_xiao_esp32s3_oled]` when I2S OLED is connected
+
+#### Sonoff S31
+
+Has a bit more memory than Basic, smart plug form factor, but harder to flash (no convenient socket, no USB)
+`[env:sonoff_s31]`
+
+#### Lolin D1 Mini
+
+[D1 mini](https://www.wemos.cc/en/latest/d1/d1_mini.html) is a real workhorse, my favorite 8266 board. I control dimmers, servos, use it as repeaters.
+`[env:d1_mini]` or `[env:d1_mini_oled]`
+
+#### NodeMCUv2
+
+[Node MCU](https://www.seeedstudio.com/NodeMCU-v2-Lua-based-ESP8266-development-kit.html) is the most known ESP8266 board, it is great, but D1 Mini is smaller and so more versatile.
+
+### ESP32
+
+#### XIAO ESP32S3
+
+I really love this board, the only downside is its price and a limited number of GPIO.
+[XIAO S3 Repeater](/docs/XiaoEsp32S3_Repeater.md)
+`[env:seeed_xiao_esp32s3]` or `[env:seeed_xiao_esp32s3_oled]`
+
+#### ESP32 Devkit
+
+[ESP32 Devkit](https://docs.espressif.com/projects/esp-idf/en/release-v4.2/esp32/hw-reference/esp32/get-started-devkitc.html) is a big brother of NodeMCU. The same concept and form factor, nice family of boards, just keep an eye on the actual ESP32 module it equipped with, it may require to adjust PlatformIO config.
+`[esp32-s3-devkitc-1`]
+
+#### ESP32 S3 Devkitc
+
+[DevKitC](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html) is a really cool and feature rich board. I haven't really used it for ArtNet/DMX, just tested if the project builds for this target.
+`[esp32-s3-devkitc-1]`
+
+#### Lolin S2 Mini
+
+Wanted to use it but experienced some issues with early versions, had hard times flashing it, so focused on more friendly ESP32 boards. Keeping the build configuration for future use.
+`[lolin_s2_mini]`
