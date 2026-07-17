@@ -43,4 +43,15 @@ struct HardwareConfig
     std::string authPass;
 };
 
+// Conservative GPIO sanity check for user-supplied pin numbers (hw.ledPin,
+// hw.buttonPin, dmx[].pin). Deliberately NOT a full per-variant pin map -
+// just enough to reject pins that would corrupt flash (ESP8266 GPIO6-11)
+// or don't exist on any supported board.
+inline bool isValidGpio(uint8_t pin, bool isEsp32)
+{
+    if (isEsp32)
+        return pin <= 48; // classic/S2/S3 families top out at GPIO48 (S3)
+    return pin <= 16 && !(pin >= 6 && pin <= 11); // ESP8266: GPIO0-5, 12-16
+}
+
 } // namespace core

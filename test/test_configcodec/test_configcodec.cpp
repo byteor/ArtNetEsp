@@ -255,6 +255,22 @@ static void test_hardware_fromjson_empty_authpass_means_unchanged()
     TEST_ASSERT_EQUAL_STRING("newpass", hw2.authPass.c_str());
 }
 
+static void test_isValidGpio()
+{
+    // ESP8266: GPIO 0-5 and 12-16 are usable; 6-11 are the flash pins.
+    TEST_ASSERT_TRUE(core::isValidGpio(0, false));
+    TEST_ASSERT_TRUE(core::isValidGpio(5, false));
+    TEST_ASSERT_FALSE(core::isValidGpio(6, false));
+    TEST_ASSERT_FALSE(core::isValidGpio(11, false));
+    TEST_ASSERT_TRUE(core::isValidGpio(12, false));
+    TEST_ASSERT_TRUE(core::isValidGpio(16, false));
+    TEST_ASSERT_FALSE(core::isValidGpio(17, false));
+    // ESP32 family: 0-48 exists across classic/S2/S3.
+    TEST_ASSERT_TRUE(core::isValidGpio(0, true));
+    TEST_ASSERT_TRUE(core::isValidGpio(48, true));
+    TEST_ASSERT_FALSE(core::isValidGpio(49, true));
+}
+
 int main(int argc, char **argv)
 {
     UNITY_BEGIN();
@@ -267,5 +283,6 @@ int main(int argc, char **argv)
     RUN_TEST(test_full_config_shaped_doc_roundtrip);
     RUN_TEST(test_hardware_tojson_redacts_authpass_without_secrets);
     RUN_TEST(test_hardware_fromjson_empty_authpass_means_unchanged);
+    RUN_TEST(test_isValidGpio);
     return UNITY_END();
 }

@@ -379,6 +379,10 @@ identical UX with any framework.
   (a single trailing label, e.g. `.local`/`.lan`) names are unaffected.
 - Added optional `info.dmx_dropped_writes` (additive) — DMX-port writes dropped
   on lock timeout since boot; absent on builds without a DMX port.
+- `Compatible`: the firmware now sanity-checks user-supplied GPIO numbers
+  (`hw.ledPin`, `hw.buttonPin`, `dmx[].pin`); invalid pins are rejected and the
+  previous value kept (device entries with an invalid pin become `DISABLED`).
+  Valid payloads are unaffected.
 
 ### 1.0.0 — 2026-06-16 — `Compatible` (baseline)
 Initial contract. Documents the REST API and configuration SPA as of firmware

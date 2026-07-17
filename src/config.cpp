@@ -164,6 +164,11 @@ void Config::cleanup()
 void Config::configFromJson(JsonVariant doc)
 {
     configVersion = doc["configVersion"] | 1;
+#ifdef ESP32
+    constexpr bool kIsEsp32 = true;
+#else
+    constexpr bool kIsEsp32 = false;
+#endif
 
     if (!doc["host"].isNull())
     {
@@ -197,13 +202,32 @@ void Config::configFromJson(JsonVariant doc)
             if (dmx.size() >= MAX_DMX_DEVICES)
                 break;
             DeviceConfig deviceConfig = core::dmxChannelFromJson(channel, defaults);
+            // Repeater uses the fixed DMX UART pins, Disabled uses nothing -
+            // only pin-driving types need a valid GPIO.
+            if (deviceConfig.type != DmxType::Repeater && deviceConfig.type != DmxType::Disabled &&
+                !core::isValidGpio(deviceConfig.pin, kIsEsp32))
+            {
+                LOG("Rejecting device with invalid pin " + String(deviceConfig.pin));
+                deviceConfig.type = DmxType::Disabled;
+            }
             dmx.push_back(deviceConfig);
             LOG("  channel: " + channel["channel"].as<String>());
             LOG("  type: " + channel["type"].as<String>() + " on pin " + channel["pin"].as<String>() + " active: " + channel["level"].as<String>());
         }
     }
 
-    hardware = core::hardwareFromJson(doc["hw"], hardware);
+    HardwareConfig parsedHw = core::hardwareFromJson(doc["hw"], hardware);
+    if (!core::isValidGpio(parsedHw.ledPin, kIsEsp32))
+    {
+        LOG("Rejecting invalid ledPin " + String(parsedHw.ledPin));
+        parsedHw.ledPin = hardware.ledPin;
+    }
+    if (!core::isValidGpio(parsedHw.buttonPin, kIsEsp32))
+    {
+        LOG("Rejecting invalid buttonPin " + String(parsedHw.buttonPin));
+        parsedHw.buttonPin = hardware.buttonPin;
+    }
+    hardware = parsedHw;
 }
 
 void Config::configToJson(JsonDocument &doc, bool includeSecrets)
