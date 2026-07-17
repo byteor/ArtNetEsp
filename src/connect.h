@@ -15,6 +15,8 @@
 #include "hw/logger.h"
 #include "hw/statusLed.h"
 
+#include <atomic>
+
 class Connect
 {
 protected:
@@ -56,7 +58,11 @@ protected:
 
     // Set by the portal's POST handler once the user submits credentials;
     // connect() blocks on this while servicing DNS requests.
-    volatile bool credentialsReceived = false;
+    // std::atomic (not volatile): the portal's POST handler runs on the
+    // async_tcp task on ESP32 and writes newSsid/newPass before this flag;
+    // the seq_cst store/load pair is what makes those writes visible to the
+    // main task's poll loop in connect().
+    std::atomic<bool> credentialsReceived{false};
     String newSsid;
     String newPass;
 
