@@ -119,7 +119,7 @@ void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
         }
         else
         {
-            response = request->beginResponse(500, "application/json", "{\"error\":\"update too large\"}");
+            response = request->beginResponse(413, "application/json", "{\"error\":\"update too large\"}");
         }
         request->send(response); });
 
