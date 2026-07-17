@@ -63,7 +63,7 @@ void PwmDimmer::update()
 {
     uint8_t duty = logic.duty();
     Pwm::write(pin, duty);
-    LOG(" =" + String(duty));
+    LOG_DEBUG(" =" + String(duty));
 }
 
 void PwmDimmer::setInterval(int millis)
