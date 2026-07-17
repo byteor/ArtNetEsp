@@ -61,8 +61,14 @@ bool hostAllowed(AsyncWebServerRequest *request, const String &configuredHost)
     if (host.equalsIgnoreCase(configuredHost))
         return true;
     String prefix = configuredHost + ".";
-    return host.length() > prefix.length() &&
-           host.substring(0, prefix.length()).equalsIgnoreCase(prefix);
+    if (host.length() <= prefix.length() ||
+        !host.substring(0, prefix.length()).equalsIgnoreCase(prefix))
+        return false;
+    // Only a single trailing label is allowed (host.local, host.lan) - a
+    // second dot (host.attacker.com) would let an attacker who knows the
+    // mDNS/NetBIOS-broadcast hostname defeat the DNS-rebinding guard.
+    String suffix = host.substring(prefix.length());
+    return suffix.length() > 0 && suffix.indexOf('.') < 0;
 }
 
 // Runtime WiFi/build/chip identity - never part of the persisted config

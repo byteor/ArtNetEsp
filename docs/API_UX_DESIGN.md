@@ -93,9 +93,10 @@ point of change.
   and `/portal.html` are static files under the device FS (`/www/`).
 - **Unknown route:** `404 text/plain "Not found"`.
 - **Host header (v2.0.0):** requests must address the device as its IP, its
-  configured `host`, or `host.<suffix>` (e.g. `.local`); anything else gets
-  `403 text/plain`. This is a DNS-rebinding/CSRF guard. Clients that omit the
-  Host header entirely are allowed.
+  configured `host`, or `host.<label>` with exactly one trailing label (e.g.
+  `host.local`, `host.lan`) — a second dot (e.g. `host.attacker.com`) is
+  rejected; anything else gets `403 text/plain`. This is a DNS-rebinding/CSRF
+  guard. Clients that omit the Host header entirely are allowed.
 
 ### 5.2 Authentication
 
@@ -373,8 +374,8 @@ identical UX with any framework.
 - `GET /config` responses are now compact JSON (previously pretty-printed) —
   shape-identical, whitespace only.
 - **Host-header validation** on every route (incl. `/update`): unknown `Host`
-  values get `403`. Clients using the device IP, `<host>`, or `<host>.<suffix>`
-  names are unaffected.
+  values get `403`. Clients using the device IP, `<host>`, or `<host>.<label>`
+  (a single trailing label, e.g. `.local`/`.lan`) names are unaffected.
 
 ### 1.0.0 — 2026-06-16 — `Compatible` (baseline)
 Initial contract. Documents the REST API and configuration SPA as of firmware
