@@ -2,6 +2,7 @@
 
 ArtnetService::ArtnetService() {}
 
+// cppcheck-suppress shadowMember  // idiomatic init(): params mirror the members they assign via this->, disambiguated explicitly below
 void ArtnetService::init(int universe, const String &shortName, const String &longName, Device **dmxDevice, uint8_t devicesCount)
 {
     this->universe = universe;

@@ -7,6 +7,7 @@ namespace
 const byte DNS_PORT = 53;
 }
 
+// cppcheck-suppress shadowMember  // idiomatic init(): params mirror the members they assign via this->, disambiguated explicitly below
 void Connect::init(AsyncWebServer *server, DNSServer *dns, StatusLed *status)
 {
     this->server = server;
@@ -176,6 +177,7 @@ void Connect::startPortal()
     server->begin();
 }
 
+// cppcheck-suppress shadowMember  // idiomatic connect(): params mirror the members they assign via this->, disambiguated explicitly below
 void Connect::connect(String hostName, bool wifiPowerSave)
 {
     status->set(StatusLed::Connecting);

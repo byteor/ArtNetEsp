@@ -147,6 +147,7 @@ void App::loop()
 #endif
 }
 
+// cppcheck-suppress shadowMember  // signature fixed by AceButton's IEventHandler::handleEvent
 void App::handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
 {
     switch (eventType)

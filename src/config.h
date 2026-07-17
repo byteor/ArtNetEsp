@@ -84,7 +84,7 @@ protected:
     void cleanupDmx();
 
 public:
-    String dmxTypeToString(DmxType type)
+    static String dmxTypeToString(DmxType type)
     {
         return String(core::toWireString(type));
     }

@@ -14,14 +14,15 @@
 class DmxRepeater : public Device
 {
 protected:
-    uint8_t pin;
+    uint8_t pin = 0;
     // DmxPort::instance() (B15) - a reference, not a value member, so
     // multiple Repeater devices share the one hardware DMX port/task.
     DmxPort &dmx;
     unsigned long lastRefreshTime = 0;
 
 public:
-    DmxRepeater(uint8_t universe);
+    explicit DmxRepeater(uint8_t universe);
+    // cppcheck-suppress uselessOverride  // explicit no-op documents that all setup happens in the constructor (dmx.init()), not deferred to start()
     void start() override;
     void tick() override;
     void onDmx(uint32_t univ, const uint8_t *data, uint16_t len) override;

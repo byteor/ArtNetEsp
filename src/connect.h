@@ -20,9 +20,9 @@
 class Connect
 {
 protected:
-    AsyncWebServer *server;
-    DNSServer *dns;
-    StatusLed *status;
+    AsyncWebServer *server = nullptr;
+    DNSServer *dns = nullptr;
+    StatusLed *status = nullptr;
 
     static const unsigned long REFRESH_INTERVAL = 1000; // ms
     // Cold-boot: how long to wait for WiFi.begin() (NVS-saved credentials)
@@ -45,7 +45,7 @@ protected:
     // (firmware flashed without uploadfs), a minimal inline page is served.
     static constexpr const char *PORTAL_PAGE_PATH = "/www/portal.html";
 
-    unsigned long lastRefreshTime;
+    unsigned long lastRefreshTime = 0;
     String hostName;
     // WiFi modem-sleep policy (config hw.wifiPowerSave). false = radio always
     // on (lowest Art-Net latency/jitter, best multi-device sync); applied on

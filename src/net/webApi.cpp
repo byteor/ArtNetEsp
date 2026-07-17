@@ -34,7 +34,7 @@ void disconnectAndRestart(Connect *cn)
 // /update via ElegantOTA.setAuth() (see app/app.cpp). GET routes (/config,
 // /status, /heap, static /www/) stay unauthenticated - read-only, theater LAN.
 // Returns true if the request may proceed; otherwise sends the 401 challenge.
-bool checkAuth(AsyncWebServerRequest *request, art::Config &config)
+bool checkAuth(AsyncWebServerRequest *request, const art::Config &config)
 {
     if (!config.hardware.authEnabled)
         return true;
@@ -151,7 +151,7 @@ void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
                     request->send(response); });
 
     // POST /config
-    AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/config", [&](AsyncWebServerRequest *request, JsonVariant &json)
+    AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/config", [&](AsyncWebServerRequest *request, const JsonVariant &json)
                                                                            {
         LOG("PUT /config");
 

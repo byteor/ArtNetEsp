@@ -35,6 +35,7 @@ inline DmxRelay::DmxRelay(uint8_t universe, uint16_t channel, uint8_t pin, uint8
     this->inactive_value = active_value == LOW ? HIGH : LOW;
     this->value = this->inactive_value;
     this->threshold = threshold;
+    this->data = 0;
     Serial.print("Relay on pin: ");
     Serial.print(pin);
     Serial.print(" DMX channel: ");
@@ -48,6 +49,7 @@ inline uint8_t DmxRelay::get(uint16_t channel)
     return data;
 }
 
+// cppcheck-suppress shadowMember  // idiomatic setter: param mirrors the member it assigns via this->, disambiguated explicitly below
 inline void DmxRelay::set(uint16_t dmxChannel, uint8_t data)
 {
     if (dmxChannel == channel)

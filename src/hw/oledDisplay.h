@@ -39,9 +39,9 @@ protected:
     static const unsigned long DISPLAY_REFRESH_INTERVAL = 1000; // ms
     unsigned long lastRefreshTime = 0;
 
-    art::Config *config;
+    art::Config *config = nullptr;
     int page = 0, ticksForPage = 0, ticksForMessage = 0;
-    char buf[128];
+    char buf[128] = {};
 
     void drawStr(uint8_t x, uint8_t y, const char *string)
     {
@@ -61,6 +61,7 @@ protected:
     void setStatus64();
 
 public:
+    // cppcheck-suppress shadowMember  // idiomatic setter: param mirrors the member it assigns via this->, disambiguated explicitly below
     void setConfig(art::Config *config)
     {
         this->config = config;
@@ -125,6 +126,8 @@ public:
 
     StatusDisplay()
     {
+        // cppcheck-suppress noCopyConstructor  // single long-lived instance (App::statusDisplay), never copied; adding rule-of-three plumbing here is a design change out of scope for this pass
+        // cppcheck-suppress noOperatorEq  // see noCopyConstructor above
         display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
         display->begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
         display->setTextSize(1);              // Normal 1:1 pixel scale
@@ -163,7 +166,7 @@ inline void StatusDisplay::setStatus32()
             snprintf(buf, sizeof(buf), "%d", config->dmx[i].channel);
             drawStr(0, 8, buf, 2);
             // drawStr(0, 16, "DMX:");
-            snprintf(buf, sizeof(buf), "%d/%d  %s", i + 1, config->dmx.size(), config->dmxTypeToString(config->dmx[i].type).c_str());
+            snprintf(buf, sizeof(buf), "%d/%d  %s", i + 1, (int)config->dmx.size(), config->dmxTypeToString(config->dmx[i].type).c_str());
             drawStr(48, 0, buf);
             drawStr(48, 16, "i/o:");
             snprintf(buf, sizeof(buf), "%d", config->dmx[i].pin);
@@ -204,7 +207,7 @@ inline void StatusDisplay::setStatus64()
             drawStr(0, 40, "DMX:");
             drawStr(0, 62, buf);
             String name = config->dmxTypeToString(config->dmx[i].type);
-            snprintf(buf, sizeof(buf), "%d/%d  %s", i + 1, config->dmx.size(), name.substring(0, min(6, (int)name.length())).c_str());
+            snprintf(buf, sizeof(buf), "%d/%d  %s", i + 1, (int)config->dmx.size(), name.substring(0, min(6, (int)name.length())).c_str());
             drawStr(0, 14, buf);
             drawStr(80, 40, "I/O:");
             snprintf(buf, sizeof(buf), "%d", config->dmx[i].pin);

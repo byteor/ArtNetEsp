@@ -18,6 +18,7 @@ class DmxServo : public Device
 public:
     void start() override;
     void stop() override;
+    // cppcheck-suppress uselessOverride  // explicit no-op documents that Servo intentionally ignores flip(), not an oversight
     void flip() override;
     uint8_t get(uint16_t channel) override;
     void set(uint16_t channel, uint8_t data) override;
@@ -33,6 +34,7 @@ inline DmxServo::DmxServo(uint8_t universe, uint16_t channel, uint8_t pin)
     this->pin = pin;
     this->state = 0;
     this->value = 90;
+    this->data = 0;
 
 #ifdef ESP32
 
@@ -102,6 +104,7 @@ inline int getAngleValue(uint8_t data)
     return x * range / 255 + MIN;
 }
 
+// cppcheck-suppress shadowMember  // idiomatic setter: param mirrors the member it assigns via this->, disambiguated explicitly below
 inline void DmxServo::set(uint16_t dmxChannel, uint8_t data)
 {
 

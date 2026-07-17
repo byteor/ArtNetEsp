@@ -2,13 +2,16 @@
 #include "core/configCodec.h"
 namespace art
 {
+// cppcheck-suppress uninitMemberVar  // _pendingJson (2-4KB, config.h) is only ever read after stageUpdate() fully populates it (gated by _hasPending); zero-initializing it here would just cost boot-time cycles for no safety benefit
 Config::Config()
 {
     _dirty = false;
-    // core::HardwareConfig (config.h's HardwareConfig alias) has no default
-    // member initializers - its defaults are board-specific Arduino macros
+    // core::HardwareConfig's (config.h's HardwareConfig alias) in-class
+    // member initializers for these four fields are just placeholder zeros
+    // (core/configModel.h can't depend on Arduino board macros) - their real
+    // defaults are board-specific Arduino macros
     // (DEFAULT_PWM_FREQ/LED_PIN/DEFAULT_BUTTON_PIN/DEFAULT_BUTTON_LONG_PRESS),
-    // which core/configModel.h can't depend on.
+    // applied here unconditionally.
     hardware.pwmFreq = DEFAULT_PWM_FREQ;
     hardware.ledPin = LED_PIN;
     hardware.buttonPin = DEFAULT_BUTTON_PIN;
@@ -137,6 +140,7 @@ bool Config::applyPendingUpdate()
     }
 
     LOG(F("Applying staged config update"));
+    // cppcheck-suppress knownConditionTrueFalse  // update() always returns true today (configFromJson has no failure path); the reload-on-failure branch below is deliberate defensive dead code, not a bug - making update() fallible is a real design change out of scope here
     if (update(doc.as<JsonVariant>()))
     {
         save();
