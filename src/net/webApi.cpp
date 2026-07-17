@@ -40,6 +40,31 @@ bool checkAuth(AsyncWebServerRequest *request, art::Config &config)
     return false;
 }
 
+// S3: DNS-rebinding / CSRF guard. Cross-origin browser requests (a hostile
+// web page POSTing to us, or any request after DNS rebinding) carry the
+// attacker's name in the Host header - accept only our own identities:
+// the device IP, the configured hostname, or "<host>.<suffix>" (mDNS
+// ".local", router-assigned names like ".lan"). An empty Host header
+// (plain HTTP/1.0 tools) is allowed - browsers always send one.
+bool hostAllowed(AsyncWebServerRequest *request, const String &configuredHost)
+{
+    String host = request->host();
+    if (host.length() == 0)
+        return true;
+    int colon = host.indexOf(':');
+    if (colon >= 0)
+        host = host.substring(0, colon);
+    if (host == WiFi.localIP().toString())
+        return true;
+    if (configuredHost.length() == 0)
+        return false;
+    if (host.equalsIgnoreCase(configuredHost))
+        return true;
+    String prefix = configuredHost + ".";
+    return host.length() > prefix.length() &&
+           host.substring(0, prefix.length()).equalsIgnoreCase(prefix);
+}
+
 // Runtime WiFi/build/chip identity - never part of the persisted config
 // (§1.2.9 layering fix), populated fresh on every request. Shared by
 // GET /config (nested under "info", for back-compat) and GET /status (the
@@ -68,6 +93,17 @@ void fillInfo(JsonObject info)
 
 void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
 {
+    // Runs before every handler on this server - including ElegantOTA's
+    // /update, which app.cpp registered on the same server instance.
+    server->addMiddleware([&config](AsyncWebServerRequest *request, ArMiddlewareNext next)
+                          {
+        if (!hostAllowed(request, config.host))
+        {
+            request->send(403, "text/plain", "Forbidden: unrecognized Host header");
+            return;
+        }
+        next(); });
+
     server->on("/heap", HTTP_GET, [](AsyncWebServerRequest *request)
                { request->send(200, "text/plain", String(ESP.getFreeHeap())); });
 
