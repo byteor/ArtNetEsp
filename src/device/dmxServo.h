@@ -26,7 +26,7 @@ public:
     DmxServo(uint8_t universe, uint16_t channel, uint8_t pin);
 };
 
-DmxServo::DmxServo(uint8_t universe, uint16_t channel, uint8_t pin)
+inline DmxServo::DmxServo(uint8_t universe, uint16_t channel, uint8_t pin)
 {
     this->universe = universe;
     this->channel = channel;
@@ -46,7 +46,7 @@ DmxServo::DmxServo(uint8_t universe, uint16_t channel, uint8_t pin)
     Serial.println(universe);
 }
 
-uint8_t DmxServo::get(uint16_t channel)
+inline uint8_t DmxServo::get(uint16_t channel)
 {
     return data;
 }
@@ -61,7 +61,7 @@ For FT90R it is 90 +- 20, i.e. [60...120]
 128..191 - increasing, 191 is the max speed
 192..255 - decreasing
 */
-int getRotationalValue(uint8_t data)
+inline int getRotationalValue(uint8_t data)
 {
     int dX = 0;
     float dY = 30;
@@ -94,7 +94,7 @@ The goal is to translate DMX value [0...255] to a value acceptable by Servo
 MG90 is a 180 degree servo
 Having MIN, MAX, and OFFSET we can translate DMX value to a degree value even servo is 360 degrees
 */
-int getAngleValue(uint8_t data)
+inline int getAngleValue(uint8_t data)
 {
     double MIN = 501, MAX = 2500; // 179;
     double range = MAX - MIN;
@@ -102,7 +102,7 @@ int getAngleValue(uint8_t data)
     return x * range / 255 + MIN;
 }
 
-void DmxServo::set(uint16_t dmxChannel, uint8_t data)
+inline void DmxServo::set(uint16_t dmxChannel, uint8_t data)
 {
 
     if (dmxChannel == channel)
@@ -120,7 +120,7 @@ void DmxServo::set(uint16_t dmxChannel, uint8_t data)
     }
 }
 
-void DmxServo::start()
+inline void DmxServo::start()
 {
     if (!servo.attached())
     {
@@ -130,13 +130,13 @@ void DmxServo::start()
     }
 }
 
-void DmxServo::stop()
+inline void DmxServo::stop()
 {
     servo.detach();
     state = 0;
 }
 
-void DmxServo::flip()
+inline void DmxServo::flip()
 {
     // do nothing
 }

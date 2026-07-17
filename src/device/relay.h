@@ -26,7 +26,7 @@ public:
     DmxRelay(uint8_t universe, uint16_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold);
 };
 
-DmxRelay::DmxRelay(uint8_t universe, uint16_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold)
+inline DmxRelay::DmxRelay(uint8_t universe, uint16_t channel, uint8_t pin, uint8_t active_value, uint8_t threshold)
 {
     this->universe = universe;
     this->channel = channel;
@@ -43,12 +43,12 @@ DmxRelay::DmxRelay(uint8_t universe, uint16_t channel, uint8_t pin, uint8_t acti
     Serial.println(universe);
 }
 
-uint8_t DmxRelay::get(uint16_t channel)
+inline uint8_t DmxRelay::get(uint16_t channel)
 {
     return data;
 }
 
-void DmxRelay::set(uint16_t dmxChannel, uint8_t data)
+inline void DmxRelay::set(uint16_t dmxChannel, uint8_t data)
 {
     if (dmxChannel == channel)
     {
@@ -59,13 +59,13 @@ void DmxRelay::set(uint16_t dmxChannel, uint8_t data)
     }
 }
 
-void DmxRelay::start()
+inline void DmxRelay::start()
 {
     pinMode(pin, OUTPUT);
     digitalWrite(pin, value);
 }
 
-void DmxRelay::flip()
+inline void DmxRelay::flip()
 {
     value = !value;
     manualOverride = true; // B20: don't let silence-blackout undo this until the next DMX frame
@@ -74,7 +74,7 @@ void DmxRelay::flip()
     digitalWrite(pin, value);
 }
 
-bool DmxRelay::isEnabled()
+inline bool DmxRelay::isEnabled()
 {
     return value == active_value;
 }
