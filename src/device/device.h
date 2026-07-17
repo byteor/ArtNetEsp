@@ -2,6 +2,8 @@
 #define DEVICE_H
 
 #define DMX_SILENCE_TIMEOUT 5000
+#include <Arduino.h>
+#include "../hw/logger.h"
 
 class Device
 {
@@ -28,7 +30,7 @@ public:
         {
             if (!silenceLogged)
             {
-                Serial.println(F("DMX timeout"));
+                LOG(F("DMX timeout"));
                 silenceLogged = true;
             }
             // Reset lastChange (not silenceLogged) so this repeats every
