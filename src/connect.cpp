@@ -168,7 +168,7 @@ void Connect::startPortal()
 
     // Captive-portal detection: send every other request to the setup page.
     server->onNotFound([apIP](AsyncWebServerRequest *request)
-                        {
+                       {
         AsyncWebServerResponse *response = request->beginResponse(302, "text/plain", "");
         response->addHeader("Location", "http://" + apIP.toString() + "/");
         request->send(response); });

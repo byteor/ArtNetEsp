@@ -11,9 +11,9 @@ protected:
     uint8_t universe;
     uint16_t channel;
     unsigned long lastChange = 0;
-    bool silenceLogged = false;     // B20: log "DMX timeout" once per silence period, not every 5s
-    bool manualOverride = false;    // B20: set by flip(); suspends the silence blackout until the next real frame()
-    bool blackoutOnSilence = true;  // Phase 5 item 5: policy hook for tick()'s set(channel,0) on silence; wired to config by item 9
+    bool silenceLogged = false;    // B20: log "DMX timeout" once per silence period, not every 5s
+    bool manualOverride = false;   // B20: set by flip(); suspends the silence blackout until the next real frame()
+    bool blackoutOnSilence = true; // Phase 5 item 5: policy hook for tick()'s set(channel,0) on silence; wired to config by item 9
 
 public:
     virtual ~Device() = default;

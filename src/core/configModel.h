@@ -15,13 +15,13 @@ namespace core
 
 struct DeviceConfig
 {
-    uint16_t channel;    // DMX channel
-    DmxType type;        // DMX channel features
-    uint8_t threshold;   // ON/OFF threshold for a DmxType::Relay switch
-    uint16_t pulse;      // Strobe pulse length
-    uint16_t multiplier; // Strobe period multiplier
-    uint8_t pin;         // Pin (Arduino numbering)
-    uint8_t level;       // Active level: 0=LOW, 1=HIGH
+    uint16_t channel;     // DMX channel
+    DmxType type;         // DMX channel features
+    uint8_t threshold;    // ON/OFF threshold for a DmxType::Relay switch
+    uint16_t pulse;       // Strobe pulse length
+    uint16_t multiplier;  // Strobe period multiplier
+    uint8_t pin;          // Pin (Arduino numbering)
+    uint8_t level;        // Active level: 0=LOW, 1=HIGH
     bool blackout = true; // B20: blackout this device on DMX silence
 };
 
@@ -50,7 +50,7 @@ struct HardwareConfig
 inline bool isValidGpio(uint8_t pin, bool isEsp32)
 {
     if (isEsp32)
-        return pin <= 48; // classic/S2/S3 families top out at GPIO48 (S3)
+        return pin <= 48;                         // classic/S2/S3 families top out at GPIO48 (S3)
     return pin <= 16 && !(pin >= 6 && pin <= 11); // ESP8266: GPIO0-5, 12-16
 }
 
