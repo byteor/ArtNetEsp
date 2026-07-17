@@ -50,22 +50,36 @@ bool Config::save()
     LOG(F("Saving config..."));
     JsonDocument doc;
     configToJson(doc, /*includeSecrets=*/true);
-    if (ESP_FS.exists(CONFIG_FILE) && !ESP_FS.remove(CONFIG_FILE))
-        LOG(F("Failed to delete file"));
-    File file = ESP_FS.open(CONFIG_FILE, "w");
+    // Write to a temp file, then rename over the old config (B4). LittleFS
+    // rename is atomic, so a power cut mid-save can no longer leave the
+    // device with no config at all (the old delete-then-rewrite could).
+    const String tmpFile = CONFIG_FILE + ".new";
+    File file = ESP_FS.open(tmpFile, "w");
     if (!file)
     {
-        LOG("Failed to create file " + CONFIG_FILE);
+        LOG("Failed to create file " + tmpFile);
         return false;
     }
-    // Serialize JSON to file
     LOG(F("Serializing..."));
     if (serializeJson(doc, file) == 0)
     {
         LOG(F("Failed to write JSON to file"));
+        file.close();
+        ESP_FS.remove(tmpFile);
         return false;
     }
     file.close();
+    if (!ESP_FS.rename(tmpFile, CONFIG_FILE))
+    {
+        // Some FS wrappers won't rename over an existing file - clear the
+        // destination and retry.
+        ESP_FS.remove(CONFIG_FILE);
+        if (!ESP_FS.rename(tmpFile, CONFIG_FILE))
+        {
+            LOG(F("Failed to move new config into place"));
+            return false;
+        }
+    }
     LOG(F("Config saved"));
     return true;
 };
