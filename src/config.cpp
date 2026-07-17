@@ -215,10 +215,10 @@ void Config::configToJson(JsonDocument &doc, bool includeSecrets)
     doc["host"] = host;
     doc["universe"] = universe;
 
-    JsonArray channels = doc.createNestedArray("dmx");
+    JsonArray channels = doc["dmx"].to<JsonArray>();
     for (size_t i = 0; i < dmx.size() && i < MAX_DMX_DEVICES; i++)
     {
-        core::dmxChannelToJson(dmx[i], channels.createNestedObject());
+        core::dmxChannelToJson(dmx[i], channels.add<JsonObject>());
     }
 }
 } // namespace art
