@@ -87,6 +87,13 @@ export function AdvancedSection({ draft, patch, save, busy, dirty, open, onToggl
         Require HTTP authentication for changes
       </label>
 
+      {!hw.authEnabled && (
+        <span class="hint">
+          With auth off, anyone on your WiFi can reconfigure or reflash this
+          device. Enable it if the network is shared beyond the crew.
+        </span>
+      )}
+
       {hw.authEnabled && (
         <>
           <div class="warn">
@@ -106,9 +113,13 @@ export function AdvancedSection({ draft, patch, save, busy, dirty, open, onToggl
               <input
                 type="password"
                 autocomplete="off"
+                placeholder="unchanged"
                 value={hw.authPass}
                 onInput={(e) => set("authPass", e.currentTarget.value)}
               />
+              <span class="hint">
+                Never shown; leave blank to keep the current password.
+              </span>
             </div>
           </div>
         </>
