@@ -5,7 +5,11 @@
 
 #include "Version.h"
 #include "boards/board.h"
+#include "boards/features.h"
 #include "hw/logger.h"
+#if FEATURE_DMX_PORT
+#include "dmx/dmx.h"
+#endif
 
 namespace webApi
 {
@@ -86,6 +90,11 @@ void fillInfo(JsonObject info)
     info["rssi"] = WiFi.RSSI();
     info["uptime"] = millis();
     info["free_heap"] = ESP.getFreeHeap();
+#if FEATURE_DMX_PORT
+    // Additive (contract 2.0.0): DmxPort writes dropped on mutex timeout -
+    // makes Gotcha #5's silent-drop behavior observable.
+    info["dmx_dropped_writes"] = DmxPort::instance().getDroppedWrites();
+#endif
     // Whether ElegantOTA's /update endpoint is compiled in (stripped on the
     // sonoff envs via DISABLE_OTA, from boards/board.h). Lets the web UI hide
     // its OTA link on boards that don't have it.

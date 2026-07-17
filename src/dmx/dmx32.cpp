@@ -84,6 +84,10 @@ void DmxPort::write(int channel, uint8_t value)
             data[channel] = value;
             xSemaphoreGive(dataMutex);
         }
+        else
+        {
+            droppedWrites++;
+        }
     }
 }
 
@@ -97,6 +101,10 @@ void DmxPort::writeFrame(const uint8_t *frameData, uint16_t size)
     {
         memcpy(&data[1], frameData, size);
         xSemaphoreGive(dataMutex);
+    }
+    else
+    {
+        droppedWrites++;
     }
 }
 

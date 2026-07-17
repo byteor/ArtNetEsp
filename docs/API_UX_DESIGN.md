@@ -228,6 +228,7 @@ Populated fresh per request. Nested under `info` in `GET /config`; the **body** 
 | `rssi` | int | WiFi RSSI (dBm). |
 | `uptime` | int | Milliseconds since boot. |
 | `free_heap` | int | Free heap bytes. |
+| `dmx_dropped_writes` | int | DMX-port writes dropped on lock timeout since boot. **Optional** — absent on builds without a DMX port (sonoff) and on firmware < 2026.2 w/ contract < 2.0.0. |
 | `ota` | bool | Whether OTA `/update` is compiled in. UI hides the OTA link when `false`. |
 
 ## 7. UI / UX specification (configuration SPA)
@@ -376,6 +377,8 @@ identical UX with any framework.
 - **Host-header validation** on every route (incl. `/update`): unknown `Host`
   values get `403`. Clients using the device IP, `<host>`, or `<host>.<label>`
   (a single trailing label, e.g. `.local`/`.lan`) names are unaffected.
+- Added optional `info.dmx_dropped_writes` (additive) — DMX-port writes dropped
+  on lock timeout since boot; absent on builds without a DMX port.
 
 ### 1.0.0 — 2026-06-16 — `Compatible` (baseline)
 Initial contract. Documents the REST API and configuration SPA as of firmware
