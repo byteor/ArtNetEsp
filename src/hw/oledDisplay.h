@@ -25,7 +25,6 @@ protected:
     const int TICKS_PER_PAGE = 2;
     const int TICKS_PER_MESSAGE = 4;
     const int MAIN_PAGES = 2; // assuming no DMX devices are setup
-    int PAGES = MAIN_PAGES;
 
     Adafruit_SSD1306 *display = NULL;
 
@@ -65,7 +64,6 @@ public:
     void setConfig(art::Config *config)
     {
         this->config = config;
-        PAGES += config->dmx.size();
         setStatus();
     }
 
@@ -79,12 +77,15 @@ public:
 
         display->clearDisplay();
 
+        // Live count (B2 fix): config->dmx can shrink/grow at runtime via
+        // POST /config, so never cache the page count.
+        const int pages = MAIN_PAGES + (config ? static_cast<int>(config->dmx.size()) : 0);
         if (ticksForPage++ >= TICKS_PER_PAGE)
         {
             page++;
             ticksForPage = 0;
         }
-        if (page >= PAGES)
+        if (page >= pages)
         {
             page = 0;
         }
@@ -156,6 +157,8 @@ inline void StatusDisplay::setStatus32()
         default:
             // DMX channel page
             int i = page - MAIN_PAGES;
+            if (i < 0 || i >= static_cast<int>(config->dmx.size()))
+                break;
 
             sprintf(buf, "%d", config->dmx[i].channel);
             drawStr(0, 8, buf, 2);
@@ -194,6 +197,8 @@ inline void StatusDisplay::setStatus64()
         default:
             // DMX channel page
             int i = page - MAIN_PAGES;
+            if (i < 0 || i >= static_cast<int>(config->dmx.size()))
+                break;
 
             sprintf(buf, "%d", config->dmx[i].channel);
             drawStr(0, 40, "DMX:");
