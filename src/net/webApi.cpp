@@ -77,11 +77,10 @@ void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
                {
                     LOG("GET /config");
                     JsonDocument doc;
-                    config.toJson(doc);
+                    config.toJson(doc, /*includeSecrets=*/false);
                     fillInfo(doc["info"].to<JsonObject>());
                     String json;
-                    serializeJsonPretty(doc, json);
-                    LOG(json);
+                    serializeJson(doc, json);
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
                     request->send(response); });
 

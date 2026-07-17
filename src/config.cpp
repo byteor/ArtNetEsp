@@ -46,7 +46,7 @@ bool Config::save()
 {
     LOG(F("Saving config..."));
     JsonDocument doc;
-    configToJson(doc);
+    configToJson(doc, /*includeSecrets=*/true);
     if (ESP_FS.exists(CONFIG_FILE) && !ESP_FS.remove(CONFIG_FILE))
         LOG(F("Failed to delete file"));
     File file = ESP_FS.open(CONFIG_FILE, "w");
@@ -125,17 +125,7 @@ bool Config::applyPendingUpdate()
         load();
     }
 
-    String jsonString;
-    serialize(jsonString);
-    LOG(jsonString);
     return true;
-}
-
-void Config::serialize(String &to)
-{
-    JsonDocument doc;
-    configToJson(doc);
-    serializeJsonPretty(doc, to);
 }
 
 void Config::cleanupDmx()
@@ -195,12 +185,12 @@ void Config::configFromJson(JsonVariant doc)
     hardware = core::hardwareFromJson(doc["hw"], hardware);
 }
 
-void Config::configToJson(JsonDocument &doc)
+void Config::configToJson(JsonDocument &doc, bool includeSecrets)
 {
     doc.clear();
     doc["configVersion"] = CONFIG_SCHEMA_VERSION;
     doc["_needReboot"] = _dirty;
-    core::hardwareToJson(hardware, doc["hw"].to<JsonObject>());
+    core::hardwareToJson(hardware, doc["hw"].to<JsonObject>(), includeSecrets);
     doc["host"] = host;
     doc["universe"] = universe;
 

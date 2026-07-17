@@ -70,11 +70,23 @@ inline HardwareConfig hardwareFromJson(JsonVariantConst obj, const HardwareConfi
     if (!obj["authUser"].isNull())
         hw.authUser = std::string(obj["authUser"] | "");
     if (!obj["authPass"].isNull())
-        hw.authPass = std::string(obj["authPass"] | "");
+    {
+        const char *pass = obj["authPass"] | "";
+        // Write-only secret: REST responses redact the password to "", and
+        // the SPA echoes that redacted value back on save - so an empty
+        // string means "unchanged". Only a non-empty value replaces the
+        // stored password. (To stop using a password, disable authEnabled.)
+        if (pass[0] != '\0')
+            hw.authPass = std::string(pass);
+    }
     return hw;
 }
 
-inline void hardwareToJson(const HardwareConfig &hw, JsonObject obj)
+// Serializes hw. includeSecrets=true is for the config persisted on the
+// device's own filesystem; includeSecrets=false is for REST responses -
+// authPass is emitted as "" so the password never leaves the device
+// (GET /config is intentionally unauthenticated).
+inline void hardwareToJson(const HardwareConfig &hw, JsonObject obj, bool includeSecrets)
 {
     obj["freq"] = hw.pwmFreq;
     obj["ledPin"] = hw.ledPin;
@@ -83,7 +95,7 @@ inline void hardwareToJson(const HardwareConfig &hw, JsonObject obj)
     obj["wifiPowerSave"] = hw.wifiPowerSave;
     obj["authEnabled"] = hw.authEnabled;
     obj["authUser"] = hw.authUser.c_str();
-    obj["authPass"] = hw.authPass.c_str();
+    obj["authPass"] = includeSecrets ? hw.authPass.c_str() : "";
 }
 
 } // namespace core
