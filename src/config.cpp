@@ -13,6 +13,9 @@ Config::Config()
     hardware.ledPin = LED_PIN;
     hardware.buttonPin = DEFAULT_BUTTON_PIN;
     hardware.longPressDelay = DEFAULT_BUTTON_LONG_PRESS * 1000;
+#ifdef ESP32
+    _pendingMutex = xSemaphoreCreateMutex();
+#endif
 }
 
 bool Config::load()
@@ -78,14 +81,14 @@ bool Config::update(JsonVariant json)
 bool Config::stageUpdate(JsonVariant json)
 {
 #ifdef ESP32
-    portENTER_CRITICAL(&_pendingMux);
+    xSemaphoreTake(_pendingMutex, portMAX_DELAY);
 #endif
     size_t written = serializeJson(json, _pendingJson, sizeof(_pendingJson));
     bool ok = written > 0 && written < sizeof(_pendingJson);
     if (ok)
-        _hasPending = true;
+        _hasPending.store(true, std::memory_order_release);
 #ifdef ESP32
-    portEXIT_CRITICAL(&_pendingMux);
+    xSemaphoreGive(_pendingMutex);
 #endif
     if (!ok)
         LOG(F("Config update too large to stage, dropped"));
@@ -94,18 +97,23 @@ bool Config::stageUpdate(JsonVariant json)
 
 bool Config::applyPendingUpdate()
 {
-    if (!_hasPending)
+    if (!_hasPending.load(std::memory_order_acquire))
         return false;
 
+    // Parse under the mutex, but force ArduinoJson's copying mode by passing
+    // const char* - with a mutable char* it would keep pointers INTO
+    // _pendingJson, which a concurrent stageUpdate could overwrite once the
+    // mutex is released. With the copy, doc is self-contained and
+    // update()/save() safely run outside the lock.
     JsonDocument doc;
     DeserializationError error;
 #ifdef ESP32
-    portENTER_CRITICAL(&_pendingMux);
+    xSemaphoreTake(_pendingMutex, portMAX_DELAY);
 #endif
-    error = deserializeJson(doc, _pendingJson);
-    _hasPending = false;
+    error = deserializeJson(doc, static_cast<const char *>(_pendingJson));
+    _hasPending.store(false, std::memory_order_release);
 #ifdef ESP32
-    portEXIT_CRITICAL(&_pendingMux);
+    xSemaphoreGive(_pendingMutex);
 #endif
 
     if (error)
@@ -124,7 +132,6 @@ bool Config::applyPendingUpdate()
         LOG("Reloading existing config");
         load();
     }
-
     return true;
 }
 

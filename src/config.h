@@ -5,6 +5,7 @@
 
 #include <ArduinoJson.h>
 #include <vector>
+#include <atomic>
 #include "hw/logger.h"
 #include "boards/board.h"
 #include "core/dmxTypes.h"
@@ -62,9 +63,13 @@ class Config
     // actual update()/cleanupDmx()/save() runs single-threaded, on the same
     // task as the readers.
     char _pendingJson[CONFIG_BUFFER_SIZE];
-    volatile bool _hasPending = false;
+    std::atomic<bool> _hasPending{false};
 #ifdef ESP32
-    portMUX_TYPE _pendingMux = portMUX_INITIALIZER_UNLOCKED;
+    // Guards _pendingJson between the async_tcp task (stageUpdate) and the
+    // main task (applyPendingUpdate). A FreeRTOS mutex, NOT a spinlock:
+    // both sides do multi-KB memory work (serialize/parse) while holding it,
+    // which must never run with interrupts disabled (B11 rework).
+    SemaphoreHandle_t _pendingMutex = nullptr;
 #endif
 
 protected:
