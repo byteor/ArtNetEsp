@@ -121,7 +121,7 @@ void test_hardware_roundtrip(void)
     original.authPass = "s3cr3t";
 
     JsonDocument doc;
-    core::hardwareToJson(original, doc.to<JsonObject>());
+    core::hardwareToJson(original, doc.to<JsonObject>(), /*includeSecrets=*/true);
 
     HardwareConfig defaults{};
     HardwareConfig parsed = core::hardwareFromJson(doc.as<JsonObject>(), defaults);
@@ -195,7 +195,7 @@ void test_full_config_shaped_doc_roundtrip(void)
     JsonArray dmxArr = doc["dmx"].to<JsonArray>();
     for (const auto &ch : dmxOriginal)
         core::dmxChannelToJson(ch, dmxArr.add<JsonObject>());
-    core::hardwareToJson(hwOriginal, doc["hw"].to<JsonObject>());
+    core::hardwareToJson(hwOriginal, doc["hw"].to<JsonObject>(), /*includeSecrets=*/true);
 
     // Round-trip through a serialized string, as save()/load() would.
     std::string serialized;
@@ -221,6 +221,56 @@ void test_full_config_shaped_doc_roundtrip(void)
     TEST_ASSERT_EQUAL(hwOriginal.longPressDelay, hwParsed.longPressDelay);
 }
 
+static void test_hardware_tojson_redacts_authpass_without_secrets()
+{
+    HardwareConfig hw{};
+    hw.pwmFreq = 600;
+    hw.authEnabled = true;
+    hw.authUser = "admin";
+    hw.authPass = "hunter2";
+
+    JsonDocument redacted;
+    core::hardwareToJson(hw, redacted.to<JsonObject>(), /*includeSecrets=*/false);
+    TEST_ASSERT_EQUAL_STRING("", redacted["authPass"] | "MISSING");
+    TEST_ASSERT_EQUAL_STRING("admin", redacted["authUser"] | "");
+
+    JsonDocument full;
+    core::hardwareToJson(hw, full.to<JsonObject>(), /*includeSecrets=*/true);
+    TEST_ASSERT_EQUAL_STRING("hunter2", full["authPass"] | "");
+}
+
+static void test_hardware_fromjson_empty_authpass_means_unchanged()
+{
+    HardwareConfig defaults{};
+    defaults.authPass = "keepme";
+
+    JsonDocument doc;
+    deserializeJson(doc, "{\"authPass\":\"\"}");
+    HardwareConfig hw = core::hardwareFromJson(doc.as<JsonVariantConst>(), defaults);
+    TEST_ASSERT_EQUAL_STRING("keepme", hw.authPass.c_str());
+
+    JsonDocument doc2;
+    deserializeJson(doc2, "{\"authPass\":\"newpass\"}");
+    HardwareConfig hw2 = core::hardwareFromJson(doc2.as<JsonVariantConst>(), defaults);
+    TEST_ASSERT_EQUAL_STRING("newpass", hw2.authPass.c_str());
+}
+
+static void test_isValidGpio()
+{
+    // ESP8266: GPIO 0-5 and 12-16 are usable; 6-11 are the flash pins.
+    TEST_ASSERT_TRUE(core::isValidGpio(0, false));
+    TEST_ASSERT_TRUE(core::isValidGpio(5, false));
+    TEST_ASSERT_FALSE(core::isValidGpio(6, false));
+    TEST_ASSERT_FALSE(core::isValidGpio(11, false));
+    TEST_ASSERT_TRUE(core::isValidGpio(12, false));
+    TEST_ASSERT_TRUE(core::isValidGpio(16, false));
+    TEST_ASSERT_FALSE(core::isValidGpio(17, false));
+    // ESP32 family: 0-48 exists across classic/S2/S3.
+    TEST_ASSERT_TRUE(core::isValidGpio(0, true));
+    TEST_ASSERT_TRUE(core::isValidGpio(48, true));
+    TEST_ASSERT_FALSE(core::isValidGpio(49, true));
+}
+
 int main(int argc, char **argv)
 {
     UNITY_BEGIN();
@@ -231,5 +281,8 @@ int main(int argc, char **argv)
     RUN_TEST(test_hardware_auth_defaults_to_off);
     RUN_TEST(test_hardware_partial_update_keeps_defaults);
     RUN_TEST(test_full_config_shaped_doc_roundtrip);
+    RUN_TEST(test_hardware_tojson_redacts_authpass_without_secrets);
+    RUN_TEST(test_hardware_fromjson_empty_authpass_means_unchanged);
+    RUN_TEST(test_isValidGpio);
     return UNITY_END();
 }

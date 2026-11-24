@@ -5,6 +5,7 @@
 
 #include <ArduinoJson.h>
 #include <vector>
+#include <atomic>
 #include "hw/logger.h"
 #include "boards/board.h"
 #include "core/dmxTypes.h"
@@ -62,9 +63,13 @@ class Config
     // actual update()/cleanupDmx()/save() runs single-threaded, on the same
     // task as the readers.
     char _pendingJson[CONFIG_BUFFER_SIZE];
-    volatile bool _hasPending = false;
+    std::atomic<bool> _hasPending{false};
 #ifdef ESP32
-    portMUX_TYPE _pendingMux = portMUX_INITIALIZER_UNLOCKED;
+    // Guards _pendingJson between the async_tcp task (stageUpdate) and the
+    // main task (applyPendingUpdate). A FreeRTOS mutex, NOT a spinlock:
+    // both sides do multi-KB memory work (serialize/parse) while holding it,
+    // which must never run with interrupts disabled (B11 rework).
+    SemaphoreHandle_t _pendingMutex = nullptr;
 #endif
 
 protected:
@@ -74,12 +79,12 @@ protected:
     const String DEFAULT_HOST_NAME = String("Art-" + CHIP_ID);
 
     void configFromJson(JsonVariant doc);
-    void configToJson(JsonDocument &doc);
+    void configToJson(JsonDocument &doc, bool includeSecrets);
     void cleanup();
     void cleanupDmx();
 
 public:
-    String dmxTypeToString(DmxType type)
+    static String dmxTypeToString(DmxType type)
     {
         return String(core::toWireString(type));
     }
@@ -88,9 +93,10 @@ public:
     // universe/dmx) to doc. Does NOT include "info" - that's runtime
     // WiFi/build/chip identity, not part of the persisted config; webApi's
     // GET /config and GET /status add it separately (§1.2.9 layering fix).
-    void toJson(JsonDocument &doc)
+    // includeSecrets=false (REST responses) redacts hw.authPass to "".
+    void toJson(JsonDocument &doc, bool includeSecrets)
     {
-        configToJson(doc);
+        configToJson(doc, includeSecrets);
     }
 
     // Whether a config change has been applied that needs a reboot to take
@@ -114,7 +120,6 @@ public:
     bool load();
     bool update(JsonVariant json);
     bool save();
-    void serialize(String &to);
 
     // B11: stage a POST /config payload for application from loop().
     // Returns false (and drops the update) if it doesn't fit CONFIG_BUFFER_SIZE.

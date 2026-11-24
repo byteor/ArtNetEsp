@@ -35,6 +35,7 @@ public:
 private:
     AsyncWebServer server{80};
     DNSServer dnsServer;
+    // cppcheck-suppress uninitMemberVarPrivate  // App has no user-declared ctor; Connect's own default ctor (connect.h) fully initializes its members
     Connect connect;
     art::Config config;
     ArtnetService artnet;

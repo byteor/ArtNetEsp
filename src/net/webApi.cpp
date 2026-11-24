@@ -5,7 +5,11 @@
 
 #include "Version.h"
 #include "boards/board.h"
+#include "boards/features.h"
 #include "hw/logger.h"
+#if FEATURE_DMX_PORT
+#include "dmx/dmx.h"
+#endif
 
 namespace webApi
 {
@@ -30,7 +34,7 @@ void disconnectAndRestart(Connect *cn)
 // /update via ElegantOTA.setAuth() (see app/app.cpp). GET routes (/config,
 // /status, /heap, static /www/) stay unauthenticated - read-only, theater LAN.
 // Returns true if the request may proceed; otherwise sends the 401 challenge.
-bool checkAuth(AsyncWebServerRequest *request, art::Config &config)
+bool checkAuth(AsyncWebServerRequest *request, const art::Config &config)
 {
     if (!config.hardware.authEnabled)
         return true;
@@ -38,6 +42,37 @@ bool checkAuth(AsyncWebServerRequest *request, art::Config &config)
         return true;
     request->requestAuthentication();
     return false;
+}
+
+// S3: DNS-rebinding / CSRF guard. Cross-origin browser requests (a hostile
+// web page POSTing to us, or any request after DNS rebinding) carry the
+// attacker's name in the Host header - accept only our own identities:
+// the device IP, the configured hostname, or "<host>.<suffix>" (mDNS
+// ".local", router-assigned names like ".lan"). An empty Host header
+// (plain HTTP/1.0 tools) is allowed - browsers always send one.
+bool hostAllowed(AsyncWebServerRequest *request, const String &configuredHost)
+{
+    String host = request->host();
+    if (host.length() == 0)
+        return true;
+    int colon = host.indexOf(':');
+    if (colon >= 0)
+        host = host.substring(0, colon);
+    if (host == WiFi.localIP().toString())
+        return true;
+    if (configuredHost.length() == 0)
+        return false;
+    if (host.equalsIgnoreCase(configuredHost))
+        return true;
+    String prefix = configuredHost + ".";
+    if (host.length() <= prefix.length() ||
+        !host.substring(0, prefix.length()).equalsIgnoreCase(prefix))
+        return false;
+    // Only a single trailing label is allowed (host.local, host.lan) - a
+    // second dot (host.attacker.com) would let an attacker who knows the
+    // mDNS/NetBIOS-broadcast hostname defeat the DNS-rebinding guard.
+    String suffix = host.substring(prefix.length());
+    return suffix.length() > 0 && suffix.indexOf('.') < 0;
 }
 
 // Runtime WiFi/build/chip identity - never part of the persisted config
@@ -55,6 +90,11 @@ void fillInfo(JsonObject info)
     info["rssi"] = WiFi.RSSI();
     info["uptime"] = millis();
     info["free_heap"] = ESP.getFreeHeap();
+#if FEATURE_DMX_PORT
+    // Additive (contract 2.0.0): DmxPort writes dropped on mutex timeout -
+    // makes Gotcha #5's silent-drop behavior observable.
+    info["dmx_dropped_writes"] = DmxPort::instance().getDroppedWrites();
+#endif
     // Whether ElegantOTA's /update endpoint is compiled in (stripped on the
     // sonoff envs via DISABLE_OTA, from boards/board.h). Lets the web UI hide
     // its OTA link on boards that don't have it.
@@ -68,6 +108,17 @@ void fillInfo(JsonObject info)
 
 void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
 {
+    // Runs before every handler on this server - including ElegantOTA's
+    // /update, which app.cpp registered on the same server instance.
+    server->addMiddleware([&config](AsyncWebServerRequest *request, ArMiddlewareNext next)
+                          {
+        if (!hostAllowed(request, config.host))
+        {
+            request->send(403, "text/plain", "Forbidden: unrecognized Host header");
+            return;
+        }
+        next(); });
+
     server->on("/heap", HTTP_GET, [](AsyncWebServerRequest *request)
                { request->send(200, "text/plain", String(ESP.getFreeHeap())); });
 
@@ -77,11 +128,10 @@ void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
                {
                     LOG("GET /config");
                     JsonDocument doc;
-                    config.toJson(doc);
+                    config.toJson(doc, /*includeSecrets=*/false);
                     fillInfo(doc["info"].to<JsonObject>());
                     String json;
-                    serializeJsonPretty(doc, json);
-                    LOG(json);
+                    serializeJson(doc, json);
                     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
                     request->send(response); });
 
@@ -101,7 +151,7 @@ void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
                     request->send(response); });
 
     // POST /config
-    AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/config", [&](AsyncWebServerRequest *request, JsonVariant &json)
+    AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/config", [&](AsyncWebServerRequest *request, const JsonVariant &json)
                                                                            {
         LOG("PUT /config");
 
@@ -120,7 +170,7 @@ void setup(AsyncWebServer *server, art::Config &config, Connect *connect)
         }
         else
         {
-            response = request->beginResponse(500, "application/json", "{\"error\":\"update too large\"}");
+            response = request->beginResponse(413, "application/json", "{\"error\":\"update too large\"}");
         }
         request->send(response); });
 

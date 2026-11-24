@@ -38,6 +38,9 @@ protected:
     DMXESPSerial dmx;
 #endif
     bool initialized = false;
+    // Diagnostics: write()/writeFrame() calls dropped because dataMutex
+    // couldn't be taken within 10ms (ESP32 only; stays 0 on ESP8266).
+    uint32_t droppedWrites = 0;
 
 public:
     // DmxPort wraps a singleton hardware UART (B15) - always go
@@ -56,6 +59,7 @@ public:
     // per-channel loop.
     void writeFrame(const uint8_t *frameData, uint16_t size);
     void update();
+    uint32_t getDroppedWrites() const { return droppedWrites; }
 };
 
 #endif // FEATURE_DMX_PORT

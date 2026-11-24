@@ -19,7 +19,7 @@ class PwmDimmer : public Device
 {
 protected:
     uint8_t pin;
-    int pulse;     // configured 'active' duration, ms (reapplied on each Strobe-channel update)
+    int pulse; // configured 'active' duration, ms (reapplied on each Strobe-channel update)
     int multiplier;
     uint8_t activeState;
     uint8_t inactiveState;

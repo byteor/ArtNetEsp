@@ -2,7 +2,7 @@
 
 ArtNetEsp is an ESP8266/ESP32 Arduino firmware project (built with PlatformIO) that turns a cheap dev board into an Art-Net node — receiving DMX-over-WiFi from a lighting console (typically [QLC+](https://www.qlcplus.org/)) and driving relays, PWM dimmers, servos, or a real DMX512 line via an RS485 "repeater". It was built for community theater: cheap, wireless, no commercial lighting console required. Current version: 2026.2.x (auto-bumped every build — Gotcha #1).
 
-The `big-refactor` branch (see `REFACTORING_PLAN.md`) restructured most of `src/` without changing any externally-visible behavior (REST schema, FS paths, board pin assignments) — `src/app/`, `src/core/`, `src/net/`, and `src/platform/` are all new since that refactor, and `main.cpp` is now a 14-line shell. The sections below describe the post-refactor layout.
+The `big-refactor` branch (see `docs/REFACTORING_PLAN.md`) restructured most of `src/` without changing any externally-visible behavior (REST schema, FS paths, board pin assignments) — `src/app/`, `src/core/`, `src/net/`, and `src/platform/` are all new since that refactor, and `main.cpp` is now a 14-line shell. The sections below describe the post-refactor layout.
 
 For user-facing docs — device types, REST API, WiFi/captive portal behavior, the configuration web UI, OTA updates, version history, and the project TODO/backlog — see [README.md](README.md). This file is for anyone (human or AI) working on the firmware itself.
 
@@ -32,7 +32,7 @@ npm run build                              # -> data/www/{index.html,app.js,port
 DEVICE=http://<host>.local npm run dev     # live dev w/ HMR, REST proxied to a real device
 ```
 
-`[env:native]` (`platformio.ini`) runs `test/test_*` (Unity, ArduinoJson, plain C++ - no Arduino headers) against `src/core/` and is also the `native-test` job in `.github/workflows/ci.yml`. There's still no on-device test suite and no hardware-in-the-loop CI — `pio run` (the 12-env firmware matrix) plus watching the serial monitor, and the `tools/verify.sh`/`tools/hil_smoke.py` bench harness (Phase 0.5, see `REFACTORING_PLAN.md`) for live HIL checks, are the only further verification. See Gotcha #12 for which environments to build for a given change.
+`[env:native]` (`platformio.ini`) runs `test/test_*` (Unity, ArduinoJson, plain C++ - no Arduino headers) against `src/core/` and is also the `native-test` job in `.github/workflows/ci.yml`. There's still no on-device test suite and no hardware-in-the-loop CI — `pio run` (the 12-env firmware matrix) plus watching the serial monitor, and the `tools/verify.sh`/`tools/hil_smoke.py` bench harness (Phase 0.5, see `docs/REFACTORING_PLAN.md`) for live HIL checks, are the only further verification. See Gotcha #12 for which environments to build for a given change.
 
 ## 2. Critical Gotchas (read this first)
 
@@ -302,4 +302,4 @@ These describe the patterns already used in the codebase — useful for staying 
 - **[`docs/API_UX_DESIGN.md`](docs/API_UX_DESIGN.md)** — the **canonical, versioned** REST API + config-SPA UX contract for client/UI authors (see the §7 standing rule). Authoritative on conflict; keep it updated + version-bumped on every REST/UX change.
 - **[README.md](README.md)** — device type details (DIMMER/RELAY/SERVO/REPEATER configs), full REST API reference, WiFi/captive-portal behavior, the **Web UI** (config SPA architecture + build/upload), OTA via `/update`, version history, and the **TODO list**, which doubles as the project backlog.
 - **`assets/*.jpg`** — pinout reference images for ESP32 DevKitC v4, Lolin D32, and the XIAO ESP32-S3 repeater wiring.
-- **`REFACTORING_PLAN.md`** — the `big-refactor` branch's working document: 24 catalogued pre-refactor bugs (B1-B24), the phase-by-phase plan (Phases 0-8), and a per-item "Done" log describing exactly what changed and how each was verified. Phases 0-5 (CI/hygiene, bug fixes, renames, platform layer, board layer, core restructure) are complete as of this revision — the layout and interfaces described above (§3, §5, §6) are Phase 5's end state. Phases 6-8 (config robustness, dependency refresh, broader test coverage) are not yet started.
+- **`docs/REFACTORING_PLAN.md`** — the `big-refactor` branch's working document: 24 catalogued pre-refactor bugs (B1-B24), the phase-by-phase plan (Phases 0-8), and a per-item "Done" log describing exactly what changed and how each was verified. Phases 0-5 (CI/hygiene, bug fixes, renames, platform layer, board layer, core restructure) are complete as of this revision — the layout and interfaces described above (§3, §5, §6) are Phase 5's end state. Phases 6-8 (config robustness, dependency refresh, broader test coverage) are not yet started.

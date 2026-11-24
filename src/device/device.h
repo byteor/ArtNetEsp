@@ -2,16 +2,18 @@
 #define DEVICE_H
 
 #define DMX_SILENCE_TIMEOUT 5000
+#include <Arduino.h>
+#include "../hw/logger.h"
 
 class Device
 {
 protected:
-    uint8_t universe;
-    uint16_t channel;
+    uint8_t universe = 0;
+    uint16_t channel = 0;
     unsigned long lastChange = 0;
-    bool silenceLogged = false;     // B20: log "DMX timeout" once per silence period, not every 5s
-    bool manualOverride = false;    // B20: set by flip(); suspends the silence blackout until the next real frame()
-    bool blackoutOnSilence = true;  // Phase 5 item 5: policy hook for tick()'s set(channel,0) on silence; wired to config by item 9
+    bool silenceLogged = false;    // B20: log "DMX timeout" once per silence period, not every 5s
+    bool manualOverride = false;   // B20: set by flip(); suspends the silence blackout until the next real frame()
+    bool blackoutOnSilence = true; // Phase 5 item 5: policy hook for tick()'s set(channel,0) on silence; wired to config by item 9
 
 public:
     virtual ~Device() = default;
@@ -19,8 +21,8 @@ public:
     virtual void start() {}; // allocate resources, init
     virtual void stop() {};  // deallocate resources
     virtual void flip() {};  // call to flip the state (depending on device type)
-    virtual void set(uint16_t channel, uint8_t data) {};
-    virtual uint8_t get(uint16_t channel) { return 0; }
+    virtual void set(uint16_t ch, uint8_t data) {};
+    virtual uint8_t get(uint16_t ch) { return 0; }
     virtual bool isEnabled() { return true; }
     virtual void tick() // call it from loop() if needed
     {
@@ -28,7 +30,7 @@ public:
         {
             if (!silenceLogged)
             {
-                Serial.println(F("DMX timeout"));
+                LOG(F("DMX timeout"));
                 silenceLogged = true;
             }
             // Reset lastChange (not silenceLogged) so this repeats every

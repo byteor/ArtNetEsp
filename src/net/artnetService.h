@@ -8,9 +8,9 @@ class ArtnetService
 {
 private:
     ArtnetWiFiReceiver artnet;
-    Device **devices;
-    uint8_t devicesCount;
-    int universe;
+    Device **devices = nullptr;
+    uint8_t devicesCount = 0;
+    int universe = 0;
 
 public:
     ArtnetService();

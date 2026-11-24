@@ -12,16 +12,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Representative subset of the 12 platformio.ini environments (one
-        # ESP8266 with OLED, one full-featured ESP32, one FEATURE_*-stripped
-        # Sonoff, one ESP32-S3) - enough to catch cross-cutting breakage per
-        # AGENTS.md Gotcha #12. Build the full matrix locally with `pio run`
-        # before committing a change that touches boards/, device/, dmx/, or app/.
+        # Full 12-environment matrix - platform/package caching keeps re-runs cheap.
         env:
           - d1_mini_oled
+          - d1_mini
+          - nodemcuv2
+          - heltec_wifi_kit_8
           - sonoff_basic
+          - sonoff_s31
+          - lolin32
           - esp32-devkitc-v4
+          - lolin_s2_mini
+          - esp32-s3-devkitc-1
           - seeed_xiao_esp32s3
+          - seeed_xiao_esp32s3_oled
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,7 +83,7 @@ jobs:
         run: pio test -e native
 
   lint:
-    name: cppcheck (advisory)
+    name: cppcheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -89,13 +93,26 @@ jobs:
       - name: Install cppcheck
         run: sudo apt-get update && sudo apt-get install -y cppcheck
 
-      # Advisory only: embedded/Arduino headers aren't on cppcheck's include path,
-      # so missingInclude noise is suppressed. Findings don't fail the build yet -
-      # this is a starting point for Phase 1+ cleanup, not a gate.
+      # Gating since 2026-07: findings fail the build. Suppress false positives inline with a reason.
       - name: cppcheck src/
-        continue-on-error: true
         run: |
           cppcheck --enable=warning,style,performance,portability \
-            --std=c++17 --inline-suppr --force \
+            --std=c++17 --inline-suppr --force --error-exitcode=1 \
             --suppress=missingInclude --suppress=unusedFunction \
             -I src src
+
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+
+      - name: Check formatting (src/ and test/ only)
+        run: |
+          find src test -name '*.h' -o -name '*.cpp' \
+            | xargs clang-format --dry-run --Werror

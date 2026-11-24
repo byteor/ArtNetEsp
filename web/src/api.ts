@@ -23,10 +23,12 @@ export async function saveSection(patch: ConfigPatch): Promise<FullConfig> {
     body: JSON.stringify(patch),
   });
   if (r.status === 401) throw new Error("Unauthorized — HTTP auth is enabled");
-  if (r.status === 500) {
+  if (r.status === 413 || r.status === 500) {
     const t = await r.text().catch(() => "");
     throw new Error(
-      t.includes("too large") ? "Config update too large to save" : "Save failed (500)",
+      t.includes("too large")
+        ? "Config update too large to save"
+        : `Save failed (${r.status})`,
     );
   }
   if (!r.ok && r.status !== 202) throw new Error(`Save failed (HTTP ${r.status})`);

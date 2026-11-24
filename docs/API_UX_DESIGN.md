@@ -1,6 +1,6 @@
 # ArtNetEsp — REST API & UI Design Contract
 
-**Contract version: 1.0.0** · Last updated: 2026-06-16 · Applies to firmware 2026.2.x
+**Contract version: 2.0.0** · Last updated: 2026-07-16 · Applies to firmware 2026.2.x
 
 ## 1. Purpose & authority
 
@@ -92,6 +92,11 @@ point of change.
 - **Static UI:** `GET /` serves `index.html`; the bundle (`/app.js`, `/style.css`)
   and `/portal.html` are static files under the device FS (`/www/`).
 - **Unknown route:** `404 text/plain "Not found"`.
+- **Host header (v2.0.0):** requests must address the device as its IP, its
+  configured `host`, or `host.<label>` with exactly one trailing label (e.g.
+  `host.local`, `host.lan`) — a second dot (e.g. `host.attacker.com`) is
+  rejected; anything else gets `403 text/plain`. This is a DNS-rebinding/CSRF
+  guard. Clients that omit the Host header entirely are allowed.
 
 ### 5.2 Authentication
 
@@ -112,7 +117,7 @@ the challenge; an API client should send an `Authorization: Basic …` header.
 | Method | Path | Auth | Success | Notes |
 |---|---|---|---|---|
 | GET | `/config` | no | `200` JSON | Full config envelope (§6) **plus** nested `info` (§6.5). |
-| POST | `/config` | yes | **`202`** `{"status":"pending"}` | **Async-staged** — see §5.4. `500 {"error":"update too large"}` if body too big; `401` if auth. |
+| POST | `/config` | yes | **`202`** `{"status":"pending"}` | **Async-staged** — see §5.4. `413 {"error":"update too large"}` if body too big; `401` if auth. |
 | GET | `/status` | no | `200` JSON | The `info` fields (§6.5) **plus** `_needReboot`. Lightweight poll. |
 | POST | `/reboot` | yes | `200` `{"reboot":"OK"}` | Device restarts ~200 ms after replying. |
 | POST | `/reset-wifi` | yes | `200` `{"reset":"OK"}` | Clears saved WiFi and reboots into the captive portal. |
@@ -136,7 +141,7 @@ the challenge; an API client should send an `Authorization: Basic …` header.
   this way; instead set a device's `type` to `DISABLED`.
 - **Size limits.** The staged body must be `< CONFIG_BUFFER_SIZE` (**4096** bytes
   on ESP32, **2048** on ESP8266) or the server replies
-  `500 {"error":"update too large"}`. The JSON handler also enforces a **16 KB**
+  `413 {"error":"update too large"}`. The JSON handler also enforces a **16 KB**
   content-length ceiling. Keep payloads per-section.
 
 ### 5.5 Error responses
@@ -145,7 +150,7 @@ the challenge; an API client should send an `Authorization: Basic …` header.
 |---|---|---|
 | `401` | (challenge) | Auth required/failed on a mutating route. |
 | `404` | `Not found` | Unknown route. |
-| `500` | `{"error":"update too large"}` | `POST /config` body exceeded `CONFIG_BUFFER_SIZE`. |
+| `413` | `{"error":"update too large"}` | `POST /config` body exceeded `CONFIG_BUFFER_SIZE`. |
 
 ## 6. Config JSON schema
 
@@ -176,7 +181,7 @@ The `GET /config` body and the `POST /config` body share one envelope. `info` is
 | `wifiPowerSave` | bool | `false` | `false` = WiFi radio always on (lowest Art-Net latency/jitter, tightest multi-device sync); `true` = re-enable modem sleep to save power. Missing key → `false`. |
 | `authEnabled` | bool | `false` | Enables HTTP Basic auth (§5.2). |
 | `authUser` | string | `""` | Basic-auth username (used only if `authEnabled`). |
-| `authPass` | string | `""` | Basic-auth password (used only if `authEnabled`). |
+| `authPass` | string | `""` | Basic-auth password (used only if `authEnabled`). **Write-only** (v2.0.0): responses always redact it to `""`; sending `""` or omitting the key leaves the stored password unchanged — send a non-empty value to change it. To stop requiring a password, disable `authEnabled`. |
 
 Pin/freq defaults are **board-specific** (set in `Config::Config()` from board
 macros), not fixed constants.
@@ -223,6 +228,7 @@ Populated fresh per request. Nested under `info` in `GET /config`; the **body** 
 | `rssi` | int | WiFi RSSI (dBm). |
 | `uptime` | int | Milliseconds since boot. |
 | `free_heap` | int | Free heap bytes. |
+| `dmx_dropped_writes` | int | DMX-port writes dropped on lock timeout since boot. **Optional** — absent on builds without a DMX port (sonoff) and on firmware < 2026.2 w/ contract < 2.0.0. |
 | `ota` | bool | Whether OTA `/update` is compiled in. UI hides the OTA link when `false`. |
 
 ## 7. UI / UX specification (configuration SPA)
@@ -311,7 +317,7 @@ identical UX with any framework.
   | Status LED pin (number ≥0) | `hw.ledPin` | |
   | Button pin (number ≥0) | `hw.buttonPin` | |
   | "WiFi power saving (higher latency)" (checkbox) | `hw.wifiPowerSave` | Hint: off = lowest Art-Net latency / tightest sync; on = save power |
-  | "Require HTTP authentication for changes" (checkbox) | `hw.authEnabled` | When checked, reveals Username/Password (`hw.authUser`/`hw.authPass`) + a warning |
+  | "Require HTTP authentication for changes" (checkbox) | `hw.authEnabled` | When checked, reveals Username/Password (`hw.authUser`/`hw.authPass`) + a warning. Password field is blank on load (server redacts it); leaving it blank keeps the current password. |
 
 - **Power & WiFi**: **Reboot** (confirm modal *"Reboot device?"* → `POST /reboot`)
   and **Reset WiFi** (danger confirm modal *"Reset WiFi?"* → `POST /reset-wifi`).
@@ -357,6 +363,26 @@ identical UX with any framework.
 
 > Append-only, newest first. One entry per contract-version bump. Tag each
 > `Compatible` or `Breaking`. See §4 for when an entry is required.
+
+### 2.0.0 — 2026-07-16 — `Breaking`
+
+- **`hw.authPass` is write-only** (security fix): `GET /config` now always returns
+  `""` for it; an empty/omitted `authPass` in `POST /config` means "unchanged".
+  Previously the plaintext password was readable by any LAN client via the
+  unauthenticated `GET /config`.
+- **`POST /config` oversized body now returns `413`** (was `500`). The body
+  `{"error":"update too large"}` is unchanged.
+- `GET /config` responses are now compact JSON (previously pretty-printed) —
+  shape-identical, whitespace only.
+- **Host-header validation** on every route (incl. `/update`): unknown `Host`
+  values get `403`. Clients using the device IP, `<host>`, or `<host>.<label>`
+  (a single trailing label, e.g. `.local`/`.lan`) names are unaffected.
+- Added optional `info.dmx_dropped_writes` (additive) — DMX-port writes dropped
+  on lock timeout since boot; absent on builds without a DMX port.
+- `Compatible`: the firmware now sanity-checks user-supplied GPIO numbers
+  (`hw.ledPin`, `hw.buttonPin`, `dmx[].pin`); invalid pins are rejected and the
+  previous value kept (device entries with an invalid pin become `DISABLED`).
+  Valid payloads are unaffected.
 
 ### 1.0.0 — 2026-06-16 — `Compatible` (baseline)
 Initial contract. Documents the REST API and configuration SPA as of firmware

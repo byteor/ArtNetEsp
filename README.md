@@ -417,6 +417,32 @@ ESP8266 devices are unaffected - they've always used LittleFS.
 
 ---
 
+## Security model
+
+ArtNetEsp is designed for a **trusted private LAN** (a theater's own WiFi).
+Know what that implies before putting a node on a shared network:
+
+- **Transport is plain HTTP** — these chips can't realistically serve TLS.
+  Anyone who can sniff the LAN can read all traffic, including HTTP basic-auth
+  credentials.
+- **Art-Net is unauthenticated UDP by protocol** — anyone on the LAN can send
+  DMX frames to the node. That's how Art-Net works everywhere.
+- **HTTP basic-auth is optional and off by default** (`hw.authEnabled`). With
+  it off, anyone on the LAN can reconfigure the node (`POST /config`) or flash
+  new firmware (`/update`). Enable it if the WiFi is shared beyond the crew.
+- **The auth password is write-only over the API** — `GET /config` returns it
+  redacted (`""`), and an empty password in `POST /config` means "unchanged".
+- **Host-header validation** rejects requests that address the device by an
+  unrecognized name (a DNS-rebinding/CSRF guard). Use the device IP,
+  `<host>`, or `<host>.local` (any `<host>.<suffix>` works).
+- **WiFi setup happens over an open AP** with a plain-HTTP form — do it when
+  no untrusted party is in radio range.
+- **Storage is unencrypted flash**: WiFi credentials live in the WiFi stack's
+  NVS, and the config (including the auth password) in `/config/config.json`.
+  Physical access to the board means full access.
+
+---
+
 ## TODO:
 
 - [x] Root HTML - reset button

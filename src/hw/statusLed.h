@@ -11,6 +11,7 @@ class StatusLed
     uint8_t _ledPin;
     uint8_t _onValue;
     Ticker _ticker;
+    bool _blinkState = false;
 
     static constexpr float STATUS_CONNECTING = 0.1f;
     static constexpr float STATUS_PORTAL = 0.5f;
@@ -45,7 +46,10 @@ public:
 
     void tick()
     {
-        digitalWrite(_ledPin, !digitalRead(_ledPin));
+        // Blink via PWM, not digitalWrite: on ESP32 the pin may already be
+        // attached to LEDC (setBrightness), where digitalRead/Write don't work.
+        _blinkState = !_blinkState;
+        setBrightness(_blinkState ? PWM_MAX : 0);
     }
 
     static void staticTick(StatusLed *sl)
@@ -83,7 +87,7 @@ public:
     void stop(bool keepOn)
     {
         _ticker.detach();
-        digitalWrite(_ledPin, keepOn ? _onValue : !_onValue);
+        setBrightness(keepOn ? PWM_MAX : 0);
     }
 };
 

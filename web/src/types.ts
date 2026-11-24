@@ -41,6 +41,7 @@ export interface HardwareConfig {
   wifiPowerSave: boolean;
   authEnabled: boolean;
   authUser: string;
+  // Write-only: GET /config always returns ""; send a non-empty value to change it.
   authPass: string;
 }
 

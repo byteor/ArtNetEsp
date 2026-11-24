@@ -19,21 +19,21 @@
 
 namespace platform
 {
-    // Start advertising `hostname` over NetBIOS. Call once, after WiFi is
-    // connected (same place as mdnsBegin()). NetBIOS names are case-insensitive
-    // and capped at 15 chars; the responder handles truncation. Needs no
-    // per-loop polling (it answers from a UDP callback).
-    inline void netbiosBegin(const String &hostname)
+// Start advertising `hostname` over NetBIOS. Call once, after WiFi is
+// connected (same place as mdnsBegin()). NetBIOS names are case-insensitive
+// and capped at 15 chars; the responder handles truncation. Needs no
+// per-loop polling (it answers from a UDP callback).
+inline void netbiosBegin(const String &hostname)
+{
+    if (NBNS.begin(hostname.c_str()))
     {
-        if (NBNS.begin(hostname.c_str()))
-        {
-            LOG("NetBIOS responder started: " + hostname);
-        }
-        else
-        {
-            LOG(F("NetBIOS responder failed to start"));
-        }
+        LOG("NetBIOS responder started: " + hostname);
+    }
+    else
+    {
+        LOG(F("NetBIOS responder failed to start"));
     }
 }
+} // namespace platform
 
 #endif

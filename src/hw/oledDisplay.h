@@ -25,7 +25,6 @@ protected:
     const int TICKS_PER_PAGE = 2;
     const int TICKS_PER_MESSAGE = 4;
     const int MAIN_PAGES = 2; // assuming no DMX devices are setup
-    int PAGES = MAIN_PAGES;
 
     Adafruit_SSD1306 *display = NULL;
 
@@ -40,9 +39,9 @@ protected:
     static const unsigned long DISPLAY_REFRESH_INTERVAL = 1000; // ms
     unsigned long lastRefreshTime = 0;
 
-    art::Config *config;
+    art::Config *config = nullptr;
     int page = 0, ticksForPage = 0, ticksForMessage = 0;
-    char buf[128];
+    char buf[128] = {};
 
     void drawStr(uint8_t x, uint8_t y, const char *string)
     {
@@ -62,10 +61,10 @@ protected:
     void setStatus64();
 
 public:
+    // cppcheck-suppress shadowMember  // idiomatic setter: param mirrors the member it assigns via this->, disambiguated explicitly below
     void setConfig(art::Config *config)
     {
         this->config = config;
-        PAGES += config->dmx.size();
         setStatus();
     }
 
@@ -79,12 +78,15 @@ public:
 
         display->clearDisplay();
 
+        // Live count (B2 fix): config->dmx can shrink/grow at runtime via
+        // POST /config, so never cache the page count.
+        const int pages = MAIN_PAGES + (config ? static_cast<int>(config->dmx.size()) : 0);
         if (ticksForPage++ >= TICKS_PER_PAGE)
         {
             page++;
             ticksForPage = 0;
         }
-        if (page >= PAGES)
+        if (page >= pages)
         {
             page = 0;
         }
@@ -124,6 +126,8 @@ public:
 
     StatusDisplay()
     {
+        // cppcheck-suppress noCopyConstructor  // single long-lived instance (App::statusDisplay), never copied; adding rule-of-three plumbing here is a design change out of scope for this pass
+        // cppcheck-suppress noOperatorEq  // see noCopyConstructor above
         display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
         display->begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
         display->setTextSize(1);              // Normal 1:1 pixel scale
@@ -149,21 +153,23 @@ inline void StatusDisplay::setStatus32()
         case 1:
             drawStr(0, 0, WiFi.localIP().toString().c_str());
             drawStr(0, 16, WiFi.SSID().c_str());
-            sprintf(buf, "%d dBm", WiFi.RSSI());
+            snprintf(buf, sizeof(buf), "%d dBm", WiFi.RSSI());
             drawStr(48, 16, buf);
             // drawStr(0, 60, WiFi.hostname().c_str());
             break;
         default:
             // DMX channel page
             int i = page - MAIN_PAGES;
+            if (i < 0 || i >= static_cast<int>(config->dmx.size()))
+                break;
 
-            sprintf(buf, "%d", config->dmx[i].channel);
+            snprintf(buf, sizeof(buf), "%d", config->dmx[i].channel);
             drawStr(0, 8, buf, 2);
             // drawStr(0, 16, "DMX:");
-            sprintf(buf, "%d/%d  %s", i + 1, config->dmx.size(), config->dmxTypeToString(config->dmx[i].type).c_str());
+            snprintf(buf, sizeof(buf), "%d/%d  %s", i + 1, (int)config->dmx.size(), config->dmxTypeToString(config->dmx[i].type).c_str());
             drawStr(48, 0, buf);
             drawStr(48, 16, "i/o:");
-            sprintf(buf, "%d", config->dmx[i].pin);
+            snprintf(buf, sizeof(buf), "%d", config->dmx[i].pin);
             drawStr(80, 16, buf);
         }
     }
@@ -187,22 +193,24 @@ inline void StatusDisplay::setStatus64()
         case 1:
             drawStr(0, 14, WiFi.localIP().toString().c_str());
             drawStr(0, 40, WiFi.SSID().c_str());
-            sprintf(buf, "%d dBm", WiFi.RSSI());
+            snprintf(buf, sizeof(buf), "%d dBm", WiFi.RSSI());
             drawStr(48, 62, buf);
             // drawStr(0, 60, WiFi.hostname().c_str());
             break;
         default:
             // DMX channel page
             int i = page - MAIN_PAGES;
+            if (i < 0 || i >= static_cast<int>(config->dmx.size()))
+                break;
 
-            sprintf(buf, "%d", config->dmx[i].channel);
+            snprintf(buf, sizeof(buf), "%d", config->dmx[i].channel);
             drawStr(0, 40, "DMX:");
             drawStr(0, 62, buf);
             String name = config->dmxTypeToString(config->dmx[i].type);
-            sprintf(buf, "%d/%d  %s", i + 1, config->dmx.size(), name.substring(0, min(6, (int)name.length())).c_str());
+            snprintf(buf, sizeof(buf), "%d/%d  %s", i + 1, (int)config->dmx.size(), name.substring(0, min(6, (int)name.length())).c_str());
             drawStr(0, 14, buf);
             drawStr(80, 40, "I/O:");
-            sprintf(buf, "%d", config->dmx[i].pin);
+            snprintf(buf, sizeof(buf), "%d", config->dmx[i].pin);
             drawStr(84, 62, buf);
         }
     }

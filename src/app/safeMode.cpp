@@ -46,7 +46,7 @@ void safeMode(const String &reason)
     LOG("Safe mode AP: " + ssid + " @ " + WiFi.softAPIP().toString());
 
     safeServer.onNotFound([reason](AsyncWebServerRequest *request)
-                           { request->send(200, "text/html", diagnosticPage(reason)); });
+                          { request->send(200, "text/html", diagnosticPage(reason)); });
     safeServer.begin();
 
     // The diagnostic page is a best-effort addition - if WiFi/AsyncWebServer

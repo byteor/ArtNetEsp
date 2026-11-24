@@ -2,16 +2,17 @@
 
 ArtnetService::ArtnetService() {}
 
+// cppcheck-suppress shadowMember  // idiomatic init(): params mirror the members they assign via this->, disambiguated explicitly below
 void ArtnetService::init(int universe, const String &shortName, const String &longName, Device **dmxDevice, uint8_t devicesCount)
 {
     this->universe = universe;
     devices = dmxDevice;
     this->devicesCount = devicesCount;
 
-    artnet.setArtPollReplyConfigOem(0xFF);      // OemUnknown https://github.com/tobiasebsen/ArtNode/blob/master/src/Art-NetOemCodes.h
-    artnet.setArtPollReplyConfigEstaMan(0x00);  // ESTA manufacturer code
-    artnet.setArtPollReplyConfigStatus1(0x00);  // Unknown / Normal
-    artnet.setArtPollReplyConfigStatus2(0x08);  // sACN capable
+    artnet.setArtPollReplyConfigOem(0xFF);     // OemUnknown https://github.com/tobiasebsen/ArtNode/blob/master/src/Art-NetOemCodes.h
+    artnet.setArtPollReplyConfigEstaMan(0x00); // ESTA manufacturer code
+    artnet.setArtPollReplyConfigStatus1(0x00); // Unknown / Normal
+    artnet.setArtPollReplyConfigStatus2(0x08); // sACN capable
     artnet.setArtPollReplyConfigShortName(shortName);
     artnet.setArtPollReplyConfigLongName(longName);
 
